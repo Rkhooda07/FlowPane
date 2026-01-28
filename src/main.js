@@ -1,18 +1,24 @@
-const { invoke } = window.__TAURI__.core;
+const { getCurrentWindow } = window.__TAURI__.window;
 
-let greetInputEl;
-let greetMsgEl;
+const appWindow = getCurrentWindow();
 
-async function greet() {
-  // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-  greetMsgEl.textContent = await invoke("greet", { name: greetInputEl.value });
-}
-
-window.addEventListener("DOMContentLoaded", () => {
-  greetInputEl = document.querySelector("#greet-input");
-  greetMsgEl = document.querySelector("#greet-msg");
-  document.querySelector("#greet-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    greet();
-  });
+// Window controls
+document.getElementById('minimize-btn').addEventListener('click', () => {
+  // We'll implement collapse logic later, for now just use standard minimize
+  appWindow.minimize();
 });
+
+document.getElementById('close-btn').addEventListener('click', () => {
+  appWindow.close();
+});
+
+// Drag region handled by data-tauri-drag-region in HTML
+
+// UI Interactions
+document.getElementById('add-task-btn').addEventListener('click', () => {
+  console.log('Add task clicked');
+  // TODO: Show add task modal/input
+});
+
+// Initialize
+console.log('FlowPane initialized');
