@@ -13,9 +13,9 @@ document.getElementById('minimize-btn').addEventListener('click', (e) => {
   appElement.classList.toggle('collapsed');
 });
 
-document.querySelector('.title-bar').addEventListener('click', () => {
-  if (appElement.classList.contains('collapsed')) {
-    appElement.classList.remove('collapsed');
+document.querySelector('.title-bar').addEventListener('mousedown', async (e) => {
+  if (e.target.tagName !== 'BUTTON' && !e.target.closest('.controls')) {
+    await appWindow.startDragging();
   }
 });
 
@@ -110,19 +110,23 @@ document.getElementById('task-input').addEventListener('keypress', (e) => {
 });
 
 // Resize logic
-const directions = ['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'];
-directions.forEach(dir => {
+const dirMap = {
+  n: 'Top',
+  s: 'Bottom',
+  e: 'Right',
+  w: 'Left',
+  nw: 'TopLeft',
+  ne: 'TopRight',
+  sw: 'BottomLeft',
+  se: 'BottomRight'
+};
+
+Object.entries(dirMap).forEach(([dir, tauriDir]) => {
   const handle = document.querySelector(`.resize-handle.${dir}`);
   if (handle) {
-    handle.addEventListener('mousedown', (e) => {
+    handle.addEventListener('mousedown', async (e) => {
       e.preventDefault();
-      // Translate direction string to Tauri's enum if necessary, 
-      // but usually the string works or we use the specific side
-      // In Tauri 2, startResizing is available on the window
-      // For simplicity, we can also use data-tauri-drag-region for dragging
-      // and let the CSS cursor provide the visual cue, but we need 
-      // actual resize calls for frameless.
-      appWindow.startResizing(dir.toUpperCase());
+      await appWindow.startResizeDragging(tauriDir);
     });
   }
 });
