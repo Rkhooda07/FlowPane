@@ -23,6 +23,28 @@ pub fn run() {
             apply_acrylic(&window, Some((18, 18, 18, 125)))
                 .expect("Unsupported platform! 'apply_acrylic' is only supported on Windows");
 
+            // Tray setup
+            let tray_menu = tauri::menu::Menu::with_items(app, &[
+                &tauri::menu::MenuItem::with_id(app, "show", "Show", true, None::<&str>)?,
+                &tauri::menu::MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?,
+            ])?;
+
+            let _tray = tauri::tray::TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&tray_menu)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "quit" => {
+                        app.exit(0);
+                    }
+                    "show" => {
+                        let window = app.get_webview_window("main").unwrap();
+                        window.show().unwrap();
+                        window.set_focus().unwrap();
+                    }
+                    _ => {}
+                })
+                .build(app)?;
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![greet])

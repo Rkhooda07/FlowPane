@@ -7,10 +7,19 @@ let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 
 const appElement = document.getElementById('app');
 
+const ALL_WINDOWS_SIZE = { width: 324, height: 524 }; // Including padding
+const COLLAPSED_SIZE = { width: 174, height: 72 };
+
 // Window controls
-document.getElementById('minimize-btn').addEventListener('click', (e) => {
+document.getElementById('minimize-btn').addEventListener('click', async (e) => {
   e.stopPropagation();
-  appElement.classList.toggle('collapsed');
+  const isCollapsed = appElement.classList.toggle('collapsed');
+
+  if (isCollapsed) {
+    await appWindow.setSize(COLLAPSED_SIZE);
+  } else {
+    await appWindow.setSize(ALL_WINDOWS_SIZE);
+  }
 });
 
 document.querySelector('.title-bar').addEventListener('mousedown', async (e) => {
@@ -45,13 +54,15 @@ function renderTasks() {
       dueText = 'Completed';
     } else {
       const diffMs = dueDate - now;
-      const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      const diffHrs = Math.floor(diffMins / 60);
       const diffDays = Math.floor(diffHrs / 24);
 
       if (diffMs < 0) dueText = 'Overdue';
       else if (diffDays > 0) dueText = `Due in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
       else if (diffHrs > 0) dueText = `Due in ${diffHrs} hour${diffHrs > 1 ? 's' : ''}`;
-      else dueText = 'Due soon';
+      else if (diffMins > 0) dueText = `Due in ${diffMins} min${diffMins > 1 ? 's' : ''}`;
+      else dueText = 'Due now';
     }
 
     li.innerHTML = `
@@ -129,6 +140,44 @@ Object.entries(dirMap).forEach(([dir, tauriDir]) => {
       await appWindow.startResizeDragging(tauriDir);
     });
   }
+});
+
+// Update countdowns every minute
+setInterval(renderTasks, 60000);
+
+// Edge Snapping Logic
+const SNAP_THRESHOLD = 30;
+
+async function snapToEdges() {
+  const monitor = await appWindow.currentMonitor();
+  if (!monitor) return;
+
+  const { x: winX, y: winY } = await appWindow.outerPosition();
+  const { width: winW, height: winH } = await appWindow.outerSize();
+  const { width: scrW, height: scrH } = monitor.size;
+  const { x: offsetX, y: offsetY } = monitor.position;
+
+  let newX = winX;
+  let newY = winY;
+
+  // Horizontal Snapping
+  if (Math.abs(winX - offsetX) < SNAP_THRESHOLD) newX = offsetX;
+  else if (Math.abs(winX + winW - (offsetX + scrW)) < SNAP_THRESHOLD) newX = offsetX + scrW - winW;
+
+  // Vertical Snapping
+  if (Math.abs(winY - offsetY) < SNAP_THRESHOLD) newY = offsetY;
+  else if (Math.abs(winY + winH - (offsetY + scrH)) < SNAP_THRESHOLD) newY = offsetY + scrH - winH;
+
+  if (newX !== winX || newY !== winY) {
+    await appWindow.setPosition({ x: newX, y: newY });
+  }
+}
+
+// Listen for move events to trigger snapping
+let moveTimeout;
+appWindow.onMoved(() => {
+  clearTimeout(moveTimeout);
+  moveTimeout = setTimeout(snapToEdges, 100);
 });
 
 // Initialize
