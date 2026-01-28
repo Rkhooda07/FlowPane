@@ -41,7 +41,10 @@ document.getElementById('close-btn').addEventListener('click', (e) => {
 
 document.getElementById('minimize-btn').addEventListener('click', (e) => {
   e.stopPropagation();
+  isMinimizing = true;
   appWindow.minimize();
+  // Reset after animation finishes
+  setTimeout(() => { isMinimizing = false; }, 1000);
 });
 
 document.getElementById('maximize-btn').addEventListener('click', async (e) => {
@@ -68,11 +71,7 @@ document.querySelector('.title-bar').addEventListener('dblclick', async () => {
   await toggleCollapseY();
 });
 
-document.querySelector('.title-bar').addEventListener('mousedown', async (e) => {
-  if (e.target.tagName !== 'BUTTON' && !e.target.closest('.controls')) {
-    await appWindow.startDragging();
-  }
-});
+// No manual drag listener needed when using data-tauri-drag-region
 
 
 // Task functions
@@ -199,9 +198,11 @@ setInterval(renderTasks, 60000);
 // Edge Snapping Logic
 const SNAP_THRESHOLD = 30;
 
+// State for preventing snap during specific actions
+let isMinimizing = false;
+
 async function snapToEdges() {
-  // Prevent snapping if window is in a state where it shouldn't move
-  if (await appWindow.isMinimized() || await appWindow.isMaximized()) return;
+  if (isMinimizing) return;
 
   const monitor = await appWindow.currentMonitor();
   if (!monitor) return;
@@ -230,8 +231,9 @@ async function snapToEdges() {
 // Listen for move events to trigger snapping
 let moveTimeout;
 appWindow.onMoved(() => {
+  if (isMinimizing) return;
   clearTimeout(moveTimeout);
-  moveTimeout = setTimeout(snapToEdges, 100);
+  moveTimeout = setTimeout(snapToEdges, 1000); // 1 second after stop to ensure no lag during drag
 });
 
 // Initialize
