@@ -1,5 +1,6 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use tauri::Manager;
+#[allow(unused_imports)]
 use window_vibrancy::{apply_acrylic, apply_vibrancy, NSVisualEffectMaterial};
 
 #[tauri::command]
@@ -15,7 +16,7 @@ pub fn run() {
             let window = app.get_webview_window("main").unwrap();
 
             #[cfg(target_os = "macos")]
-            apply_vibrancy(&window, NSVisualEffectMaterial::AppearanceBased, None, None)
+            apply_vibrancy(&window, NSVisualEffectMaterial::Menu, None, None)
                 .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
 
             #[cfg(target_os = "windows")]

@@ -18,27 +18,26 @@
       </div>
     </header>
 
+    <div class="input-area">
+      <input type="text" id="task-input" placeholder="What's next?" autocomplete="off" />
+      <input type="datetime-local" id="due-input" />
+    </div>
+
     <main class="task-container">
       <ul class="task-list" id="task-list">
         <!-- Tasks will be injected here -->
-        <li class="task-item urgent">
-          <input type="checkbox" class="task-checkbox" />
-          <div class="task-info">
-            <div class="task-title">Finish project proposal</div>
-            <div class="task-due">Due in 2 hours</div>
-          </div>
-        </li>
-        <li class="task-item">
-          <input type="checkbox" class="task-checkbox" />
-          <div class="task-info">
-            <div class="task-title">Buy groceries</div>
-            <div class="task-due">Tomorrow, 10:00 AM</div>
-          </div>
-        </li>
       </ul>
     </main>
 
-    <button class="add-task-btn" id="add-task-btn">+</button>
+    <!-- Resize handles for frameless window -->
+    <div class="resize-handle n"></div>
+    <div class="resize-handle s"></div>
+    <div class="resize-handle e"></div>
+    <div class="resize-handle w"></div>
+    <div class="resize-handle nw"></div>
+    <div class="resize-handle ne"></div>
+    <div class="resize-handle sw"></div>
+    <div class="resize-handle se"></div>
   </div>
 
   <script type="module" src="/main.js"></script>
