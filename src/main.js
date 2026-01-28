@@ -8,18 +8,31 @@ let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 const appElement = document.getElementById('app');
 
 const ALL_WINDOWS_SIZE = { width: 324, height: 524 }; // Including padding
-const COLLAPSED_SIZE = { width: 174, height: 72 };
+const COLLAPSED_SIZE = { width: 224, height: 64 }; // Match body padding (24px) + app height (40px)
+
+async function toggleCollapse() {
+  const isCollapsed = appElement.classList.toggle('collapsed');
+
+  if (isCollapsed) {
+    // Let the CSS transition start before snapping window size
+    setTimeout(async () => {
+      await appWindow.setSize(COLLAPSED_SIZE);
+    }, 100);
+  } else {
+    // Resize window first so content has space to animate into
+    await appWindow.setSize(ALL_WINDOWS_SIZE);
+  }
+}
 
 // Window controls
 document.getElementById('minimize-btn').addEventListener('click', async (e) => {
   e.stopPropagation();
-  const isCollapsed = appElement.classList.toggle('collapsed');
+  await toggleCollapse();
+});
 
-  if (isCollapsed) {
-    await appWindow.setSize(COLLAPSED_SIZE);
-  } else {
-    await appWindow.setSize(ALL_WINDOWS_SIZE);
-  }
+// Double click title bar to fold/unfold (Stickies style)
+document.querySelector('.title-bar').addEventListener('dblclick', async () => {
+  await toggleCollapse();
 });
 
 document.querySelector('.title-bar').addEventListener('mousedown', async (e) => {

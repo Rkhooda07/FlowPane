@@ -46,18 +46,32 @@ body {
 }
 
 #app.collapsed {
-  height: 48px !important;
-  width: 150px !important;
-  border-radius: 24px;
+  height: 40px !important; /* Slimmer bar */
+  width: 200px !important; 
+  border-radius: 20px;
 }
 
 #app.collapsed .input-area,
 #app.collapsed .task-container {
-  display: none;
+  opacity: 0;
+  transform: translateY(-20px) scaleY(0);
+  pointer-events: none;
+  margin: 0;
+  padding: 0;
+  height: 0;
 }
 
 #app.collapsed .title-bar {
   padding: 8px 16px;
+  background: transparent;
+  border-bottom: none;
+}
+
+#app:not(.collapsed) .input-area,
+#app:not(.collapsed) .task-container {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
+  opacity: 1;
+  transform: translateY(0) scaleY(1);
 }
 
 .title-bar {
