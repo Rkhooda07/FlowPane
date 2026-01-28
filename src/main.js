@@ -28,7 +28,8 @@ document.querySelector('.title-bar').addEventListener('mousedown', async (e) => 
   }
 });
 
-document.getElementById('close-btn').addEventListener('click', () => {
+document.getElementById('close-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
   appWindow.close();
 });
 
@@ -71,10 +72,18 @@ function renderTasks() {
         <div class="task-title">${task.title}</div>
         <div class="task-due">${dueText}</div>
       </div>
+      <button class="delete-task-btn" title="Delete task">×</button>
     `;
 
     li.querySelector('.task-checkbox').addEventListener('change', (e) => {
       tasks[index].completed = e.target.checked;
+      saveTasks();
+      renderTasks();
+    });
+
+    li.querySelector('.delete-task-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      tasks.splice(index, 1);
       saveTasks();
       renderTasks();
     });
