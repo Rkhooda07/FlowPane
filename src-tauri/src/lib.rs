@@ -32,7 +32,7 @@ pub fn run() {
             let _tray = tauri::tray::TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&tray_menu)
-                .on_menu_event(|app, event| match event.id.as_ref() {
+                .on_menu_event(|app: &tauri::AppHandle, event| match event.id.as_ref() {
                     "quit" => {
                         app.exit(0);
                     }

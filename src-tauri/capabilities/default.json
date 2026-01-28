@@ -10,7 +10,7 @@
     "opener:default",
     "core:window:allow-start-dragging",
     "core:window:allow-start-resize-dragging",
-    "core:window:allow-position",
+    "core:window:allow-outer-position",
     "core:window:allow-set-position",
     "core:window:allow-outer-size",
     "core:window:allow-current-monitor"
