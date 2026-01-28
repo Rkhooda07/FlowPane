@@ -1,12 +1,12 @@
 :root {
-  --bg-color: rgba(18, 18, 18, 0.75);
-  --text-color: #f5f5f7;
-  --accent-color: #0071e3;
+  --bg-color: rgba(255, 255, 255, 0.01); /* Ghostly transparent */
+  --text-color: #ffffff;
+  --accent-color: #007aff;
   --urgent-color: #ff3b30;
-  --border-radius: 20px;
+  --border-radius: 24px;
   --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --glass-border: 1px solid rgba(255, 255, 255, 0.15);
-  --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  --glass-shadow: 0 30px 60px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
 }
 
 * {
@@ -31,8 +31,8 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--bg-color);
-  backdrop-filter: blur(30px) saturate(180%);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%) brightness(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(140%);
   border-radius: var(--border-radius);
   border: var(--glass-border);
   box-shadow: var(--glass-shadow);
@@ -65,14 +65,15 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   cursor: grab;
   user-select: none;
   transition: background 0.2s;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
 }
 
 .title-bar:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .title-bar:active {
@@ -83,6 +84,7 @@ body {
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .controls {
@@ -96,57 +98,58 @@ body {
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.1);
 }
 
 .control-btn:hover {
-  opacity: 0.8;
+  transform: scale(1.1);
 }
 
-.btn-close { background-color: #ff5f56; }
-.btn-minimize { background-color: #ffbd2e; }
+.btn-close { background-color: #ff5f56; border: 0.5px solid rgba(0,0,0,0.1); }
+.btn-minimize { background-color: #ffbd2e; border: 0.5px solid rgba(0,0,0,0.1); }
 
 .input-area {
-  padding: 12px 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
 }
 
 #task-input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 10px 12px;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid rgba(255, 255, 255, 0.2);
+  padding: 12px;
+  border-radius: 12px;
   color: white;
   font-size: 14px;
   outline: none;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #task-input:focus {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
 #due-input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 6px 12px;
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 11px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
   outline: none;
   cursor: pointer;
   width: fit-content;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
 #due-input:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 #due-input::-webkit-calendar-picker-indicator {
@@ -172,46 +175,48 @@ body {
   gap: 8px;
 }
 
-.task-item {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 12px;
-  border-radius: 10px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: slideIn 0.3s ease-out;
-  border: 1px solid transparent;
-}
-
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
+.task-item {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 14px;
+  border-radius: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  backdrop-filter: blur(10px);
+}
+
 .task-item:hover {
   background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px) scale(1.01);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.02);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .task-checkbox {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  background: transparent;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
   cursor: pointer;
   appearance: none;
   position: relative;
-  transition: all 0.2s;
-  margin-top: 2px;
+  transition: all 0.3s;
+  margin-top: 1px;
 }
 
 .task-checkbox:checked {
-  background: var(--accent-color);
-  border-color: var(--accent-color);
+  background: #ffffff;
+  border-color: #ffffff;
 }
 
 .task-checkbox:checked::after {
@@ -220,8 +225,9 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: white;
-  font-size: 12px;
+  color: #000;
+  font-size: 14px;
+  font-weight: 800;
 }
 
 .task-info {
