@@ -7,6 +7,7 @@
     "frontendDist": "../src"
   },
   "app": {
+    "macOSPrivateApi": true,
     "withGlobalTauri": true,
     "windows": [
       {
@@ -16,8 +17,7 @@
         "resizable": true,
         "decorations": false,
         "transparent": true,
-        "alwaysOnTop": true,
-        "macOSPrivateApi": true
+        "alwaysOnTop": true
       }
     ],
     "security": {
