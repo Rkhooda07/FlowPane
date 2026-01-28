@@ -7,32 +7,51 @@ let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 
 const appElement = document.getElementById('app');
 
-const ALL_WINDOWS_SIZE = { width: 324, height: 524 }; // Including padding
-const COLLAPSED_SIZE = { width: 224, height: 64 }; // Match body padding (24px) + app height (40px)
+const ALL_WINDOWS_SIZE = { width: 324, height: 524 };
+const COLLAPSED_SIZE_Y = { width: 324, height: 52 }; // Full width horizontal bar
+const COLLAPSED_SIZE_X = { width: 52, height: 164 }; // Ultra-slim vertical strip
 
-async function toggleCollapse() {
-  const isCollapsed = appElement.classList.toggle('collapsed');
+async function toggleCollapseY() {
+  appElement.classList.remove('collapsed-x');
+  const isCollapsed = appElement.classList.toggle('collapsed-y');
 
   if (isCollapsed) {
-    // Let the CSS transition start before snapping window size
-    setTimeout(async () => {
-      await appWindow.setSize(COLLAPSED_SIZE);
-    }, 100);
+    setTimeout(async () => await appWindow.setSize(COLLAPSED_SIZE_Y), 50);
   } else {
-    // Resize window first so content has space to animate into
+    await appWindow.setSize(ALL_WINDOWS_SIZE);
+  }
+}
+
+async function toggleCollapseX() {
+  appElement.classList.remove('collapsed-y');
+  const isCollapsed = appElement.classList.toggle('collapsed-x');
+
+  if (isCollapsed) {
+    setTimeout(async () => await appWindow.setSize(COLLAPSED_SIZE_X), 50);
+  } else {
     await appWindow.setSize(ALL_WINDOWS_SIZE);
   }
 }
 
 // Window controls
-document.getElementById('minimize-btn').addEventListener('click', async (e) => {
+document.getElementById('collapse-y-btn').addEventListener('click', async (e) => {
   e.stopPropagation();
-  await toggleCollapse();
+  await toggleCollapseY();
 });
 
-// Double click title bar to fold/unfold (Stickies style)
+document.getElementById('collapse-x-btn').addEventListener('click', async (e) => {
+  e.stopPropagation();
+  await toggleCollapseX();
+});
+
+document.getElementById('close-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  appWindow.close();
+});
+
+// Double click defaults to vertical collapse
 document.querySelector('.title-bar').addEventListener('dblclick', async () => {
-  await toggleCollapse();
+  await toggleCollapseY();
 });
 
 document.querySelector('.title-bar').addEventListener('mousedown', async (e) => {
@@ -41,10 +60,6 @@ document.querySelector('.title-bar').addEventListener('mousedown', async (e) => 
   }
 });
 
-document.getElementById('close-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  appWindow.close();
-});
 
 // Task functions
 function saveTasks() {
