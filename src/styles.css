@@ -172,8 +172,21 @@ body {
 }
 
 .btn-close { background-color: #ff5f56; border: 0.5px solid rgba(0,0,0,0.1); }
-.btn-collapse-y { background-color: #ffbd2e; border: 0.5px solid rgba(0,0,0,0.1); }
-.btn-collapse-x { background-color: #28c840; border: 0.5px solid rgba(0,0,0,0.1); }
+.btn-minimize { background-color: #ffbd2e; border: 0.5px solid rgba(0,0,0,0.1); }
+.btn-maximize { background-color: #28c840; border: 0.5px solid rgba(0,0,0,0.1); }
+
+.btn-fold-y, .btn-fold-x {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 0.5px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  margin-left: 4px;
+}
+
+.btn-fold-y { }
+.btn-fold-x { }
+
+.collapsed-y .btn-fold-y { transform: rotate(180deg); }
+.collapsed-x .btn-fold-x { transform: rotate(180deg); }
 
 .input-area {
   padding: 16px;

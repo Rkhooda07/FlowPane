@@ -34,19 +34,33 @@ async function toggleCollapseX() {
 }
 
 // Window controls
-document.getElementById('collapse-y-btn').addEventListener('click', async (e) => {
+document.getElementById('close-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  appWindow.close();
+});
+
+document.getElementById('minimize-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  appWindow.minimize();
+});
+
+document.getElementById('maximize-btn').addEventListener('click', async (e) => {
+  e.stopPropagation();
+  if (await appWindow.isMaximized()) {
+    await appWindow.unmaximize();
+  } else {
+    await appWindow.maximize();
+  }
+});
+
+document.getElementById('fold-y-btn').addEventListener('click', async (e) => {
   e.stopPropagation();
   await toggleCollapseY();
 });
 
-document.getElementById('collapse-x-btn').addEventListener('click', async (e) => {
+document.getElementById('fold-x-btn').addEventListener('click', async (e) => {
   e.stopPropagation();
   await toggleCollapseX();
-});
-
-document.getElementById('close-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  appWindow.close();
 });
 
 // Double click defaults to vertical collapse
@@ -186,6 +200,9 @@ setInterval(renderTasks, 60000);
 const SNAP_THRESHOLD = 30;
 
 async function snapToEdges() {
+  // Prevent snapping if window is in a state where it shouldn't move
+  if (await appWindow.isMinimized() || await appWindow.isMaximized()) return;
+
   const monitor = await appWindow.currentMonitor();
   if (!monitor) return;
 
