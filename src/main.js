@@ -156,25 +156,22 @@ const taskInput = document.getElementById('task-input');
 const dueInput = document.getElementById('due-input');
 const inputArea = document.querySelector('.input-area');
 
-function formatDateTimeHuman(date) {
-  return date.toLocaleString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
+function getDefaultDueDate() {
+  const date = new Date();
+  date.setHours(date.getHours() + 1);
+  return date;
 }
 
 // Initialize default date
-const tomorrow = new Date();
-tomorrow.setDate(tomorrow.getDate() + 1);
-tomorrow.setHours(12, 0, 0, 0);
-dueInput.value = formatDateTimeHuman(tomorrow);
+dueInput.value = formatDateTimeHuman(getDefaultDueDate());
 
 taskInput.addEventListener('focus', () => {
   inputArea.classList.add('expanded');
+});
+
+dueInput.addEventListener('focus', () => {
+  // Select first block on focus
+  setTimeout(() => dueInput.setSelectionRange(0, 2), 10);
 });
 
 inputArea.addEventListener('focusout', (e) => {
@@ -193,46 +190,94 @@ taskInput.addEventListener('keypress', (e) => {
   }
 });
 
-dueInput.addEventListener('input', (e) => {
-  let v = e.target.value.replace(/\D/g, ''); // Get only digits
-  let final = '';
+dueInput.addEventListener('keydown', (e) => {
+  // Allow navigation keys
+  if (['ArrowLeft', 'ArrowRight', 'Tab', 'Backspace', 'Delete', 'Enter'].includes(e.key)) return;
 
-  // MM/DD/YYYY, HH:MM
-  if (v.length > 0) final += v.substring(0, 2);
-  if (v.length > 2) final += '/' + v.substring(2, 4);
-  if (v.length > 4) final += '/' + v.substring(4, 8);
-  if (v.length > 8) final += ', ' + v.substring(8, 10);
-  if (v.length > 10) final += ':' + v.substring(10, 12);
+  // Allow only digits and A/P
+  if (!/\d|[apAP]/.test(e.key)) {
+    e.preventDefault();
+    return;
+  }
 
-  // AM/PM handling (after digits)
-  const letters = e.target.value.toUpperCase().replace(/[^APM]/g, '');
-  if (letters.includes('A')) final += ' AM';
-  else if (letters.includes('P')) final += ' PM';
+  const cursor = dueInput.selectionStart;
+  const value = dueInput.value;
 
-  e.target.value = final;
+  // Auto-jump logic
+  if (/\d/.test(e.key)) {
+    // If cursor is on a separator, move to next digit
+    if (['/', ',', ' ', ':'].includes(value[cursor])) {
+      dueInput.setSelectionRange(cursor + 1, cursor + 1);
+    }
+  }
 });
 
-dueInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    addTask();
-    inputArea.classList.remove('expanded');
-    dueInput.blur();
+dueInput.addEventListener('input', (e) => {
+  const cursor = dueInput.selectionStart;
+  const val = dueInput.value;
+
+  // Clean digits only
+  let digits = val.replace(/\D/g, '');
+  let period = val.toUpperCase().includes('P') ? 'PM' : 'AM';
+
+  // Reconstruct in DD/MM/YYYY format with padding to prevent shifting
+  let d = (digits.substring(0, 2) || '').padEnd(2, '0');
+  let m = (digits.substring(2, 4) || '').padEnd(2, '0');
+  let y = (digits.substring(4, 8) || '').padEnd(4, '0');
+  let hh = (digits.substring(8, 10) || '').padEnd(2, '0');
+  let mm = (digits.substring(10, 12) || '').padEnd(2, '0');
+
+  const final = `${d}/${m}/${y}, ${hh}:${mm} ${period}`;
+  dueInput.value = final;
+
+  // Jump separators: DD/MM/YYYY, HH:MM AM
+  // Positions of separators: 2(/), 5(/), 10(,), 11( ), 14(:), 17( )
+  const separators = [2, 5, 10, 14, 17];
+  let nextPos = cursor;
+  if (separators.includes(cursor)) {
+    nextPos++;
+  }
+  dueInput.setSelectionRange(nextPos, nextPos);
+});
+
+// Auto-focus the next block on click
+dueInput.addEventListener('click', () => {
+  const cursor = dueInput.selectionStart;
+  const blocks = [[0, 2], [3, 5], [6, 10], [12, 14], [15, 17]];
+  for (const [start, end] of blocks) {
+    if (cursor >= start && cursor <= end) {
+      dueInput.setSelectionRange(start, end);
+      break;
+    }
   }
 });
 
 function parseMaskedDate(str) {
-  // Format: MM/DD/YYYY, HH:MM AM/PM
+  // Format: DD/MM/YYYY, HH:MM AM/PM
   const regex = /(\d{2})\/(\d{2})\/(\d{4}),\s(\d{2}):(\d{2})\s(AM|PM)/;
   const match = str.match(regex);
   if (!match) return null;
 
-  let [_, month, day, year, hour, min, period] = match;
+  let [_, day, month, year, hour, min, period] = match;
   hour = parseInt(hour);
   if (period === 'PM' && hour < 12) hour += 12;
   if (period === 'AM' && hour === 12) hour = 0;
 
   const date = new Date(year, month - 1, day, hour, min);
   return isNaN(date.getTime()) ? null : date;
+}
+
+function formatDateTimeHuman(date) {
+  const d = String(date.getDate()).padStart(2, '0');
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const y = date.getFullYear();
+  let h = date.getHours();
+  const min = String(date.getMinutes()).padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  const hh = String(h).padStart(2, '0');
+
+  return `${d}/${m}/${y}, ${hh}:${min} ${ampm}`;
 }
 
 function addTask() {
@@ -265,10 +310,7 @@ function addTask() {
   titleInput.value = '';
 
   // Reset date input to next default
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(12, 0, 0, 0);
-  dueInput.value = formatDateTimeHuman(tomorrow);
+  dueInput.value = formatDateTimeHuman(getDefaultDueDate());
 }
 
 // Resize logic
