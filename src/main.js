@@ -166,8 +166,39 @@ function addTask() {
 }
 
 // Event Listeners
-document.getElementById('task-input').addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') addTask();
+const taskInput = document.getElementById('task-input');
+const dueInput = document.getElementById('due-input');
+const inputArea = document.querySelector('.input-area');
+
+taskInput.addEventListener('focus', () => {
+  inputArea.classList.add('expanded');
+  // Set default due date to tomorrow if currently empty
+  if (!dueInput.value) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(12, 0, 0, 0);
+    // Format for datetime-local: YYYY-MM-DDTHH:mm
+    const tzOffset = tomorrow.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(tomorrow - tzOffset)).toISOString().slice(0, 16);
+    dueInput.value = localISOTime;
+  }
+});
+
+// Use focusout with a small delay to check if focus moved to dueInput
+inputArea.addEventListener('focusout', (e) => {
+  setTimeout(() => {
+    if (!inputArea.contains(document.activeElement) && !taskInput.value.trim()) {
+      inputArea.classList.remove('expanded');
+    }
+  }, 100);
+});
+
+taskInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    addTask();
+    inputArea.classList.remove('expanded');
+    taskInput.blur();
+  }
 });
 
 // Resize logic
