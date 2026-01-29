@@ -201,6 +201,11 @@ taskInput.addEventListener('keypress', (e) => {
   }
 });
 
+// Auto-close native date picker when a date is picked
+dueInput.addEventListener('change', () => {
+  dueInput.blur();
+});
+
 // Resize logic
 const dirMap = {
   n: 'Top',
