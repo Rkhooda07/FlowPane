@@ -151,44 +151,6 @@ function renderTasks() {
   }
 }
 
-function addTask() {
-  const titleInput = document.getElementById('task-input');
-  const dueInput = document.getElementById('due-input');
-
-  if (!titleInput.value.trim()) return;
-
-  // Attempt to parse manual input
-  let dueDate = new Date(dueInput.value);
-  if (isNaN(dueDate.getTime())) {
-    // If parsing fails, use tomorrow at 12 PM as fallback
-    dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 1);
-    dueDate.setHours(12, 0, 0, 0);
-  }
-
-  const newTask = {
-    title: titleInput.value.trim(),
-    due: dueDate.toISOString(),
-    completed: false,
-    urgent: false
-  };
-
-  const diffHrs = (new Date(newTask.due) - new Date()) / (1000 * 60 * 60);
-  if (diffHrs < 5) newTask.urgent = true;
-
-  tasks.push(newTask);
-  saveTasks();
-  renderTasks();
-
-  titleInput.value = '';
-
-  // Reset date input to next default
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(12, 0, 0, 0);
-  dueInput.value = formatDateTimeHuman(tomorrow);
-}
-
 // Event Listeners
 const taskInput = document.getElementById('task-input');
 const dueInput = document.getElementById('due-input');
@@ -231,6 +193,25 @@ taskInput.addEventListener('keypress', (e) => {
   }
 });
 
+dueInput.addEventListener('input', (e) => {
+  let v = e.target.value.replace(/\D/g, ''); // Get only digits
+  let final = '';
+
+  // MM/DD/YYYY, HH:MM
+  if (v.length > 0) final += v.substring(0, 2);
+  if (v.length > 2) final += '/' + v.substring(2, 4);
+  if (v.length > 4) final += '/' + v.substring(4, 8);
+  if (v.length > 8) final += ', ' + v.substring(8, 10);
+  if (v.length > 10) final += ':' + v.substring(10, 12);
+
+  // AM/PM handling (after digits)
+  const letters = e.target.value.toUpperCase().replace(/[^APM]/g, '');
+  if (letters.includes('A')) final += ' AM';
+  else if (letters.includes('P')) final += ' PM';
+
+  e.target.value = final;
+});
+
 dueInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
     addTask();
@@ -238,6 +219,57 @@ dueInput.addEventListener('keypress', (e) => {
     dueInput.blur();
   }
 });
+
+function parseMaskedDate(str) {
+  // Format: MM/DD/YYYY, HH:MM AM/PM
+  const regex = /(\d{2})\/(\d{2})\/(\d{4}),\s(\d{2}):(\d{2})\s(AM|PM)/;
+  const match = str.match(regex);
+  if (!match) return null;
+
+  let [_, month, day, year, hour, min, period] = match;
+  hour = parseInt(hour);
+  if (period === 'PM' && hour < 12) hour += 12;
+  if (period === 'AM' && hour === 12) hour = 0;
+
+  const date = new Date(year, month - 1, day, hour, min);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+function addTask() {
+  const titleInput = document.getElementById('task-input');
+  const dueInput = document.getElementById('due-input');
+
+  if (!titleInput.value.trim()) return;
+
+  let dueDate = parseMaskedDate(dueInput.value);
+  if (!dueDate) {
+    dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+    dueDate.setHours(12, 0, 0, 0);
+  }
+
+  const newTask = {
+    title: titleInput.value.trim(),
+    due: dueDate.toISOString(),
+    completed: false,
+    urgent: false
+  };
+
+  const diffHrs = (new Date(newTask.due) - new Date()) / (1000 * 60 * 60);
+  if (diffHrs < 5) newTask.urgent = true;
+
+  tasks.push(newTask);
+  saveTasks();
+  renderTasks();
+
+  titleInput.value = '';
+
+  // Reset date input to next default
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(12, 0, 0, 0);
+  dueInput.value = formatDateTimeHuman(tomorrow);
+}
 
 // Resize logic
 const dirMap = {
