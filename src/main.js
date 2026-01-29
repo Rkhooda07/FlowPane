@@ -139,6 +139,16 @@ function renderTasks() {
 
     taskList.appendChild(li);
   });
+
+  if (tasks.length === 0) {
+    taskList.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size: 32px; margin-bottom: 10px; opacity: 0.3;">✨</div>
+        <p>No tasks left!</p>
+        <p style="font-size: 11px; opacity: 0.6; margin-top: 4px;">Time to flow into something new.</p>
+      </div>
+    `;
+  }
 }
 
 function addTask() {
@@ -147,14 +157,22 @@ function addTask() {
 
   if (!titleInput.value.trim()) return;
 
+  // Attempt to parse manual input
+  let dueDate = new Date(dueInput.value);
+  if (isNaN(dueDate.getTime())) {
+    // If parsing fails, use tomorrow at 12 PM as fallback
+    dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 1);
+    dueDate.setHours(12, 0, 0, 0);
+  }
+
   const newTask = {
     title: titleInput.value.trim(),
-    due: dueInput.value || new Date(Date.now() + 86400000).toISOString(), // Default to tomorrow
+    due: dueDate.toISOString(),
     completed: false,
-    urgent: false // Could be logic driven (e.g. if due in < 3 hours)
+    urgent: false
   };
 
-  // Simple urgency logic
   const diffHrs = (new Date(newTask.due) - new Date()) / (1000 * 60 * 60);
   if (diffHrs < 5) newTask.urgent = true;
 
@@ -163,6 +181,12 @@ function addTask() {
   renderTasks();
 
   titleInput.value = '';
+
+  // Reset date input to next default
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(12, 0, 0, 0);
+  dueInput.value = formatDateTimeHuman(tomorrow);
 }
 
 // Event Listeners
@@ -170,21 +194,27 @@ const taskInput = document.getElementById('task-input');
 const dueInput = document.getElementById('due-input');
 const inputArea = document.querySelector('.input-area');
 
+function formatDateTimeHuman(date) {
+  return date.toLocaleString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
+// Initialize default date
+const tomorrow = new Date();
+tomorrow.setDate(tomorrow.getDate() + 1);
+tomorrow.setHours(12, 0, 0, 0);
+dueInput.value = formatDateTimeHuman(tomorrow);
+
 taskInput.addEventListener('focus', () => {
   inputArea.classList.add('expanded');
-  // Set default due date to tomorrow if currently empty
-  if (!dueInput.value) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(12, 0, 0, 0);
-    // Format for datetime-local: YYYY-MM-DDTHH:mm
-    const tzOffset = tomorrow.getTimezoneOffset() * 60000;
-    const localISOTime = (new Date(tomorrow - tzOffset)).toISOString().slice(0, 16);
-    dueInput.value = localISOTime;
-  }
 });
 
-// Use focusout with a small delay to check if focus moved to dueInput
 inputArea.addEventListener('focusout', (e) => {
   setTimeout(() => {
     if (!inputArea.contains(document.activeElement) && !taskInput.value.trim()) {
@@ -201,9 +231,12 @@ taskInput.addEventListener('keypress', (e) => {
   }
 });
 
-// Auto-close native date picker when a date is picked
-dueInput.addEventListener('change', () => {
-  dueInput.blur();
+dueInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    addTask();
+    inputArea.classList.remove('expanded');
+    dueInput.blur();
+  }
 });
 
 // Resize logic

@@ -46,10 +46,16 @@ body {
   -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(140%);
   border-radius: var(--border-radius);
   border: none;
-  box-shadow: none; /* Removing shadow to eliminate potential glow/border issues */
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   position: relative;
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: appAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes appAppear {
+  from { opacity: 0; transform: scale(0.98) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 
@@ -227,6 +233,11 @@ body {
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
+.due-container {
+  position: relative;
+  width: fit-content;
+}
+
 #due-input {
   background: rgba(255, 255, 255, 0.08);
   border: 0.5px solid rgba(255, 255, 255, 0.2);
@@ -236,7 +247,8 @@ body {
   font-size: 12px;
   outline: none;
   cursor: pointer;
-  width: fit-content;
+  width: auto;
+  min-width: 160px;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   opacity: 0;
   height: 0;
@@ -249,7 +261,7 @@ body {
   opacity: 1;
   height: 32px;
   padding: 8px 12px;
-  margin-top: 4px; /* Tiny bit of space from input */
+  margin-top: 4px;
   pointer-events: all;
   border-width: 0.5px;
 }
@@ -266,12 +278,49 @@ body {
 .task-container {
   flex: 1;
   padding: 8px 16px;
-  overflow-y: auto;
-  scrollbar-width: none;
+  overflow-y: overlay; /* Better behavior for custom scrollbars */
+  scrollbar-gutter: stable;
 }
 
 .task-container::-webkit-scrollbar {
-  display: none;
+  width: 4px;
+}
+
+.task-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.task-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.task-container:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.2);
+  text-align: center;
+  padding: 40px;
+  animation: fadeIn 1s ease-out;
+}
+
+.empty-state symbol {
+  font-size: 40px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
 }
 
 .task-list {
