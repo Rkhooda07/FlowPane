@@ -93,8 +93,10 @@ body {
   font-size: 11px;
 }
 
-#app.collapsed-x .controls,
-#app.collapsed-y .controls {
+#app.collapsed-x .window-controls,
+#app.collapsed-y .window-controls,
+#app.collapsed-x .action-controls,
+#app.collapsed-y .action-controls {
   gap: 4px;
   transform: scale(0.8);
 }
@@ -136,13 +138,14 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 10px 16px;
   background: rgba(255, 255, 255, 0.08);
   cursor: grab;
   user-select: none;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
-  min-height: 32px;
+  min-height: 38px;
+  position: relative;
 }
 
 .title-bar:hover {
@@ -154,15 +157,22 @@ body {
 }
 
 .title-bar h1 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.7);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
-.controls {
+.window-controls,
+.action-controls {
   display: flex;
+  align-items: center;
   gap: 8px;
+  z-index: 10;
 }
 
 .control-btn {
@@ -171,33 +181,37 @@ body {
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 8px;
-  color: rgba(0, 0, 0, 0.5);
-  font-weight: bold;
+  font-size: 0; /* Hide internal text/symbols by default */
+  position: relative;
 }
 
 .control-btn:hover {
   transform: scale(1.1);
 }
 
-.btn-close { background-color: #ff5f56; border: 0.5px solid rgba(0,0,0,0.1); }
-.btn-minimize { background-color: #ffbd2e; border: 0.5px solid rgba(0,0,0,0.1); }
-.btn-maximize { background-color: #28c840; border: 0.5px solid rgba(0,0,0,0.1); }
+.btn-close { background-color: #ff5f56; }
+.btn-minimize { background-color: #ffbd2e; }
+.btn-maximize { background-color: #28c840; }
 
 .btn-fold-y, .btn-fold-x {
+  width: 18px; /* Slightly larger as requested */
+  height: 18px;
   background-color: rgba(255, 255, 255, 0.1);
-  border: 0.5px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  margin-left: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  margin-left: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.btn-fold-y { }
-.btn-fold-x { }
+.btn-fold-y:hover, .btn-fold-x:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
 
 .collapsed-y .btn-fold-y { transform: rotate(180deg); }
 .collapsed-x .btn-fold-x { transform: rotate(180deg); }
