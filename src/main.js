@@ -191,53 +191,72 @@ taskInput.addEventListener('keypress', (e) => {
 });
 
 dueInput.addEventListener('keydown', (e) => {
-  // Allow navigation keys
-  if (['ArrowLeft', 'ArrowRight', 'Tab', 'Backspace', 'Delete', 'Enter'].includes(e.key)) return;
+  // Navigation & special keys
+  if (['ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Shift'].includes(e.key)) return;
 
-  // Allow only digits and A/P
-  if (!/\d|[apAP]/.test(e.key)) {
-    e.preventDefault();
-    return;
-  }
-
-  const cursor = dueInput.selectionStart;
-  const value = dueInput.value;
-
-  // Auto-jump logic
-  if (/\d/.test(e.key)) {
-    // If cursor is on a separator, move to next digit
-    if (['/', ',', ' ', ':'].includes(value[cursor])) {
-      dueInput.setSelectionRange(cursor + 1, cursor + 1);
-    }
-  }
-});
-
-dueInput.addEventListener('input', (e) => {
   const cursor = dueInput.selectionStart;
   const val = dueInput.value;
 
-  // Clean digits only
-  let digits = val.replace(/\D/g, '');
-  let period = val.toUpperCase().includes('P') ? 'PM' : 'AM';
-
-  // Reconstruct in DD/MM/YYYY format with padding to prevent shifting
-  let d = (digits.substring(0, 2) || '').padEnd(2, '0');
-  let m = (digits.substring(2, 4) || '').padEnd(2, '0');
-  let y = (digits.substring(4, 8) || '').padEnd(4, '0');
-  let hh = (digits.substring(8, 10) || '').padEnd(2, '0');
-  let mm = (digits.substring(10, 12) || '').padEnd(2, '0');
-
-  const final = `${d}/${m}/${y}, ${hh}:${mm} ${period}`;
-  dueInput.value = final;
-
-  // Jump separators: DD/MM/YYYY, HH:MM AM
-  // Positions of separators: 2(/), 5(/), 10(,), 11( ), 14(:), 17( )
-  const separators = [2, 5, 10, 14, 17];
-  let nextPos = cursor;
-  if (separators.includes(cursor)) {
-    nextPos++;
+  // Handle Backspace
+  if (e.key === 'Backspace') {
+    e.preventDefault();
+    let pos = cursor - 1;
+    // Skip separators backwards
+    while (pos >= 0 && /[^\dAPM]/.test(val[pos])) {
+      pos--;
+    }
+    if (pos >= 0) {
+      if (/\d/.test(val[pos])) {
+        dueInput.value = val.substring(0, pos) + '0' + val.substring(pos + 1);
+      }
+      dueInput.setSelectionRange(pos, pos);
+    }
+    return;
   }
-  dueInput.setSelectionRange(nextPos, nextPos);
+
+  // Handle Numbers
+  if (/\d/.test(e.key)) {
+    e.preventDefault();
+    let pos = cursor;
+    // If it's on a separator, jump to next digit
+    while (pos < 17 && /[^\d]/.test(val[pos])) {
+      pos++;
+    }
+    if (pos < 17) {
+      dueInput.value = val.substring(0, pos) + e.key + val.substring(pos + 1);
+      let nextPos = pos + 1;
+      // Skip separators for next cursor position
+      while (nextPos < 17 && /[^\d]/.test(dueInput.value[nextPos])) {
+        nextPos++;
+      }
+      dueInput.setSelectionRange(nextPos, nextPos);
+    }
+    return;
+  }
+
+  // Handle AM/PM
+  if (/[apAP]/.test(e.key)) {
+    e.preventDefault();
+    const period = e.key.toUpperCase() === 'A' ? 'AM' : 'PM';
+    dueInput.value = val.substring(0, 18) + period;
+    dueInput.setSelectionRange(18, 20);
+    return;
+  }
+
+  // Block all other keys (like letters or excess slashes)
+  e.preventDefault();
+});
+
+// Simple click selection logic remains
+dueInput.addEventListener('click', () => {
+  const cursor = dueInput.selectionStart;
+  const blocks = [[0, 2], [3, 5], [6, 10], [12, 14], [15, 17], [18, 20]];
+  for (const [start, end] of blocks) {
+    if (cursor >= start && cursor <= end) {
+      dueInput.setSelectionRange(start, end);
+      break;
+    }
+  }
 });
 
 // Auto-focus the next block on click
