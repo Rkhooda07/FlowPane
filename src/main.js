@@ -7,9 +7,9 @@ let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 
 const appElement = document.getElementById('app');
 
-const ALL_WINDOWS_SIZE = { width: 324, height: 524 };
-const COLLAPSED_SIZE_Y = { width: 324, height: 52 }; // Full width horizontal bar
-const COLLAPSED_SIZE_X = { width: 52, height: 164 }; // Ultra-slim vertical strip
+const ALL_WINDOWS_SIZE = { width: 300, height: 500 };
+const COLLAPSED_SIZE_Y = { width: 300, height: 28 }; // Match CSS height for bar
+const COLLAPSED_SIZE_X = { width: 28, height: 140 }; // Match CSS dimensions
 
 async function toggleCollapseY() {
   appElement.classList.remove('collapsed-x');

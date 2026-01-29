@@ -6,44 +6,52 @@
   --border-radius: 24px;
   --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --glass-border: 1px solid rgba(255, 255, 255, 0.15);
-  --glass-shadow: 0 30px 60px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
+  --glass-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  outline: none !important;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent !important;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }
 
 body {
   font-family: var(--font-family);
-  background-color: transparent;
   color: var(--text-color);
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 #app {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg-color);
   backdrop-filter: blur(16px) saturate(180%) brightness(140%);
   -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(140%);
   border-radius: var(--border-radius);
-  border: var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  border: none;
+  box-shadow: none; /* Removing shadow to eliminate potential glow/border issues */
   overflow: hidden;
   position: relative;
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-body {
-  padding: 12px;
-}
 
 #app.collapsed-y {
   height: 28px !important;
