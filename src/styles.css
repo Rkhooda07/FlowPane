@@ -469,3 +469,96 @@ body {
   animation: pulse 3s infinite ease-in-out;
   border: 1px solid rgba(255, 59, 48, 0.3);
 }
+
+/* Focus Mode Styles */
+.focus-mode {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.focus-mode.hidden {
+  opacity: 0;
+  transform: scale(1.1);
+  pointer-events: none;
+}
+
+.focus-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 20px;
+  letter-spacing: -0.5px;
+}
+
+.focus-timer {
+  font-family: 'Outfit', sans-serif;
+  font-size: 48px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 40px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.focus-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 200px;
+}
+
+.timer-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.timer-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.timer-btn.complete {
+  background: rgba(40, 200, 64, 0.2);
+  border-color: rgba(40, 200, 64, 0.3);
+  color: #28c840;
+}
+
+.timer-btn.complete:hover {
+  background: rgba(40, 200, 64, 0.3);
+}
+
+.timer-btn.exit {
+  background: rgba(255, 59, 48, 0.1);
+  border-color: rgba(255, 59, 48, 0.2);
+  color: #ff3b30;
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.timer-btn.exit:hover {
+  opacity: 1;
+}

@@ -137,6 +137,11 @@ function renderTasks() {
       renderTasks();
     });
 
+    // Double click to enter focus mode
+    li.addEventListener('dblclick', () => {
+      enterFocusMode(task);
+    });
+
     taskList.appendChild(li);
   });
 
@@ -397,6 +402,81 @@ appWindow.onMoved(() => {
   clearTimeout(moveTimeout);
   moveTimeout = setTimeout(snapToEdges, 1000); // 1 second after stop to ensure no lag during drag
 });
+
+// Focus Mode Logic
+let focusTimerInterval = null;
+let focusSeconds = 0;
+let currentFocusTask = null;
+
+function enterFocusMode(task) {
+  currentFocusTask = task;
+
+  document.getElementById('focus-task-name').textContent = task.title;
+  document.getElementById('focus-mode').classList.remove('hidden');
+
+  // Reset timer
+  stopTimer();
+  focusSeconds = 0;
+  updateTimerDisplay();
+
+  // Auto-start
+  toggleTimer();
+}
+
+function exitFocusMode() {
+  stopTimer();
+  document.getElementById('focus-mode').classList.add('hidden');
+  currentFocusTask = null;
+}
+
+function toggleTimer() {
+  const btn = document.getElementById('timer-toggle-btn');
+  if (focusTimerInterval) {
+    stopTimer();
+    btn.textContent = 'Resume';
+    btn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+  } else {
+    focusTimerInterval = setInterval(() => {
+      focusSeconds++;
+      updateTimerDisplay();
+    }, 1000);
+    btn.textContent = 'Pause';
+    btn.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+  }
+}
+
+function stopTimer() {
+  if (focusTimerInterval) {
+    clearInterval(focusTimerInterval);
+    focusTimerInterval = null;
+  }
+}
+
+function updateTimerDisplay() {
+  const hrs = Math.floor(focusSeconds / 3600);
+  const mins = Math.floor((focusSeconds % 3600) / 60);
+  const secs = focusSeconds % 60;
+
+  const display = [hrs, mins, secs]
+    .map(v => String(v).padStart(2, '0'))
+    .join(':');
+
+  document.getElementById('timer-display').textContent = display;
+}
+
+// Event Listeners for Focus Mode
+document.getElementById('timer-toggle-btn').addEventListener('click', toggleTimer);
+
+document.getElementById('focus-complete-btn').addEventListener('click', () => {
+  if (currentFocusTask) {
+    currentFocusTask.completed = true;
+    saveTasks();
+    renderTasks();
+    exitFocusMode();
+  }
+});
+
+document.getElementById('focus-exit-btn').addEventListener('click', exitFocusMode);
 
 // Initialize
 renderTasks();
