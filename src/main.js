@@ -430,19 +430,31 @@ function exitFocusMode() {
 }
 
 function toggleTimer() {
-  const btn = document.getElementById('timer-toggle-btn');
+  const playIcon = document.getElementById('play-icon');
+  const pauseIcon = document.getElementById('pause-icon');
+
   if (focusTimerInterval) {
     stopTimer();
-    btn.textContent = 'Resume';
-    btn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+    playIcon.classList.remove('hidden');
+    pauseIcon.classList.add('hidden');
   } else {
     focusTimerInterval = setInterval(() => {
       focusSeconds++;
       updateTimerDisplay();
     }, 1000);
-    btn.textContent = 'Pause';
-    btn.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+    playIcon.classList.add('hidden');
+    pauseIcon.classList.remove('hidden');
   }
+}
+
+function resetTimer() {
+  stopTimer();
+  focusSeconds = 0;
+  updateTimerDisplay();
+  const playIcon = document.getElementById('play-icon');
+  const pauseIcon = document.getElementById('pause-icon');
+  playIcon.classList.remove('hidden');
+  pauseIcon.classList.add('hidden');
 }
 
 function stopTimer() {
@@ -466,6 +478,7 @@ function updateTimerDisplay() {
 
 // Event Listeners for Focus Mode
 document.getElementById('timer-toggle-btn').addEventListener('click', toggleTimer);
+document.getElementById('timer-reset-btn').addEventListener('click', resetTimer);
 
 document.getElementById('focus-complete-btn').addEventListener('click', () => {
   if (currentFocusTask) {

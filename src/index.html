@@ -40,16 +40,25 @@
     </main>
 
     <div id="focus-mode" class="focus-mode hidden">
-      <div class="focus-header">
+      <div class="focus-top-bar">
+        <button id="focus-exit-btn" class="focus-action-btn exit" title="Exit Focus Mode">×</button>
+        <button id="focus-complete-btn" class="focus-action-btn complete" title="Mark Task as Complete">✓</button>
+      </div>
+
+      <div class="focus-content">
         <h2 id="focus-task-name">Active Task</h2>
+        <div class="focus-timer">
+          <span id="timer-display">00:00:00</span>
+        </div>
       </div>
-      <div class="focus-timer">
-        <span id="timer-display">00:00:00</span>
-      </div>
-      <div class="focus-controls">
-        <button id="timer-toggle-btn" class="timer-btn">Start</button>
-        <button id="focus-complete-btn" class="timer-btn complete">Complete</button>
-        <button id="focus-exit-btn" class="timer-btn exit">Exit</button>
+
+      <div class="focus-bottom-controls">
+        <button id="timer-settings-btn" class="round-btn timer-util" title="Timer Settings">⏱</button>
+        <button id="timer-toggle-btn" class="round-btn play-pause" title="Play/Pause">
+          <span id="play-icon">▶</span>
+          <span id="pause-icon" class="hidden">⏸</span>
+        </button>
+        <button id="timer-reset-btn" class="round-btn reset" title="Reset Timer">↺</button>
       </div>
     </div>
 
