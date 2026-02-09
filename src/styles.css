@@ -114,6 +114,18 @@ body {
   transform: scale(0.8);
 }
 
+#app.collapsed-x .window-controls {
+  display: none; /* Hide window controls to prevent collision */
+}
+
+#app.collapsed-x .action-controls {
+  flex-direction: column;
+  gap: 8px;
+  transform: scale(1);
+  order: 1; /* Put buttons at top */
+  margin-top: 8px;
+}
+
 #app.collapsed-y .input-area,
 #app.collapsed-y .task-container {
   opacity: 0;
