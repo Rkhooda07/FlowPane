@@ -480,6 +480,11 @@ function updateTimerDisplay() {
 document.getElementById('timer-toggle-btn').addEventListener('click', toggleTimer);
 document.getElementById('timer-reset-btn').addEventListener('click', resetTimer);
 
+// Focus Mode Window Controls
+document.getElementById('focus-close-btn').addEventListener('click', () => appWindow.close());
+document.getElementById('focus-minimize-btn').addEventListener('click', () => appWindow.minimize());
+document.getElementById('focus-maximize-btn').addEventListener('click', () => appWindow.toggleMaximize());
+
 document.getElementById('focus-complete-btn').addEventListener('click', () => {
   if (currentFocusTask) {
     currentFocusTask.completed = true;

@@ -40,10 +40,18 @@
     </main>
 
     <div id="focus-mode" class="focus-mode hidden">
-      <div class="focus-top-bar">
-        <button id="focus-exit-btn" class="focus-action-btn exit" title="Exit Focus Mode">×</button>
-        <button id="focus-complete-btn" class="focus-action-btn complete" title="Mark Task as Complete">✓</button>
-      </div>
+      <header class="title-bar focus-header-bar" data-tauri-drag-region>
+        <div class="window-controls">
+          <button class="control-btn btn-close" id="focus-close-btn" title="Close"></button>
+          <button class="control-btn btn-minimize" id="focus-minimize-btn" title="Minimize"></button>
+          <button class="control-btn btn-maximize" id="focus-maximize-btn" title="Maximize"></button>
+        </div>
+        <h1>FlowPane</h1>
+        <div class="focus-actions">
+          <button id="focus-complete-btn" class="focus-action-btn complete" title="Mark Task as Complete">✓</button>
+          <button id="focus-exit-btn" class="focus-action-btn exit" title="Exit Focus Mode">×</button>
+        </div>
+      </header>
 
       <div class="focus-content">
         <h2 id="focus-task-name">Active Task</h2>
