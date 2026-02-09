@@ -60,8 +60,8 @@ body {
 
 
 #app.collapsed-y {
-  height: 28px !important;
-  width: 300px !important; /* Keep full width like a navbar */
+  height: 38px !important; /* Increased from 28px for better spacing */
+  width: 300px !important;
 }
 
 #app.collapsed-x {
@@ -70,8 +70,11 @@ body {
 }
 
 #app.collapsed-y .title-bar {
-  padding: 0 12px;
-  height: 28px;
+  padding: 6px 16px; /* Better vertical padding */
+  height: 38px;
+  min-height: 38px;
+  justify-content: space-between;
+  align-items: center;
 }
 
 #app.collapsed-x .title-bar {
@@ -90,7 +93,10 @@ body {
 }
 
 #app.collapsed-y h1 {
-  font-size: 11px;
+  font-size: 12px; /* Slightly larger for readability */
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 #app.collapsed-x .window-controls,
