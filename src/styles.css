@@ -65,8 +65,8 @@ body {
 }
 
 #app.collapsed-x {
-  width: 28px !important;
-  height: 140px !important;
+  width: 48px !important; /* Increased from 28px for better usability */
+  height: 200px !important; /* Taller for better proportions */
 }
 
 #app.collapsed-y .title-bar {
@@ -81,15 +81,24 @@ body {
   flex-direction: column;
   height: 100%;
   padding: 12px 0;
-  width: 28px;
+  width: 48px;
+  justify-content: flex-start; /* Align to top */
+  align-items: center;
 }
 
 #app.collapsed-x h1 {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: rotate(180deg);
-  font-size: 11px;
-  margin-top: 8px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  order: 2; /* Push title after buttons */
+  margin-top: 24px; /* Add space between buttons and title */
+  margin-bottom: auto; /* Push to fill remaining space */
+  padding: 12px 0;
+  position: static; /* Override any absolute positioning */
+  left: auto;
+  transform-origin: center;
 }
 
 #app.collapsed-y h1 {
@@ -99,9 +108,7 @@ body {
   transform: translateX(-50%);
 }
 
-#app.collapsed-x .window-controls,
 #app.collapsed-y .window-controls,
-#app.collapsed-x .action-controls,
 #app.collapsed-y .action-controls {
   gap: 4px;
   transform: scale(0.8);
