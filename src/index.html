@@ -68,6 +68,21 @@
         </button>
         <button id="timer-reset-btn" class="round-btn reset" title="Reset Timer">↺</button>
       </div>
+
+      <!-- Timer Settings Modal -->
+      <div id="timer-modal" class="timer-modal hidden">
+        <div class="timer-modal-content">
+          <h3>Set Timer</h3>
+          <div class="timer-input-group">
+            <input type="number" id="timer-input-minutes" placeholder="25" min="1" max="180">
+            <span>min</span>
+          </div>
+          <div class="timer-modal-actions">
+            <button id="timer-cancel-btn" class="modal-btn cancel">Cancel</button>
+            <button id="timer-start-btn" class="modal-btn start">Start</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Resize handles for frameless window -->

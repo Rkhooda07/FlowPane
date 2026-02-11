@@ -407,6 +407,7 @@ appWindow.onMoved(() => {
 let focusTimerInterval = null;
 let focusSeconds = 0;
 let currentFocusTask = null;
+let isCountdown = false;
 
 function enterFocusMode(task) {
   currentFocusTask = task;
@@ -417,6 +418,7 @@ function enterFocusMode(task) {
   // Reset timer
   stopTimer();
   focusSeconds = 0;
+  isCountdown = false;
   updateTimerDisplay();
 
   // Auto-start
@@ -427,6 +429,7 @@ function exitFocusMode() {
   stopTimer();
   document.getElementById('focus-mode').classList.add('hidden');
   currentFocusTask = null;
+  isCountdown = false;
 }
 
 function toggleTimer() {
@@ -439,8 +442,21 @@ function toggleTimer() {
     pauseIcon.classList.add('hidden');
   } else {
     focusTimerInterval = setInterval(() => {
-      focusSeconds++;
-      updateTimerDisplay();
+      if (isCountdown) {
+        if (focusSeconds > 0) {
+          focusSeconds--;
+          updateTimerDisplay();
+        } else {
+          stopTimer();
+          // Optional: Add completion sound or notification here
+          playIcon.classList.remove('hidden');
+          pauseIcon.classList.add('hidden');
+          isCountdown = false;
+        }
+      } else {
+        focusSeconds++;
+        updateTimerDisplay();
+      }
     }, 1000);
     playIcon.classList.add('hidden');
     pauseIcon.classList.remove('hidden');
@@ -450,6 +466,7 @@ function toggleTimer() {
 function resetTimer() {
   stopTimer();
   focusSeconds = 0;
+  isCountdown = false;
   updateTimerDisplay();
   const playIcon = document.getElementById('play-icon');
   const pauseIcon = document.getElementById('pause-icon');
@@ -476,9 +493,44 @@ function updateTimerDisplay() {
   document.getElementById('timer-display').textContent = display;
 }
 
+// Timer Settings Modal Logic
+const timerModal = document.getElementById('timer-modal');
+const timerInput = document.getElementById('timer-input-minutes');
+
+function openTimerSettings() {
+  timerModal.classList.remove('hidden');
+  timerInput.focus();
+}
+
+function closeTimerModal() {
+  timerModal.classList.add('hidden');
+}
+
+function startCountdown() {
+  const mins = parseInt(timerInput.value);
+  if (mins && mins > 0) {
+    stopTimer();
+    focusSeconds = mins * 60;
+    isCountdown = true;
+    updateTimerDisplay();
+    closeTimerModal();
+    toggleTimer(); // Start immediately
+  }
+}
+
 // Event Listeners for Focus Mode
 document.getElementById('timer-toggle-btn').addEventListener('click', toggleTimer);
 document.getElementById('timer-reset-btn').addEventListener('click', resetTimer);
+document.getElementById('timer-settings-btn').addEventListener('click', openTimerSettings);
+
+// Modal Listeners
+document.getElementById('timer-cancel-btn').addEventListener('click', closeTimerModal);
+document.getElementById('timer-start-btn').addEventListener('click', startCountdown);
+
+// Allow Enter key in input
+timerInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') startCountdown();
+});
 
 // Focus Mode Window Controls
 document.getElementById('focus-close-btn').addEventListener('click', () => appWindow.close());
