@@ -537,26 +537,27 @@ body {
   pointer-events: none;
 }
 
-.focus-actions {
+.focus-secondary-actions {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
   align-items: center;
+  padding: 12px 24px;
+  width: 100%;
 }
 
 .focus-action-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.4);
-  width: 24px; /* Smaller to match header scale better */
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  margin-left: 4px;
+  font-size: 16px;
 }
 
 .focus-action-btn:hover {

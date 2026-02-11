@@ -537,6 +537,16 @@ document.getElementById('focus-close-btn').addEventListener('click', () => appWi
 document.getElementById('focus-minimize-btn').addEventListener('click', () => appWindow.minimize());
 document.getElementById('focus-maximize-btn').addEventListener('click', () => appWindow.toggleMaximize());
 
+document.getElementById('focus-fold-y-btn').addEventListener('click', async (e) => {
+  e.stopPropagation();
+  await toggleCollapseY();
+});
+
+document.getElementById('focus-fold-x-btn').addEventListener('click', async (e) => {
+  e.stopPropagation();
+  await toggleCollapseX();
+});
+
 document.getElementById('focus-complete-btn').addEventListener('click', () => {
   if (currentFocusTask) {
     currentFocusTask.completed = true;
