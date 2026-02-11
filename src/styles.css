@@ -126,6 +126,19 @@ body {
   margin-top: 8px;
 }
 
+/* Hide Focus Mode content when collapsed side */
+#app.collapsed-x .focus-mode .focus-content,
+#app.collapsed-x .focus-mode .focus-bottom-controls,
+#app.collapsed-x .focus-mode .focus-secondary-actions,
+#app.collapsed-x .focus-mode .timer-modal {
+  display: none !important;
+}
+
+#app.collapsed-x .focus-header-bar {
+  border-bottom: none;
+  background: transparent; 
+}
+
 #app.collapsed-y .input-area,
 #app.collapsed-y .task-container {
   opacity: 0;
