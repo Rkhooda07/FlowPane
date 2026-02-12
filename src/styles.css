@@ -254,6 +254,10 @@ body {
 .collapsed-y .btn-fold-y { transform: rotate(180deg); }
 .collapsed-x .btn-fold-x { transform: rotate(180deg); }
 
+/* Maintain rotation on hover when folded */
+.collapsed-y .btn-fold-y:hover { transform: rotate(180deg) scale(1.1); }
+.collapsed-x .btn-fold-x:hover { transform: rotate(180deg) scale(1.1); }
+
 .input-area {
   padding: 16px;
   display: flex;
