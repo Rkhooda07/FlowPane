@@ -228,7 +228,43 @@ dueInput.addEventListener('keydown', (e) => {
       pos++;
     }
     if (pos < 17) {
-      dueInput.value = val.substring(0, pos) + e.key + val.substring(pos + 1);
+      let newVal = val.substring(0, pos) + e.key + val.substring(pos + 1);
+
+      // Validation Logic
+      const d = parseInt(newVal.substring(0, 2));
+      const m = parseInt(newVal.substring(3, 5));
+      const y = parseInt(newVal.substring(6, 10));
+      const currentYear = new Date().getFullYear();
+
+      // Clamp Day
+      if (d > 31) newVal = '31' + newVal.substring(2);
+      if (d === 0) newVal = '01' + newVal.substring(2);
+
+      // Clamp Month
+      if (m > 12) newVal = newVal.substring(0, 3) + '12' + newVal.substring(5);
+      if (m === 0) newVal = newVal.substring(0, 3) + '01' + newVal.substring(5);
+
+      // Clamp Year (Simple check: if fully formed year < currentYear)
+      // When editing year digit by digit, we need to be careful. 
+      // E.g. typing '2' in '2024' -> '2024'. 
+      // If editing index 6 (first digit of year). Type '1'. Result '1024'.
+      // 1024 < 2025. Clamp to currentYear?
+      if (pos >= 6 && pos <= 9) {
+        const newY = parseInt(newVal.substring(6, 10));
+        if (newY < currentYear) {
+          // Only clamp if we are sure? 
+          // Actually, user said "not the past ofc".
+          // If I try to change 2026 to 2025, it should stop me?
+          // If I try to change 2026 to 1..., it should stop me.
+          // So if newY < currentYear, revert to currentYear's digits or just ignore?
+          // Requirement: "it'll just set it to max... for year it could be any but not the past".
+          // So setting to currentYear seems right.
+          newVal = newVal.substring(0, 6) + currentYear + newVal.substring(10);
+        }
+      }
+
+      dueInput.value = newVal;
+
       let nextPos = pos + 1;
       // Skip separators for next cursor position
       while (nextPos < 17 && /[^\d]/.test(dueInput.value[nextPos])) {
