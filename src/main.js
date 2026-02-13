@@ -244,24 +244,22 @@ dueInput.addEventListener('keydown', (e) => {
       if (m > 12) newVal = newVal.substring(0, 3) + '12' + newVal.substring(5);
       if (m === 0) newVal = newVal.substring(0, 3) + '01' + newVal.substring(5);
 
-      // Clamp Year (Simple check: if fully formed year < currentYear)
-      // When editing year digit by digit, we need to be careful. 
-      // E.g. typing '2' in '2024' -> '2024'. 
-      // If editing index 6 (first digit of year). Type '1'. Result '1024'.
-      // 1024 < 2025. Clamp to currentYear?
+      // Clamp Year (if fully formed year < currentYear)
       if (pos >= 6 && pos <= 9) {
         const newY = parseInt(newVal.substring(6, 10));
         if (newY < currentYear) {
-          // Only clamp if we are sure? 
-          // Actually, user said "not the past ofc".
-          // If I try to change 2026 to 2025, it should stop me?
-          // If I try to change 2026 to 1..., it should stop me.
-          // So if newY < currentYear, revert to currentYear's digits or just ignore?
-          // Requirement: "it'll just set it to max... for year it could be any but not the past".
-          // So setting to currentYear seems right.
           newVal = newVal.substring(0, 6) + currentYear + newVal.substring(10);
         }
       }
+
+      // Clamp Hours (12-hour format)
+      const h = parseInt(newVal.substring(12, 14));
+      if (h > 12) newVal = newVal.substring(0, 12) + '12' + newVal.substring(14);
+      if (h === 0) newVal = newVal.substring(0, 12) + '01' + newVal.substring(14); // Hours 00 is invalid in 12h
+
+      // Clamp Minutes
+      const min = parseInt(newVal.substring(15, 17));
+      if (min > 59) newVal = newVal.substring(0, 15) + '59' + newVal.substring(17);
 
       dueInput.value = newVal;
 
