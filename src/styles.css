@@ -94,7 +94,7 @@ body {
   letter-spacing: 1px;
   order: 2; /* Push title after buttons */
   margin-top: auto; /* Push to bottom area */
-  margin-bottom: 24px; /* Space from bottom */
+  margin-bottom: auto; /* Center vertically */
   padding: 12px 0;
   position: static; /* Override any absolute positioning */
   left: auto;
@@ -102,6 +102,7 @@ body {
   display: flex;
   flex-direction: row; /* Horizontal in rotated context */
   align-items: center;
+  justify-content: center; /* Center the content */
   gap: 8px;
 }
 
@@ -218,15 +219,25 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Focus mode navbar timer - larger font */
+.focus-header-bar .navbar-timer {
+  font-size: 13px; /* Increased from 11px for focus mode */
+}
+
 #app.collapsed-y .navbar-timer {
-  font-size: 10px;
+  font-size: 11px; /* Increased from 10px */
   margin-left: 8px;
 }
 
 #app.collapsed-x .navbar-timer {
-  font-size: 10px;
+  font-size: 11px; /* Increased from 10px */
   margin-left: 0;
   margin-top: 8px; /* Space between name and timer in vertical layout */
+}
+
+/* Focus mode collapsed-x - larger font */
+#app.collapsed-x .focus-header-bar .navbar-timer {
+  font-size: 12px;
 }
 
 .window-controls,
@@ -568,7 +579,7 @@ body {
 }
 
 .focus-header-bar h1 {
-  font-size: 13px;
+  font-size: 15px; /* Increased from 13px */
   font-weight: 600;
   letter-spacing: 0.5px;
   color: rgba(255, 255, 255, 0.7);
