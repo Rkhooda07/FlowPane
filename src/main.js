@@ -4,6 +4,7 @@ const appWindow = getCurrentWindow();
 
 // State management
 let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+let isInFocusMode = false;
 
 const appElement = document.getElementById('app');
 
@@ -16,8 +17,14 @@ async function toggleCollapseY() {
   const isCollapsed = appElement.classList.toggle('collapsed-y');
 
   if (isCollapsed) {
+    // If in focus mode, update navbar to show task name
+    if (isInFocusMode && currentFocusTask) {
+      updateNavbarTitle(currentFocusTask.title);
+    }
     setTimeout(async () => await appWindow.setSize(COLLAPSED_SIZE_Y), 50);
   } else {
+    // Restore "FlowPane" when unfolding
+    updateNavbarTitle('FlowPane');
     await appWindow.setSize(ALL_WINDOWS_SIZE);
   }
 }
@@ -445,9 +452,13 @@ let isCountdown = false;
 
 function enterFocusMode(task) {
   currentFocusTask = task;
+  isInFocusMode = true;
 
   document.getElementById('focus-task-name').textContent = task.title;
   document.getElementById('focus-mode').classList.remove('hidden');
+
+  // Update navbar title to task name immediately
+  updateNavbarTitle(task.title);
 
   // Reset timer
   stopTimer();
@@ -463,7 +474,11 @@ function exitFocusMode() {
   stopTimer();
   document.getElementById('focus-mode').classList.add('hidden');
   currentFocusTask = null;
+  isInFocusMode = false;
   isCountdown = false;
+
+  // Restore "FlowPane" title when exiting focus mode
+  updateNavbarTitle('FlowPane');
 }
 
 function toggleTimer() {
@@ -591,6 +606,16 @@ document.getElementById('focus-complete-btn').addEventListener('click', () => {
 });
 
 document.getElementById('focus-exit-btn').addEventListener('click', exitFocusMode);
+
+// Helper function to update navbar title
+function updateNavbarTitle(title) {
+  // Update both main navbar and focus mode navbar
+  const mainTitle = document.querySelector('.title-bar h1');
+  const focusTitle = document.querySelector('.focus-header-bar h1');
+
+  if (mainTitle) mainTitle.textContent = title;
+  if (focusTitle) focusTitle.textContent = title;
+}
 
 // Initialize
 renderTasks();
