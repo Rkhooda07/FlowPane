@@ -20,11 +20,13 @@ async function toggleCollapseY() {
     // If in focus mode, update navbar to show task name
     if (isInFocusMode && currentFocusTask) {
       updateNavbarTitle(currentFocusTask.title);
+      showNavbarTimer();
     }
     setTimeout(async () => await appWindow.setSize(COLLAPSED_SIZE_Y), 50);
   } else {
     // Restore "FlowPane" when unfolding
     updateNavbarTitle('FlowPane');
+    hideNavbarTimer();
     await appWindow.setSize(ALL_WINDOWS_SIZE);
   }
 }
@@ -34,8 +36,16 @@ async function toggleCollapseX() {
   const isCollapsed = appElement.classList.toggle('collapsed-x');
 
   if (isCollapsed) {
+    // If in focus mode, update navbar to show task name
+    if (isInFocusMode && currentFocusTask) {
+      updateNavbarTitle(currentFocusTask.title);
+      showNavbarTimer();
+    }
     setTimeout(async () => await appWindow.setSize(COLLAPSED_SIZE_X), 50);
   } else {
+    // Restore "FlowPane" when unfolding
+    updateNavbarTitle('FlowPane');
+    hideNavbarTimer();
     await appWindow.setSize(ALL_WINDOWS_SIZE);
   }
 }
@@ -479,6 +489,7 @@ function exitFocusMode() {
 
   // Restore "FlowPane" title when exiting focus mode
   updateNavbarTitle('FlowPane');
+  hideNavbarTimer();
 }
 
 function toggleTimer() {
@@ -540,6 +551,11 @@ function updateTimerDisplay() {
     .join(':');
 
   document.getElementById('timer-display').textContent = display;
+
+  // Update navbar timer if in focus mode
+  if (isInFocusMode) {
+    updateNavbarTimer(display);
+  }
 }
 
 // Timer Settings Modal Logic
@@ -613,8 +629,39 @@ function updateNavbarTitle(title) {
   const mainTitle = document.querySelector('.title-bar h1');
   const focusTitle = document.querySelector('.focus-header-bar h1');
 
-  if (mainTitle) mainTitle.textContent = title;
-  if (focusTitle) focusTitle.textContent = title;
+  if (mainTitle) {
+    // Get the timer span and preserve it
+    const timerSpan = mainTitle.querySelector('.navbar-timer');
+    mainTitle.childNodes[0].textContent = title;
+  }
+  if (focusTitle) {
+    const timerSpan = focusTitle.querySelector('.navbar-timer');
+    focusTitle.childNodes[0].textContent = title;
+  }
+}
+
+// Helper function to update navbar timer
+function updateNavbarTimer(timeString) {
+  const navbarTimers = document.querySelectorAll('.navbar-timer');
+  navbarTimers.forEach(timer => {
+    timer.textContent = timeString;
+  });
+}
+
+// Helper function to show navbar timer
+function showNavbarTimer() {
+  const navbarTimers = document.querySelectorAll('.navbar-timer');
+  navbarTimers.forEach(timer => {
+    timer.classList.remove('hidden');
+  });
+}
+
+// Helper function to hide navbar timer
+function hideNavbarTimer() {
+  const navbarTimers = document.querySelectorAll('.navbar-timer');
+  navbarTimers.forEach(timer => {
+    timer.classList.add('hidden');
+  });
 }
 
 // Initialize

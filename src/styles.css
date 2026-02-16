@@ -93,12 +93,16 @@ body {
   font-size: 13px;
   letter-spacing: 1px;
   order: 2; /* Push title after buttons */
-  margin-top: 24px; /* Add space between buttons and title */
-  margin-bottom: auto; /* Push to fill remaining space */
+  margin-top: auto; /* Push to bottom area */
+  margin-bottom: 24px; /* Space from bottom */
   padding: 12px 0;
   position: static; /* Override any absolute positioning */
   left: auto;
   transform-origin: center;
+  display: flex;
+  flex-direction: row; /* Horizontal in rotated context */
+  align-items: center;
+  gap: 8px;
 }
 
 #app.collapsed-y h1 {
@@ -203,6 +207,26 @@ body {
   left: 50%;
   transform: translateX(-50%);
   pointer-events: none;
+}
+
+.navbar-timer {
+  margin-left: 12px;
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(255, 204, 102, 0.9);
+  letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+#app.collapsed-y .navbar-timer {
+  font-size: 10px;
+  margin-left: 8px;
+}
+
+#app.collapsed-x .navbar-timer {
+  font-size: 10px;
+  margin-left: 0;
+  margin-top: 8px; /* Space between name and timer in vertical layout */
 }
 
 .window-controls,
