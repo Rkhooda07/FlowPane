@@ -371,6 +371,7 @@ body {
   padding: 8px 16px;
   overflow-y: overlay; /* Better behavior for custom scrollbars */
   scrollbar-gutter: stable;
+  cursor: pointer;
 }
 
 .task-container::-webkit-scrollbar {

@@ -376,7 +376,7 @@ function addTask() {
   };
 
   const diffHrs = (new Date(newTask.due) - new Date()) / (1000 * 60 * 60);
-  if (diffHrs < 5) newTask.urgent = true;
+  if (diffHrs < 0.25) newTask.urgent = true; // 15 minutes = 0.25 hours
 
   tasks.push(newTask);
   saveTasks();
