@@ -1,4 +1,4 @@
-const { getCurrentWindow } = window.__TAURI__.window;
+const { getCurrentWindow, currentMonitor, LogicalSize } = window.__TAURI__.window;
 
 const appWindow = getCurrentWindow();
 
@@ -8,9 +8,9 @@ let isInFocusMode = false;
 
 const appElement = document.getElementById('app');
 
-const ALL_WINDOWS_SIZE = { width: 300, height: 500 };
-const COLLAPSED_SIZE_Y = { width: 300, height: 38 }; // Match CSS height for bar
-const COLLAPSED_SIZE_X = { width: 48, height: 250 }; // Match CSS dimensions
+const ALL_WINDOWS_SIZE = new LogicalSize(300, 500);
+const COLLAPSED_SIZE_Y = new LogicalSize(300, 38); // Match CSS height for bar
+const COLLAPSED_SIZE_X = new LogicalSize(48, 250); // Match CSS dimensions
 
 async function toggleCollapseY() {
   appElement.classList.remove('collapsed-x');
@@ -22,7 +22,35 @@ async function toggleCollapseY() {
       updateNavbarTitle(currentFocusTask.title);
       showNavbarTimer();
     }
-    setTimeout(async () => await appWindow.setSize(COLLAPSED_SIZE_Y), 50);
+
+    // Resize first, then move to top
+    setTimeout(async () => {
+      await appWindow.setSize(COLLAPSED_SIZE_Y);
+
+      // Move to top of screen if in focus mode
+      if (isInFocusMode && currentFocusTask) {
+        try {
+          console.log('Attempting to move window to top...');
+          const monitor = await currentMonitor();
+          console.log('Monitor:', monitor);
+
+          if (monitor) {
+            const currentPos = await appWindow.outerPosition();
+            console.log('Current position:', currentPos);
+
+            const { y: offsetY } = monitor.position;
+            console.log('Monitor offset Y:', offsetY);
+
+            // Move to top of screen using PhysicalPosition (since monitor.position is physical)
+            const newPosition = new window.__TAURI__.window.PhysicalPosition(currentPos.x, offsetY);
+            await appWindow.setPosition(newPosition);
+            console.log('Window moved to top successfully');
+          }
+        } catch (error) {
+          console.error('Failed to move window to top:', error);
+        }
+      }
+    }, 100);
   } else {
     // Restore "FlowPane" when unfolding
     updateNavbarTitle('FlowPane');
@@ -422,7 +450,7 @@ let isMinimizing = false;
 async function snapToEdges() {
   if (isMinimizing) return;
 
-  const monitor = await appWindow.currentMonitor();
+  const monitor = await currentMonitor();
   if (!monitor) return;
 
   const { x: winX, y: winY } = await appWindow.outerPosition();
@@ -442,7 +470,7 @@ async function snapToEdges() {
   else if (Math.abs(winY + winH - (offsetY + scrH)) < SNAP_THRESHOLD) newY = offsetY + scrH - winH;
 
   if (newX !== winX || newY !== winY) {
-    await appWindow.setPosition({ x: newX, y: newY });
+    await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(newX, newY));
   }
 }
 
