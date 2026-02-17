@@ -12,23 +12,41 @@ const ALL_WINDOWS_SIZE = new LogicalSize(300, 500);
 const COLLAPSED_SIZE_Y = new LogicalSize(300, 38); // Match CSS height for bar
 const COLLAPSED_SIZE_X = new LogicalSize(38, 250); // Match CSS dimensions
 
-// Animation Helper
-async function animateWindowMove(startPos, endPos, duration = 400) {
+// Animation Helper - Animates both position and size simultaneously
+async function animateWindowTransform(startPos, endPos, startSize, endSize, duration = 450) {
   const startTime = performance.now();
+  const { LogicalSize, PhysicalPosition, PhysicalSize } = window.__TAURI__.window;
+
+  // Convert logical sizes to physical if they aren't already for smoother interpolation
+  const monitor = await currentMonitor();
+  const scale = monitor ? monitor.scaleFactor : 1;
+
+  const pStartSize = {
+    width: startSize.width * (startSize instanceof LogicalSize ? scale : 1),
+    height: startSize.height * (startSize instanceof LogicalSize ? scale : 1)
+  };
+  const pEndSize = {
+    width: endSize.width * (endSize instanceof LogicalSize ? scale : 1),
+    height: endSize.height * (endSize instanceof LogicalSize ? scale : 1)
+  };
 
   return new Promise(resolve => {
     async function step() {
       const now = performance.now();
       const progress = Math.min((now - startTime) / duration, 1);
 
-      // Ease Out Expo: 1 - Math.pow(2, -10 * x)
-      const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      // Ease Out Cubic for a natural feel
+      const ease = 1 - Math.pow(1 - progress, 3);
 
       const currentX = startPos.x + (endPos.x - startPos.x) * ease;
       const currentY = startPos.y + (endPos.y - startPos.y) * ease;
+      const currentW = pStartSize.width + (pEndSize.width - pStartSize.width) * ease;
+      const currentH = pStartSize.height + (pEndSize.height - pStartSize.height) * ease;
 
       try {
-        await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(currentX), Math.round(currentY)));
+        // Set both size and position in the same frame for sync
+        await appWindow.setSize(new PhysicalSize(Math.round(currentW), Math.round(currentH)));
+        await appWindow.setPosition(new PhysicalPosition(Math.round(currentX), Math.round(currentY)));
       } catch (e) {
         // Ignore potential errors during rapid movement
       }
@@ -57,40 +75,53 @@ async function toggleCollapseY() {
       showNavbarTimer();
     }
 
-    // Wait for CSS transition (content fade out) before resizing window
-    setTimeout(async () => {
-      await appWindow.setSize(COLLAPSED_SIZE_Y);
+    // Start both animations immediately
+    try {
+      const monitor = await currentMonitor();
+      if (monitor) {
+        const currentPos = await appWindow.outerPosition();
+        const currentSize = await appWindow.outerSize();
+        const { y: offsetY } = monitor.position;
 
-      // Move to top of screen
-      try {
-        const monitor = await currentMonitor();
-        if (monitor) {
-          const currentPos = await appWindow.outerPosition();
-          const { y: offsetY } = monitor.position;
-
-          // Animate to top
-          await animateWindowMove(
-            currentPos,
-            { x: currentPos.x, y: offsetY },
-            400
-          );
-        }
-      } catch (error) {
-        console.error('Failed to move window to top:', error);
+        // Animate both size and position simultaneously
+        await animateWindowTransform(
+          currentPos,
+          { x: currentPos.x, y: offsetY },
+          currentSize,
+          COLLAPSED_SIZE_Y,
+          450
+        );
       }
-    }, 250); // Sync with CSS transition
+    } catch (error) {
+      console.error('Failed to transform window to top:', error);
+    }
   } else {
     // EXPAND FLOW
-    // 1. Resize window first so content has space
-    await appWindow.setSize(ALL_WINDOWS_SIZE);
-
-    // 2. Then reveal content
-    // Small delay to ensure Tauri window resize is registered visually
-    setTimeout(() => {
+    try {
+      // 1. Reveal content immediately so it "rolls out" during expansion
       appElement.classList.remove('collapsed-y');
       updateNavbarTitle('FlowPane');
       hideNavbarTimer();
-    }, 50);
+
+      const monitor = await currentMonitor();
+      if (monitor) {
+        const currentPos = await appWindow.outerPosition();
+        const currentSize = await appWindow.outerSize();
+
+        // Use the same helper to grow back to original size
+        await animateWindowTransform(
+          currentPos,
+          currentPos, // Keep position same for Y expand (usually stays at top)
+          currentSize,
+          ALL_WINDOWS_SIZE,
+          450
+        );
+      }
+    } catch (error) {
+      // On expansion error, at least ensure window is set to full size
+      await appWindow.setSize(ALL_WINDOWS_SIZE);
+      console.error('Failed to expand window vertically:', error);
+    }
   }
 }
 
@@ -107,46 +138,58 @@ async function toggleCollapseX() {
       showNavbarTimer();
     }
 
-    // Wait for CSS transition
-    setTimeout(async () => {
-      await appWindow.setSize(COLLAPSED_SIZE_X);
+    try {
+      const monitor = await currentMonitor();
+      if (monitor) {
+        const currentPos = await appWindow.outerPosition();
+        const currentSize = await appWindow.outerSize();
+        const { width: scrW } = monitor.size;
+        const { x: offsetX } = monitor.position;
+        const scaleFactor = monitor.scaleFactor;
 
-      // Move to side of screen
-      try {
-        const monitor = await currentMonitor();
-        if (monitor) {
-          const currentPos = await appWindow.outerPosition();
-          const currentSize = await appWindow.outerSize();
-          const { width: scrW } = monitor.size;
-          const { x: offsetX } = monitor.position;
-          const scaleFactor = monitor.scaleFactor;
+        const collapsedPhysicalWidth = COLLAPSED_SIZE_X.width * scaleFactor;
+        const distLeft = Math.abs(currentPos.x - offsetX);
+        const distRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width));
 
-          const collapsedPhysicalWidth = COLLAPSED_SIZE_X.width * scaleFactor;
-          const distLeft = Math.abs(currentPos.x - offsetX);
-          const distRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width));
+        let newX = (distLeft < distRight) ? offsetX : (offsetX + scrW - collapsedPhysicalWidth);
 
-          let newX = (distLeft < distRight) ? offsetX : (offsetX + scrW - collapsedPhysicalWidth);
-
-          // Animate to side
-          await animateWindowMove(
-            currentPos,
-            { x: newX, y: currentPos.y },
-            400
-          );
-        }
-      } catch (error) {
-        console.error('Failed to move window to side:', error);
+        // Animate both size and position simultaneously
+        await animateWindowTransform(
+          currentPos,
+          { x: newX, y: currentPos.y },
+          currentSize,
+          COLLAPSED_SIZE_X,
+          450
+        );
       }
-    }, 250); // Sync with CSS transition
+    } catch (error) {
+      console.error('Failed to transform window to side:', error);
+    }
   } else {
     // EXPAND FLOW
-    await appWindow.setSize(ALL_WINDOWS_SIZE);
-
-    setTimeout(() => {
+    try {
       appElement.classList.remove('collapsed-x');
       updateNavbarTitle('FlowPane');
       hideNavbarTimer();
-    }, 50);
+
+      const monitor = await currentMonitor();
+      if (monitor) {
+        const currentPos = await appWindow.outerPosition();
+        const currentSize = await appWindow.outerSize();
+
+        // Animate back to original size
+        await animateWindowTransform(
+          currentPos,
+          currentPos, // Maintain side position during expansion
+          currentSize,
+          ALL_WINDOWS_SIZE,
+          450
+        );
+      }
+    } catch (error) {
+      await appWindow.setSize(ALL_WINDOWS_SIZE);
+      console.error('Failed to expand window horizontally:', error);
+    }
   }
 }
 
