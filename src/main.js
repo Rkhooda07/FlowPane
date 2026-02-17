@@ -69,7 +69,45 @@ async function toggleCollapseX() {
       updateNavbarTitle(currentFocusTask.title);
       showNavbarTimer();
     }
-    setTimeout(async () => await appWindow.setSize(COLLAPSED_SIZE_X), 50);
+
+    // Resize first, then move to side
+    setTimeout(async () => {
+      await appWindow.setSize(COLLAPSED_SIZE_X);
+
+      // Move to side of screen if in focus mode
+      if (isInFocusMode && currentFocusTask) {
+        try {
+          const monitor = await currentMonitor();
+          if (monitor) {
+            const currentPos = await appWindow.outerPosition();
+            const currentSize = await appWindow.outerSize();
+            const { width: scrW } = monitor.size;
+            const { x: offsetX } = monitor.position;
+            const scaleFactor = monitor.scaleFactor;
+            // Calculate expected physical width since outerSize might not update instantly
+            const collapsedPhysicalWidth = COLLAPSED_SIZE_X.width * scaleFactor;
+
+            // Calculate distances to left and right edges from current position
+            const distLeft = Math.abs(currentPos.x - offsetX);
+            const distRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width));
+
+            let newX;
+            // Snap to nearest edge
+            if (distLeft < distRight) {
+              newX = offsetX;
+            } else {
+              newX = offsetX + scrW - collapsedPhysicalWidth;
+            }
+
+            // Move only X, keep Y same
+            const newPosition = new window.__TAURI__.window.PhysicalPosition(newX, currentPos.y);
+            await appWindow.setPosition(newPosition);
+          }
+        } catch (error) {
+          console.error('Failed to move window to side:', error);
+        }
+      }
+    }, 100); // Increased delay slightly to ensure resize completes logic
   } else {
     // Restore "FlowPane" when unfolding
     updateNavbarTitle('FlowPane');
