@@ -5,6 +5,7 @@ const appWindow = getCurrentWindow();
 // State management
 let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 let isInFocusMode = false;
+let lastNormalPosition = null;
 
 const appElement = document.getElementById('app');
 
@@ -62,11 +63,20 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
 }
 
 async function toggleCollapseY() {
+  const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
   const isCollapsing = !appElement.classList.contains('collapsed-y');
-  appElement.classList.remove('collapsed-x');
 
   if (isCollapsing) {
     // COLLAPSE FLOW
+    try {
+      if (!isCurrentlyCollapsed) {
+        lastNormalPosition = await appWindow.outerPosition();
+      }
+    } catch (e) {
+      console.error('Failed to capture position:', e);
+    }
+
+    appElement.classList.remove('collapsed-x');
     appElement.classList.add('collapsed-y');
 
     // Update UI immediately (fade out content, show title)
@@ -108,10 +118,13 @@ async function toggleCollapseY() {
         const currentPos = await appWindow.outerPosition();
         const currentSize = await appWindow.outerSize();
 
+        // Use the saved normal position if available, otherwise stay put
+        const endPos = lastNormalPosition || currentPos;
+
         // Use the same helper to grow back to original size
         await animateWindowTransform(
           currentPos,
-          currentPos, // Keep position same for Y expand (usually stays at top)
+          endPos,
           currentSize,
           ALL_WINDOWS_SIZE,
           450
@@ -126,11 +139,20 @@ async function toggleCollapseY() {
 }
 
 async function toggleCollapseX() {
+  const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
   const isCollapsing = !appElement.classList.contains('collapsed-x');
-  appElement.classList.remove('collapsed-y');
 
   if (isCollapsing) {
     // COLLAPSE FLOW
+    try {
+      if (!isCurrentlyCollapsed) {
+        lastNormalPosition = await appWindow.outerPosition();
+      }
+    } catch (e) {
+      console.error('Failed to capture position:', e);
+    }
+
+    appElement.classList.remove('collapsed-y');
     appElement.classList.add('collapsed-x');
 
     if (isInFocusMode && currentFocusTask) {
@@ -177,10 +199,13 @@ async function toggleCollapseX() {
         const currentPos = await appWindow.outerPosition();
         const currentSize = await appWindow.outerSize();
 
+        // Use the saved normal position if available, otherwise stay put
+        const endPos = lastNormalPosition || currentPos;
+
         // Animate back to original size
         await animateWindowTransform(
           currentPos,
-          currentPos, // Maintain side position during expansion
+          endPos,
           currentSize,
           ALL_WINDOWS_SIZE,
           450
