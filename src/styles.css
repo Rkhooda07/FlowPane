@@ -225,8 +225,15 @@ body {
 }
 
 #app.collapsed-y .navbar-timer {
-  font-size: 11px; /* Increased from 10px */
+  font-size: 12px; /* Increased from 11px */
   margin-left: 8px;
+  background: rgba(255, 255, 255, 0.08); /* Distinct container block */
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 #app.collapsed-x .navbar-timer {
@@ -237,7 +244,46 @@ body {
 
 /* Focus mode collapsed-x - larger font */
 #app.collapsed-x .focus-header-bar .navbar-timer {
+  font-size: 13px; /* Slightly larger for readability */
+  display: inline-flex;
+  flex-direction: column; /* Stack vertically */
+  writing-mode: horizontal-tb; /* Reset from vertical-rl */
+  transform: rotate(180deg); /* Counter-rotate to be upright */
+  background: rgba(255, 255, 255, 0.08); /* Distinct container */
+  padding: 6px 4px;
+  border-radius: 8px;
+  margin-top: 12px;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.t-unit {
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+}
+
+.t-sep {
+  font-size: 10px;
+  line-height: 0.5;
+  opacity: 0.6;
+  text-align: center;
+  margin: 1px 0;
+}
+
+/* Rotate separator in vertical mode to look like horizontal dots [..] */
+#app.collapsed-x .focus-header-bar .t-sep {
+  transform: rotate(90deg);
   font-size: 12px;
+  letter-spacing: -1px; /* Bring dots closer */
+  margin: 2px 0;
+}
+
+/* Ensure horizontal timer looks normal */
+.navbar-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .window-controls,

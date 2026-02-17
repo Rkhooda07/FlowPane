@@ -709,8 +709,17 @@ function updateNavbarTitle(title) {
 // Helper function to update navbar timer
 function updateNavbarTimer(timeString) {
   const navbarTimers = document.querySelectorAll('.navbar-timer');
+  const [h, m, s] = timeString.split(':');
+
   navbarTimers.forEach(timer => {
-    timer.textContent = timeString;
+    // Inject spans for styling control
+    timer.innerHTML = `
+      <span class="t-unit">${h}</span>
+      <span class="t-sep">:</span>
+      <span class="t-unit">${m}</span>
+      <span class="t-sep">:</span>
+      <span class="t-unit">${s}</span>
+    `;
   });
 }
 
