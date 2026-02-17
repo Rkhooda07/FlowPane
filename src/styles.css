@@ -49,13 +49,24 @@ body {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   position: relative;
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Separate transitions for smoother feel */
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-radius 0.3s,
+              background 0.3s,
+              box-shadow 0.3s;
   animation: appAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes appAppear {
   from { opacity: 0; transform: scale(0.98) translateY(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Glow/Active state for collapsed modes */
+#app.collapsed-y, #app.collapsed-x {
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.1), 0 5px 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 
@@ -65,7 +76,7 @@ body {
 }
 
 #app.collapsed-x {
-  width: 48px !important; /* Increased from 28px for better usability */
+  width: 38px !important; /* Matched to collapsed-y height */
   height: 250px !important; /* Taller for better proportions */
 }
 
@@ -80,10 +91,11 @@ body {
 #app.collapsed-x .title-bar {
   flex-direction: column;
   height: 100%;
-  padding: 12px 0;
-  width: 48px;
-  justify-content: flex-start; /* Align to top */
+  padding: 0;
+  width: 38px;
+  justify-content: center; /* Center everything in the bar */
   align-items: center;
+  gap: 24px; /* Space between buttons and task title */
 }
 
 #app.collapsed-x h1 {
@@ -93,9 +105,8 @@ body {
   font-size: 13px;
   letter-spacing: 1px;
   order: 2; /* Push title after buttons */
-  margin-top: auto; /* Push to bottom area */
-  margin-bottom: auto; /* Center vertically */
-  padding: 12px 0;
+  margin: 0;
+  padding: 0;
   position: static; /* Override any absolute positioning */
   left: auto;
   transform-origin: center;
@@ -110,7 +121,8 @@ body {
   font-size: 12px; /* Slightly larger for readability */
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
 #app.collapsed-y .window-controls,
@@ -128,7 +140,7 @@ body {
   gap: 8px;
   transform: scale(1);
   order: 1; /* Put buttons at top */
-  margin-top: 8px;
+  margin: 0;
 }
 
 /* Hide Focus Mode content when collapsed side */
@@ -147,21 +159,23 @@ body {
 #app.collapsed-y .input-area,
 #app.collapsed-y .task-container {
   opacity: 0;
-  transform: translateY(-50px);
+  transform: translateY(-20px) scale(0.95); /* Subtle drift up and shrink */
   pointer-events: none;
   margin: 0;
   padding: 0 !important;
   height: 0;
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out; /* Fast exit */
 }
 
 #app.collapsed-x .input-area,
 #app.collapsed-x .task-container {
   opacity: 0;
-  transform: translateX(-50px);
+  transform: translateX(-20px) scale(0.95);
   pointer-events: none;
   margin: 0;
   padding: 0 !important;
   height: 0;
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out; /* Fast exit */
 }
 
 #app.collapsed-y .title-bar,
@@ -172,9 +186,9 @@ body {
 
 #app:not(.collapsed-x):not(.collapsed-y) .input-area,
 #app:not(.collapsed-x):not(.collapsed-y) .task-container {
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.4s ease-out 0.1s, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.1s; /* Delay entry slightly */
   opacity: 1;
-  transform: translate(0, 0);
+  transform: translate(0, 0) scale(1);
 }
 
 .title-bar {
@@ -189,6 +203,7 @@ body {
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
   min-height: 38px;
   position: relative;
+  z-index: 20; /* Ensure title bar is above content */
 }
 
 .title-bar:hover {

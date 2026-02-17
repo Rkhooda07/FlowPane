@@ -10,65 +10,104 @@ const appElement = document.getElementById('app');
 
 const ALL_WINDOWS_SIZE = new LogicalSize(300, 500);
 const COLLAPSED_SIZE_Y = new LogicalSize(300, 38); // Match CSS height for bar
-const COLLAPSED_SIZE_X = new LogicalSize(48, 250); // Match CSS dimensions
+const COLLAPSED_SIZE_X = new LogicalSize(38, 250); // Match CSS dimensions
+
+// Animation Helper
+async function animateWindowMove(startPos, endPos, duration = 400) {
+  const startTime = performance.now();
+
+  return new Promise(resolve => {
+    async function step() {
+      const now = performance.now();
+      const progress = Math.min((now - startTime) / duration, 1);
+
+      // Ease Out Expo: 1 - Math.pow(2, -10 * x)
+      const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+
+      const currentX = startPos.x + (endPos.x - startPos.x) * ease;
+      const currentY = startPos.y + (endPos.y - startPos.y) * ease;
+
+      try {
+        await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(currentX), Math.round(currentY)));
+      } catch (e) {
+        // Ignore potential errors during rapid movement
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        resolve();
+      }
+    }
+    requestAnimationFrame(step);
+  });
+}
 
 async function toggleCollapseY() {
+  const isCollapsing = !appElement.classList.contains('collapsed-y');
   appElement.classList.remove('collapsed-x');
-  const isCollapsed = appElement.classList.toggle('collapsed-y');
 
-  if (isCollapsed) {
-    // If in focus mode, update navbar to show task name
+  if (isCollapsing) {
+    // COLLAPSE FLOW
+    appElement.classList.add('collapsed-y');
+
+    // Update UI immediately (fade out content, show title)
     if (isInFocusMode && currentFocusTask) {
       updateNavbarTitle(currentFocusTask.title);
       showNavbarTimer();
     }
 
-    // Resize first, then move to top
+    // Wait for CSS transition (content fade out) before resizing window
     setTimeout(async () => {
       await appWindow.setSize(COLLAPSED_SIZE_Y);
 
       // Move to top of screen
       try {
-        console.log('Attempting to move window to top...');
         const monitor = await currentMonitor();
-        console.log('Monitor:', monitor);
-
         if (monitor) {
           const currentPos = await appWindow.outerPosition();
-          console.log('Current position:', currentPos);
-
           const { y: offsetY } = monitor.position;
-          console.log('Monitor offset Y:', offsetY);
 
-          // Move to top of screen using PhysicalPosition (since monitor.position is physical)
-          const newPosition = new window.__TAURI__.window.PhysicalPosition(currentPos.x, offsetY);
-          await appWindow.setPosition(newPosition);
-          console.log('Window moved to top successfully');
+          // Animate to top
+          await animateWindowMove(
+            currentPos,
+            { x: currentPos.x, y: offsetY },
+            400
+          );
         }
       } catch (error) {
         console.error('Failed to move window to top:', error);
       }
-    }, 100);
+    }, 250); // Sync with CSS transition
   } else {
-    // Restore "FlowPane" when unfolding
-    updateNavbarTitle('FlowPane');
-    hideNavbarTimer();
+    // EXPAND FLOW
+    // 1. Resize window first so content has space
     await appWindow.setSize(ALL_WINDOWS_SIZE);
+
+    // 2. Then reveal content
+    // Small delay to ensure Tauri window resize is registered visually
+    setTimeout(() => {
+      appElement.classList.remove('collapsed-y');
+      updateNavbarTitle('FlowPane');
+      hideNavbarTimer();
+    }, 50);
   }
 }
 
 async function toggleCollapseX() {
+  const isCollapsing = !appElement.classList.contains('collapsed-x');
   appElement.classList.remove('collapsed-y');
-  const isCollapsed = appElement.classList.toggle('collapsed-x');
 
-  if (isCollapsed) {
-    // If in focus mode, update navbar to show task name
+  if (isCollapsing) {
+    // COLLAPSE FLOW
+    appElement.classList.add('collapsed-x');
+
     if (isInFocusMode && currentFocusTask) {
       updateNavbarTitle(currentFocusTask.title);
       showNavbarTimer();
     }
 
-    // Resize first, then move to side
+    // Wait for CSS transition
     setTimeout(async () => {
       await appWindow.setSize(COLLAPSED_SIZE_X);
 
@@ -81,34 +120,33 @@ async function toggleCollapseX() {
           const { width: scrW } = monitor.size;
           const { x: offsetX } = monitor.position;
           const scaleFactor = monitor.scaleFactor;
-          // Calculate expected physical width since outerSize might not update instantly
-          const collapsedPhysicalWidth = COLLAPSED_SIZE_X.width * scaleFactor;
 
-          // Calculate distances to left and right edges from current position
+          const collapsedPhysicalWidth = COLLAPSED_SIZE_X.width * scaleFactor;
           const distLeft = Math.abs(currentPos.x - offsetX);
           const distRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width));
 
-          let newX;
-          // Snap to nearest edge
-          if (distLeft < distRight) {
-            newX = offsetX;
-          } else {
-            newX = offsetX + scrW - collapsedPhysicalWidth;
-          }
+          let newX = (distLeft < distRight) ? offsetX : (offsetX + scrW - collapsedPhysicalWidth);
 
-          // Move only X, keep Y same
-          const newPosition = new window.__TAURI__.window.PhysicalPosition(newX, currentPos.y);
-          await appWindow.setPosition(newPosition);
+          // Animate to side
+          await animateWindowMove(
+            currentPos,
+            { x: newX, y: currentPos.y },
+            400
+          );
         }
       } catch (error) {
         console.error('Failed to move window to side:', error);
       }
-    }, 100); // Increased delay slightly to ensure resize completes logic
+    }, 250); // Sync with CSS transition
   } else {
-    // Restore "FlowPane" when unfolding
-    updateNavbarTitle('FlowPane');
-    hideNavbarTimer();
+    // EXPAND FLOW
     await appWindow.setSize(ALL_WINDOWS_SIZE);
+
+    setTimeout(() => {
+      appElement.classList.remove('collapsed-x');
+      updateNavbarTitle('FlowPane');
+      hideNavbarTimer();
+    }, 50);
   }
 }
 
