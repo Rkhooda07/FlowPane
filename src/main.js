@@ -642,12 +642,54 @@ async function snapToEdges() {
   }
 }
 
-// Listen for move events to trigger snapping
+async function updateControlIcons() {
+  try {
+    const monitor = await currentMonitor();
+    if (!monitor) return;
+
+    const { x: winX, y: winY } = await appWindow.outerPosition();
+    const { width: winW, height: winH } = await appWindow.outerSize();
+    const { width: scrW, height: scrH } = monitor.size;
+    const { x: offsetX, y: offsetY } = monitor.position;
+
+    // Vertical Logic
+    const distTop = Math.abs(winY - offsetY);
+    const distBottom = Math.abs((offsetY + scrH) - (winY + winH));
+    const yIcon = distTop < distBottom ? '↑' : '↓';
+    const yTitle = distTop < distBottom ? 'Fold Up' : 'Fold Down';
+
+    // Horizontal Logic
+    const distLeft = Math.abs(winX - offsetX);
+    const distRight = Math.abs((offsetX + scrW) - (winX + winW));
+    const xIcon = distLeft < distRight ? '←' : '→';
+    const xTitle = distLeft < distRight ? 'Fold Side (Left)' : 'Fold Side (Right)';
+
+    // Update all y-fold buttons
+    document.querySelectorAll('.btn-fold-y').forEach(btn => {
+      btn.textContent = yIcon;
+      btn.title = yTitle;
+    });
+
+    // Update all x-fold buttons
+    document.querySelectorAll('.btn-fold-x').forEach(btn => {
+      btn.textContent = xIcon;
+      btn.title = xTitle;
+    });
+  } catch (err) {
+    console.error('Failed to update control icons:', err);
+  }
+}
+
+// Listen for move events to trigger snapping and icon updates
 let moveTimeout;
 appWindow.onMoved(() => {
   if (isMinimizing) return;
   clearTimeout(moveTimeout);
-  moveTimeout = setTimeout(snapToEdges, 1000); // 1 second after stop to ensure no lag during drag
+
+  // Update icons immediately for a seamless feel
+  updateControlIcons();
+
+  moveTimeout = setTimeout(snapToEdges, 1000);
 });
 
 // Focus Mode Logic
@@ -871,4 +913,5 @@ function hideNavbarTimer() {
 
 // Initialize
 renderTasks();
+updateControlIcons(); // Set initial icons based on position
 console.log('FlowPane initialized');
