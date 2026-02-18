@@ -62,7 +62,7 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
   });
 }
 
-async function toggleCollapseY() {
+async function toggleCollapseY(isManualDrag = false) {
   const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
   const isCollapsing = !appElement.classList.contains('collapsed-y');
 
@@ -136,20 +136,24 @@ async function toggleCollapseY() {
   } else {
     // EXPAND FLOW
     try {
-      // 1. Reveal content immediately so it "rolls out" during expansion
+      // 1. Reveal content immediately
       appElement.classList.remove('collapsed-y');
       updateNavbarTitle('FlowPane');
       hideNavbarTimer();
+
+      if (isManualDrag) {
+        // INSTANT EXPANSION for drags to avoid jitter/lag
+        // We set the size once and let the OS handle the move-drag
+        await appWindow.setSize(ALL_WINDOWS_SIZE);
+        return;
+      }
 
       const monitor = await currentMonitor();
       if (monitor) {
         const currentPos = await appWindow.outerPosition();
         const currentSize = await appWindow.outerSize();
-
-        // Use the saved normal position if available, otherwise stay put
         const endPos = lastNormalPosition || currentPos;
 
-        // Use the same helper to grow back to original size
         await animateWindowTransform(
           currentPos,
           endPos,
@@ -159,14 +163,13 @@ async function toggleCollapseY() {
         );
       }
     } catch (error) {
-      // On expansion error, at least ensure window is set to full size
       await appWindow.setSize(ALL_WINDOWS_SIZE);
       console.error('Failed to expand window vertically:', error);
     }
   }
 }
 
-async function toggleCollapseX() {
+async function toggleCollapseX(isManualDrag = false) {
   const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
   const isCollapsing = !appElement.classList.contains('collapsed-x');
 
@@ -222,15 +225,18 @@ async function toggleCollapseX() {
       updateNavbarTitle('FlowPane');
       hideNavbarTimer();
 
+      if (isManualDrag) {
+        // INSTANT EXPANSION for drags
+        await appWindow.setSize(ALL_WINDOWS_SIZE);
+        return;
+      }
+
       const monitor = await currentMonitor();
       if (monitor) {
         const currentPos = await appWindow.outerPosition();
         const currentSize = await appWindow.outerSize();
-
-        // Use the saved normal position if available, otherwise stay put
         const endPos = lastNormalPosition || currentPos;
 
-        // Animate back to original size
         await animateWindowTransform(
           currentPos,
           endPos,
@@ -626,14 +632,34 @@ async function snapToEdges() {
   const { width: scrW, height: scrH } = monitor.size;
   const { x: offsetX, y: offsetY } = monitor.position;
 
+  const isCollapsedY = appElement.classList.contains('collapsed-y');
+  const isCollapsedX = appElement.classList.contains('collapsed-x');
+
+  // Auto-Collapse Logic: If hitting the screen edge
+  if (!isCollapsedY && !isCollapsedX) {
+    const COLLAPSE_TRIGGER = 2; // Close enough to edge to trigger auto-collapse
+    const dTop = Math.abs(winY - offsetY);
+    const dBottom = Math.abs((offsetY + scrH) - (winY + winH));
+    const dLeft = Math.abs(winX - offsetX);
+    const dRight = Math.abs((offsetX + scrW) - (winX + winW));
+
+    // Snap to Top or Bottom
+    if (dTop < COLLAPSE_TRIGGER || dBottom < COLLAPSE_TRIGGER) {
+      return await toggleCollapseY();
+    }
+    // Snap to Left or Right
+    if (dLeft < COLLAPSE_TRIGGER || dRight < COLLAPSE_TRIGGER) {
+      return await toggleCollapseX();
+    }
+  }
+
+  // 3. Regular Snapping (if not collapsing)
   let newX = winX;
   let newY = winY;
 
-  // Horizontal Snapping
   if (Math.abs(winX - offsetX) < SNAP_THRESHOLD) newX = offsetX;
   else if (Math.abs(winX + winW - (offsetX + scrW)) < SNAP_THRESHOLD) newX = offsetX + scrW - winW;
 
-  // Vertical Snapping
   if (Math.abs(winY - offsetY) < SNAP_THRESHOLD) newY = offsetY;
   else if (Math.abs(winY + winH - (offsetY + scrH)) < SNAP_THRESHOLD) newY = offsetY + scrH - winH;
 
@@ -681,15 +707,43 @@ async function updateControlIcons() {
 }
 
 // Listen for move events to trigger snapping and icon updates
+async function checkInstantExpand() {
+  const isCollapsedY = appElement.classList.contains('collapsed-y');
+  const isCollapsedX = appElement.classList.contains('collapsed-x');
+  if (!isCollapsedY && !isCollapsedX) return;
+
+  const monitor = await currentMonitor();
+  if (!monitor) return;
+
+  const { x: winX, y: winY } = await appWindow.outerPosition();
+  const { width: winW, height: winH } = await appWindow.outerSize();
+  const { width: scrW, height: scrH } = monitor.size;
+  const { x: offsetX, y: offsetY } = monitor.position;
+
+  const EXPAND_THRESHOLD = 5; // Tiny threshold for near-instant feel
+  const dTop = Math.abs(winY - offsetY);
+  const dBottom = Math.abs((offsetY + scrH) - (winY + winH));
+  const dLeft = Math.abs(winX - offsetX);
+  const dRight = Math.abs((offsetX + scrW) - (winX + winW));
+
+  if (isCollapsedY && dTop > EXPAND_THRESHOLD && dBottom > EXPAND_THRESHOLD) {
+    toggleCollapseY(true); // true = isManualDrag
+  } else if (isCollapsedX && dLeft > EXPAND_THRESHOLD && dRight > EXPAND_THRESHOLD) {
+    toggleCollapseX(true); // true = isManualDrag
+  }
+}
+
+// Listen for move events to trigger snapping and icon updates
 let moveTimeout;
 appWindow.onMoved(() => {
   if (isMinimizing) return;
+
+  // Check for expansion INSTANTLY without waiting for the timeout
+  checkInstantExpand();
+
   clearTimeout(moveTimeout);
-
-  // Update icons immediately for a seamless feel
   updateControlIcons();
-
-  moveTimeout = setTimeout(snapToEdges, 1000);
+  moveTimeout = setTimeout(snapToEdges, 200);
 });
 
 // Focus Mode Logic
