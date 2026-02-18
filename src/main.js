@@ -91,19 +91,47 @@ async function toggleCollapseY() {
       if (monitor) {
         const currentPos = await appWindow.outerPosition();
         const currentSize = await appWindow.outerSize();
+        const { height: scrH } = monitor.size;
         const { y: offsetY } = monitor.position;
+        const scaleFactor = monitor.scaleFactor;
+
+        const collapsedPhysicalHeight = COLLAPSED_SIZE_Y.height * scaleFactor;
+
+        // Calculate distances to top and bottom edges from current position
+        const distTop = Math.abs(currentPos.y - offsetY);
+        const distBottom = Math.abs((offsetY + scrH) - (currentPos.y + currentSize.height));
+
+        let newY = (distTop < distBottom) ? offsetY : (offsetY + scrH - collapsedPhysicalHeight);
+        let newX = currentPos.x;
+
+        // If snapping to bottom, also snap to the nearest side to avoid macOS Dock
+        if (newY !== offsetY) {
+          const { width: scrW } = monitor.size;
+          const { x: offsetX } = monitor.position;
+          const collapsedPhysicalWidth = COLLAPSED_SIZE_Y.width * scaleFactor;
+
+          // Determine if left side or right side is closer
+          const midPoint = offsetX + (scrW / 2);
+          const windowMid = currentPos.x + (currentSize.width / 2);
+
+          if (windowMid < midPoint) {
+            newX = offsetX;
+          } else {
+            newX = offsetX + scrW - collapsedPhysicalWidth;
+          }
+        }
 
         // Animate both size and position simultaneously
         await animateWindowTransform(
           currentPos,
-          { x: currentPos.x, y: offsetY },
+          { x: newX, y: newY },
           currentSize,
           COLLAPSED_SIZE_Y,
           450
         );
       }
     } catch (error) {
-      console.error('Failed to transform window to top:', error);
+      console.error('Failed to transform window vertically:', error);
     }
   } else {
     // EXPAND FLOW
