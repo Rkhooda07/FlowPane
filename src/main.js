@@ -6,6 +6,8 @@ const appWindow = getCurrentWindow();
 let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 let isInFocusMode = false;
 let lastNormalPosition = null;
+let isAnimating = false;
+let lastExpandTime = 0;
 
 const appElement = document.getElementById('app');
 
@@ -15,6 +17,7 @@ const COLLAPSED_SIZE_X = new LogicalSize(38, 250); // Match CSS dimensions
 
 // Animation Helper - Animates both position and size simultaneously
 async function animateWindowTransform(startPos, endPos, startSize, endSize, duration = 450) {
+  isAnimating = true;
   const startTime = performance.now();
   const { LogicalSize, PhysicalPosition, PhysicalSize } = window.__TAURI__.window;
 
@@ -55,6 +58,7 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
       if (progress < 1) {
         requestAnimationFrame(step);
       } else {
+        isAnimating = false;
         resolve();
       }
     }
@@ -63,6 +67,7 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
 }
 
 async function toggleCollapseY(isManualDrag = false) {
+  if (isAnimating) return;
   const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
   const isCollapsing = !appElement.classList.contains('collapsed-y');
 
@@ -142,9 +147,29 @@ async function toggleCollapseY(isManualDrag = false) {
       hideNavbarTimer();
 
       if (isManualDrag) {
-        // INSTANT EXPANSION for drags to avoid jitter/lag
-        // We set the size once and let the OS handle the move-drag
+        // SMART INSTANT EXPANSION: Offset if at bottom to grow UPWARDS
+        try {
+          const monitor = await currentMonitor();
+          const currentPos = await appWindow.outerPosition();
+          const { height: winH } = await appWindow.outerSize();
+          const scale = monitor ? monitor.scaleFactor : 1;
+
+          if (monitor) {
+            const { height: scrH } = monitor.size;
+            const { y: offsetY } = monitor.position;
+            const expandedPhysicalH = ALL_WINDOWS_SIZE.height * scale;
+
+            // If near bottom, move UP to accommodate new height
+            const isNearBottom = Math.abs((offsetY + scrH) - (currentPos.y + winH)) < 20;
+            if (isNearBottom) {
+              const newY = (offsetY + scrH) - expandedPhysicalH;
+              await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(currentPos.x, Math.round(newY)));
+            }
+          }
+        } catch (e) { }
+
         await appWindow.setSize(ALL_WINDOWS_SIZE);
+        lastExpandTime = Date.now();
         return;
       }
 
@@ -161,6 +186,7 @@ async function toggleCollapseY(isManualDrag = false) {
           ALL_WINDOWS_SIZE,
           450
         );
+        lastExpandTime = Date.now();
       }
     } catch (error) {
       await appWindow.setSize(ALL_WINDOWS_SIZE);
@@ -170,6 +196,7 @@ async function toggleCollapseY(isManualDrag = false) {
 }
 
 async function toggleCollapseX(isManualDrag = false) {
+  if (isAnimating) return;
   const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
   const isCollapsing = !appElement.classList.contains('collapsed-x');
 
@@ -226,8 +253,29 @@ async function toggleCollapseX(isManualDrag = false) {
       hideNavbarTimer();
 
       if (isManualDrag) {
-        // INSTANT EXPANSION for drags
+        // SMART INSTANT EXPANSION: Offset if at right to grow LEFTWARDS
+        try {
+          const monitor = await currentMonitor();
+          const currentPos = await appWindow.outerPosition();
+          const { width: winW } = await appWindow.outerSize();
+          const scale = monitor ? monitor.scaleFactor : 1;
+
+          if (monitor) {
+            const { width: scrW } = monitor.size;
+            const { x: offsetX } = monitor.position;
+            const expandedPhysicalW = ALL_WINDOWS_SIZE.width * scale;
+
+            // If near right edge, move LEFT to accommodate new width
+            const isNearRight = Math.abs((offsetX + scrW) - (currentPos.x + winW)) < 20;
+            if (isNearRight) {
+              const newX = (offsetX + scrW) - expandedPhysicalW;
+              await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(newX), currentPos.y));
+            }
+          }
+        } catch (e) { }
+
         await appWindow.setSize(ALL_WINDOWS_SIZE);
+        lastExpandTime = Date.now();
         return;
       }
 
@@ -244,6 +292,7 @@ async function toggleCollapseX(isManualDrag = false) {
           ALL_WINDOWS_SIZE,
           450
         );
+        lastExpandTime = Date.now();
       }
     } catch (error) {
       await appWindow.setSize(ALL_WINDOWS_SIZE);
@@ -622,7 +671,7 @@ const SNAP_THRESHOLD = 30;
 let isMinimizing = false;
 
 async function snapToEdges() {
-  if (isMinimizing) return;
+  if (isMinimizing || isAnimating) return;
 
   const monitor = await currentMonitor();
   if (!monitor) return;
@@ -634,24 +683,6 @@ async function snapToEdges() {
 
   const isCollapsedY = appElement.classList.contains('collapsed-y');
   const isCollapsedX = appElement.classList.contains('collapsed-x');
-
-  // Auto-Collapse Logic: If hitting the screen edge
-  if (!isCollapsedY && !isCollapsedX) {
-    const COLLAPSE_TRIGGER = 2; // Close enough to edge to trigger auto-collapse
-    const dTop = Math.abs(winY - offsetY);
-    const dBottom = Math.abs((offsetY + scrH) - (winY + winH));
-    const dLeft = Math.abs(winX - offsetX);
-    const dRight = Math.abs((offsetX + scrW) - (winX + winW));
-
-    // Snap to Top or Bottom
-    if (dTop < COLLAPSE_TRIGGER || dBottom < COLLAPSE_TRIGGER) {
-      return await toggleCollapseY();
-    }
-    // Snap to Left or Right
-    if (dLeft < COLLAPSE_TRIGGER || dRight < COLLAPSE_TRIGGER) {
-      return await toggleCollapseX();
-    }
-  }
 
   // 3. Regular Snapping (if not collapsing)
   let newX = winX;
@@ -707,7 +738,62 @@ async function updateControlIcons() {
 }
 
 // Listen for move events to trigger snapping and icon updates
+async function clampToScreen() {
+  if (isAnimating) return;
+  const monitor = await currentMonitor();
+  if (!monitor) return;
+
+  const { x: winX, y: winY } = await appWindow.outerPosition();
+  const { width: winW, height: winH } = await appWindow.outerSize();
+  const { width: scrW, height: scrH } = monitor.size;
+  const { x: offsetX, y: offsetY } = monitor.position;
+
+  let newX = winX;
+  let newY = winY;
+
+  // Clamp Y (The "Wall" effect)
+  if (winY < offsetY) newY = offsetY;
+  else if (winY + winH > offsetY + scrH) newY = offsetY + scrH - winH;
+
+  // Clamp X
+  if (winX < offsetX) newX = offsetX;
+  else if (winX + winW > offsetX + scrW) newX = offsetX + scrW - winW;
+
+  if (newX !== winX || newY !== winY) {
+    await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(newX, newY));
+  }
+}
+
+async function checkInstantCollapse() {
+  if (isAnimating) return;
+  if (Date.now() - lastExpandTime < 800) return; // Prevent flip-flop right after expansion
+  const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
+  if (isCollapsed) return;
+
+  const monitor = await currentMonitor();
+  if (!monitor) return;
+
+  const { x: winX, y: winY } = await appWindow.outerPosition();
+  const { width: winW, height: winH } = await appWindow.outerSize();
+  const { width: scrW, height: scrH } = monitor.size;
+  const { x: offsetX, y: offsetY } = monitor.position;
+
+  // Sensitive trigger for instant "genie" capture
+  const TRIGGER = 8;
+  const dTop = Math.abs(winY - offsetY);
+  const dBottom = Math.abs((offsetY + scrH) - (winY + winH));
+  const dLeft = Math.abs(winX - offsetX);
+  const dRight = Math.abs((offsetX + scrW) - (winX + winW));
+
+  if (dTop < TRIGGER || dBottom < TRIGGER) {
+    toggleCollapseY();
+  } else if (dLeft < TRIGGER || dRight < TRIGGER) {
+    toggleCollapseX();
+  }
+}
+
 async function checkInstantExpand() {
+  if (isAnimating) return;
   const isCollapsedY = appElement.classList.contains('collapsed-y');
   const isCollapsedX = appElement.classList.contains('collapsed-x');
   if (!isCollapsedY && !isCollapsedX) return;
@@ -720,7 +806,7 @@ async function checkInstantExpand() {
   const { width: scrW, height: scrH } = monitor.size;
   const { x: offsetX, y: offsetY } = monitor.position;
 
-  const EXPAND_THRESHOLD = 5; // Tiny threshold for near-instant feel
+  const EXPAND_THRESHOLD = 12; // Intentional threshold for instant feel
   const dTop = Math.abs(winY - offsetY);
   const dBottom = Math.abs((offsetY + scrH) - (winY + winH));
   const dLeft = Math.abs(winX - offsetX);
@@ -736,10 +822,12 @@ async function checkInstantExpand() {
 // Listen for move events to trigger snapping and icon updates
 let moveTimeout;
 appWindow.onMoved(() => {
-  if (isMinimizing) return;
+  if (isMinimizing || isAnimating) return;
 
-  // Check for expansion INSTANTLY without waiting for the timeout
+  // Instant reaction logic
+  clampToScreen();
   checkInstantExpand();
+  checkInstantCollapse();
 
   clearTimeout(moveTimeout);
   updateControlIcons();
