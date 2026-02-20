@@ -68,236 +68,246 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
 
 async function toggleCollapseY(isManualDrag = false) {
   if (isAnimating) return;
-  const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
-  const isCollapsing = !appElement.classList.contains('collapsed-y');
+  isAnimating = true;
+  try {
+    const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
+    const isCollapsing = !appElement.classList.contains('collapsed-y');
 
-  if (isCollapsing) {
-    // COLLAPSE FLOW
-    try {
-      if (!isCurrentlyCollapsed) {
-        lastNormalPosition = await appWindow.outerPosition();
-      }
-    } catch (e) {
-      console.error('Failed to capture position:', e);
-    }
-
-    appElement.classList.remove('collapsed-x');
-    appElement.classList.add('collapsed-y');
-
-    // Update UI immediately (fade out content, show title)
-    if (isInFocusMode && currentFocusTask) {
-      updateNavbarTitle(currentFocusTask.title);
-      showNavbarTimer();
-    }
-
-    // Start both animations immediately
-    try {
-      const monitor = await currentMonitor();
-      if (monitor) {
-        const currentPos = await appWindow.outerPosition();
-        const currentSize = await appWindow.outerSize();
-        const { height: scrH } = monitor.size;
-        const { y: offsetY } = monitor.position;
-        const scaleFactor = monitor.scaleFactor;
-
-        const collapsedPhysicalHeight = COLLAPSED_SIZE_Y.height * scaleFactor;
-
-        // Calculate distances to top and bottom edges from current position
-        const distTop = Math.abs(currentPos.y - offsetY);
-        const distBottom = Math.abs((offsetY + scrH) - (currentPos.y + currentSize.height));
-
-        let newY = (distTop < distBottom) ? offsetY : (offsetY + scrH - collapsedPhysicalHeight);
-        let newX = currentPos.x;
-
-        // If snapping to bottom, also snap to the nearest side to avoid macOS Dock
-        if (newY !== offsetY) {
-          const { width: scrW } = monitor.size;
-          const { x: offsetX } = monitor.position;
-          const collapsedPhysicalWidth = COLLAPSED_SIZE_Y.width * scaleFactor;
-
-          // Determine if left side or right side is closer
-          const midPoint = offsetX + (scrW / 2);
-          const windowMid = currentPos.x + (currentSize.width / 2);
-
-          if (windowMid < midPoint) {
-            newX = offsetX;
-          } else {
-            newX = offsetX + scrW - collapsedPhysicalWidth;
-          }
+    if (isCollapsing) {
+      // COLLAPSE FLOW
+      try {
+        if (!isCurrentlyCollapsed) {
+          lastNormalPosition = await appWindow.outerPosition();
         }
-
-        // Animate both size and position simultaneously
-        await animateWindowTransform(
-          currentPos,
-          { x: newX, y: newY },
-          currentSize,
-          COLLAPSED_SIZE_Y,
-          450
-        );
+      } catch (e) {
+        console.error('Failed to capture position:', e);
       }
-    } catch (error) {
-      console.error('Failed to transform window vertically:', error);
-    }
-  } else {
-    // EXPAND FLOW
-    try {
-      // 1. Reveal content immediately
-      appElement.classList.remove('collapsed-y');
-      updateNavbarTitle('FlowPane');
-      hideNavbarTimer();
 
-      if (isManualDrag) {
-        // SMART INSTANT EXPANSION: Offset if at bottom to grow UPWARDS
-        try {
-          const monitor = await currentMonitor();
+      appElement.classList.remove('collapsed-x');
+      appElement.classList.add('collapsed-y');
+
+      // Update UI immediately (fade out content, show title)
+      if (isInFocusMode && currentFocusTask) {
+        updateNavbarTitle(currentFocusTask.title);
+        showNavbarTimer();
+      }
+
+      // Start both animations immediately
+      try {
+        const monitor = await currentMonitor();
+        if (monitor) {
           const currentPos = await appWindow.outerPosition();
-          const { height: winH } = await appWindow.outerSize();
-          const scale = monitor ? monitor.scaleFactor : 1;
+          const currentSize = await appWindow.outerSize();
+          const { height: scrH } = monitor.size;
+          const { y: offsetY } = monitor.position;
+          const scaleFactor = monitor.scaleFactor;
 
-          if (monitor) {
-            const { height: scrH } = monitor.size;
-            const { y: offsetY } = monitor.position;
-            const expandedPhysicalH = ALL_WINDOWS_SIZE.height * scale;
+          const collapsedPhysicalHeight = COLLAPSED_SIZE_Y.height * scaleFactor;
 
-            // If near bottom, move UP to accommodate new height
-            const isNearBottom = Math.abs((offsetY + scrH) - (currentPos.y + winH)) < 20;
-            if (isNearBottom) {
-              const newY = (offsetY + scrH) - expandedPhysicalH;
-              await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(currentPos.x, Math.round(newY)));
+          // Calculate distances to top and bottom edges from current position
+          const distTop = Math.abs(currentPos.y - offsetY);
+          const distBottom = Math.abs((offsetY + scrH) - (currentPos.y + currentSize.height));
+
+          let newY = (distTop < distBottom) ? offsetY : (offsetY + scrH - collapsedPhysicalHeight);
+          let newX = currentPos.x;
+
+          // If snapping to bottom, also snap to the nearest side to avoid macOS Dock
+          if (newY !== offsetY) {
+            const { width: scrW } = monitor.size;
+            const { x: offsetX } = monitor.position;
+            const collapsedPhysicalWidth = COLLAPSED_SIZE_Y.width * scaleFactor;
+
+            // Determine if left side or right side is closer
+            const midPoint = offsetX + (scrW / 2);
+            const windowMid = currentPos.x + (currentSize.width / 2);
+
+            if (windowMid < midPoint) {
+              newX = offsetX;
+            } else {
+              newX = offsetX + scrW - collapsedPhysicalWidth;
             }
           }
-        } catch (e) { }
 
+          // Animate both size and position simultaneously
+          await animateWindowTransform(
+            currentPos,
+            { x: newX, y: newY },
+            currentSize,
+            COLLAPSED_SIZE_Y,
+            450
+          );
+        }
+      } catch (error) {
+        console.error('Failed to transform window vertically:', error);
+      }
+    } else {
+      // EXPAND FLOW
+      try {
+        // 1. Reveal content immediately
+        appElement.classList.remove('collapsed-y');
+        updateNavbarTitle('FlowPane');
+        hideNavbarTimer();
+
+        if (isManualDrag) {
+          // SMART INSTANT EXPANSION: Offset if at bottom to grow UPWARDS
+          try {
+            const monitor = await currentMonitor();
+            const currentPos = await appWindow.outerPosition();
+            const { height: winH } = await appWindow.outerSize();
+            const scale = monitor ? monitor.scaleFactor : 1;
+
+            if (monitor) {
+              const { height: scrH } = monitor.size;
+              const { y: offsetY } = monitor.position;
+              const expandedPhysicalH = ALL_WINDOWS_SIZE.height * scale;
+
+              // If near bottom, move UP to accommodate new height
+              const isNearBottom = Math.abs((offsetY + scrH) - (currentPos.y + winH)) < 20;
+              if (isNearBottom) {
+                const newY = (offsetY + scrH) - expandedPhysicalH;
+                await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(currentPos.x, Math.round(newY)));
+              }
+            }
+          } catch (e) { }
+
+          await appWindow.setSize(ALL_WINDOWS_SIZE);
+          lastExpandTime = Date.now();
+          return;
+        }
+
+        const monitor = await currentMonitor();
+        if (monitor) {
+          const currentPos = await appWindow.outerPosition();
+          const currentSize = await appWindow.outerSize();
+          const endPos = lastNormalPosition || currentPos;
+
+          await animateWindowTransform(
+            currentPos,
+            endPos,
+            currentSize,
+            ALL_WINDOWS_SIZE,
+            450
+          );
+          lastExpandTime = Date.now();
+        }
+      } catch (error) {
         await appWindow.setSize(ALL_WINDOWS_SIZE);
-        lastExpandTime = Date.now();
-        return;
+        console.error('Failed to expand window vertically:', error);
       }
-
-      const monitor = await currentMonitor();
-      if (monitor) {
-        const currentPos = await appWindow.outerPosition();
-        const currentSize = await appWindow.outerSize();
-        const endPos = lastNormalPosition || currentPos;
-
-        await animateWindowTransform(
-          currentPos,
-          endPos,
-          currentSize,
-          ALL_WINDOWS_SIZE,
-          450
-        );
-        lastExpandTime = Date.now();
-      }
-    } catch (error) {
-      await appWindow.setSize(ALL_WINDOWS_SIZE);
-      console.error('Failed to expand window vertically:', error);
     }
+  } finally {
+    isAnimating = false;
   }
 }
 
 async function toggleCollapseX(isManualDrag = false) {
   if (isAnimating) return;
-  const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
-  const isCollapsing = !appElement.classList.contains('collapsed-x');
+  isAnimating = true;
+  try {
+    const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
+    const isCollapsing = !appElement.classList.contains('collapsed-x');
 
-  if (isCollapsing) {
-    // COLLAPSE FLOW
-    try {
-      if (!isCurrentlyCollapsed) {
-        lastNormalPosition = await appWindow.outerPosition();
+    if (isCollapsing) {
+      // COLLAPSE FLOW
+      try {
+        if (!isCurrentlyCollapsed) {
+          lastNormalPosition = await appWindow.outerPosition();
+        }
+      } catch (e) {
+        console.error('Failed to capture position:', e);
       }
-    } catch (e) {
-      console.error('Failed to capture position:', e);
-    }
 
-    appElement.classList.remove('collapsed-y');
-    appElement.classList.add('collapsed-x');
+      appElement.classList.remove('collapsed-y');
+      appElement.classList.add('collapsed-x');
 
-    if (isInFocusMode && currentFocusTask) {
-      updateNavbarTitle(currentFocusTask.title);
-      showNavbarTimer();
-    }
-
-    try {
-      const monitor = await currentMonitor();
-      if (monitor) {
-        const currentPos = await appWindow.outerPosition();
-        const currentSize = await appWindow.outerSize();
-        const { width: scrW } = monitor.size;
-        const { x: offsetX } = monitor.position;
-        const scaleFactor = monitor.scaleFactor;
-
-        const collapsedPhysicalWidth = COLLAPSED_SIZE_X.width * scaleFactor;
-        const distLeft = Math.abs(currentPos.x - offsetX);
-        const distRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width));
-
-        let newX = (distLeft < distRight) ? offsetX : (offsetX + scrW - collapsedPhysicalWidth);
-
-        // Animate both size and position simultaneously
-        await animateWindowTransform(
-          currentPos,
-          { x: newX, y: currentPos.y },
-          currentSize,
-          COLLAPSED_SIZE_X,
-          450
-        );
+      if (isInFocusMode && currentFocusTask) {
+        updateNavbarTitle(currentFocusTask.title);
+        showNavbarTimer();
       }
-    } catch (error) {
-      console.error('Failed to transform window to side:', error);
-    }
-  } else {
-    // EXPAND FLOW
-    try {
-      appElement.classList.remove('collapsed-x');
-      updateNavbarTitle('FlowPane');
-      hideNavbarTimer();
 
-      if (isManualDrag) {
-        // SMART INSTANT EXPANSION: Offset if at right to grow LEFTWARDS
-        try {
-          const monitor = await currentMonitor();
+      try {
+        const monitor = await currentMonitor();
+        if (monitor) {
           const currentPos = await appWindow.outerPosition();
-          const { width: winW } = await appWindow.outerSize();
-          const scale = monitor ? monitor.scaleFactor : 1;
+          const currentSize = await appWindow.outerSize();
+          const { width: scrW } = monitor.size;
+          const { x: offsetX } = monitor.position;
+          const scaleFactor = monitor.scaleFactor;
 
-          if (monitor) {
-            const { width: scrW } = monitor.size;
-            const { x: offsetX } = monitor.position;
-            const expandedPhysicalW = ALL_WINDOWS_SIZE.width * scale;
+          const collapsedPhysicalWidth = COLLAPSED_SIZE_X.width * scaleFactor;
+          const distLeft = Math.abs(currentPos.x - offsetX);
+          const distRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width));
 
-            // If near right edge, move LEFT to accommodate new width
-            const isNearRight = Math.abs((offsetX + scrW) - (currentPos.x + winW)) < 20;
-            if (isNearRight) {
-              const newX = (offsetX + scrW) - expandedPhysicalW;
-              await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(newX), currentPos.y));
+          let newX = (distLeft < distRight) ? offsetX : (offsetX + scrW - collapsedPhysicalWidth);
+
+          // Animate both size and position simultaneously
+          await animateWindowTransform(
+            currentPos,
+            { x: newX, y: currentPos.y },
+            currentSize,
+            COLLAPSED_SIZE_X,
+            450
+          );
+        }
+      } catch (error) {
+        console.error('Failed to transform window to side:', error);
+      }
+    } else {
+      // EXPAND FLOW
+      try {
+        appElement.classList.remove('collapsed-x');
+        updateNavbarTitle('FlowPane');
+        hideNavbarTimer();
+
+        if (isManualDrag) {
+          // SMART INSTANT EXPANSION: Offset if at right to grow LEFTWARDS
+          try {
+            const monitor = await currentMonitor();
+            const currentPos = await appWindow.outerPosition();
+            const { width: winW } = await appWindow.outerSize();
+            const scale = monitor ? monitor.scaleFactor : 1;
+
+            if (monitor) {
+              const { width: scrW } = monitor.size;
+              const { x: offsetX } = monitor.position;
+              const expandedPhysicalW = ALL_WINDOWS_SIZE.width * scale;
+
+              // If near right edge, move LEFT to accommodate new width
+              const isNearRight = Math.abs((offsetX + scrW) - (currentPos.x + winW)) < 20;
+              if (isNearRight) {
+                const newX = (offsetX + scrW) - expandedPhysicalW;
+                await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(newX), currentPos.y));
+              }
             }
-          }
-        } catch (e) { }
+          } catch (e) { }
 
+          await appWindow.setSize(ALL_WINDOWS_SIZE);
+          lastExpandTime = Date.now();
+          return;
+        }
+
+        const monitor = await currentMonitor();
+        if (monitor) {
+          const currentPos = await appWindow.outerPosition();
+          const currentSize = await appWindow.outerSize();
+          const endPos = lastNormalPosition || currentPos;
+
+          await animateWindowTransform(
+            currentPos,
+            endPos,
+            currentSize,
+            ALL_WINDOWS_SIZE,
+            450
+          );
+          lastExpandTime = Date.now();
+        }
+      } catch (error) {
         await appWindow.setSize(ALL_WINDOWS_SIZE);
-        lastExpandTime = Date.now();
-        return;
+        console.error('Failed to expand window horizontally:', error);
       }
-
-      const monitor = await currentMonitor();
-      if (monitor) {
-        const currentPos = await appWindow.outerPosition();
-        const currentSize = await appWindow.outerSize();
-        const endPos = lastNormalPosition || currentPos;
-
-        await animateWindowTransform(
-          currentPos,
-          endPos,
-          currentSize,
-          ALL_WINDOWS_SIZE,
-          450
-        );
-        lastExpandTime = Date.now();
-      }
-    } catch (error) {
-      await appWindow.setSize(ALL_WINDOWS_SIZE);
-      console.error('Failed to expand window horizontally:', error);
     }
+  } finally {
+    isAnimating = false;
   }
 }
 
@@ -779,15 +789,17 @@ async function checkInstantCollapse() {
   const { x: offsetX, y: offsetY } = monitor.position;
 
   // Sensitive trigger for instant "genie" capture
-  const TRIGGER = 8;
+  const TRIGGER_TOP_SIDES = 8;
+  const TRIGGER_BOTTOM = 2; // decreased to require more drag distance
+
   const dTop = Math.abs(winY - offsetY);
   const dBottom = Math.abs((offsetY + scrH) - (winY + winH));
   const dLeft = Math.abs(winX - offsetX);
   const dRight = Math.abs((offsetX + scrW) - (winX + winW));
 
-  if (dTop < TRIGGER || dBottom < TRIGGER) {
+  if (dTop < TRIGGER_TOP_SIDES || dBottom < TRIGGER_BOTTOM) {
     toggleCollapseY();
-  } else if (dLeft < TRIGGER || dRight < TRIGGER) {
+  } else if (dLeft < TRIGGER_TOP_SIDES || dRight < TRIGGER_TOP_SIDES) {
     toggleCollapseX();
   }
 }
