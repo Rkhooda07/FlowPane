@@ -235,6 +235,14 @@ body {
   left: 50%;
   transform: translateX(-50%);
   pointer-events: none;
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+/* Slide and fade title when guide is hovered to prevent overlap */
+.title-bar:has(.fold-guide:hover) h1 {
+  opacity: 0;
+  transform: translate(-120%, -50%); /* Shifts left while disappearing */
 }
 
 .navbar-timer {
@@ -357,6 +365,7 @@ body {
   opacity: 0.6;
   z-index: 10;
   user-select: none;
+  margin-right: -4px; /* Move slightly right to open center space */
 }
 
 .fold-guide:hover {
