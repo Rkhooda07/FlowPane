@@ -145,7 +145,7 @@ async function toggleCollapseY(isManualDrag = false) {
       try {
         // 1. Reveal content immediately
         appElement.classList.remove('collapsed-y');
-        updateNavbarTitle('FlowPane');
+        updateNavbarTitle(isInFocusMode && currentFocusTask ? currentFocusTask.title : 'FlowPane');
         hideNavbarTimer();
 
         if (isManualDrag) {
@@ -256,7 +256,7 @@ async function toggleCollapseX(isManualDrag = false) {
       // EXPAND FLOW
       try {
         appElement.classList.remove('collapsed-x');
-        updateNavbarTitle('FlowPane');
+        updateNavbarTitle(isInFocusMode && currentFocusTask ? currentFocusTask.title : 'FlowPane');
         hideNavbarTimer();
 
         if (isManualDrag) {
