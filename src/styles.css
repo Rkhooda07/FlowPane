@@ -143,6 +143,11 @@ body {
   margin: 0;
 }
 
+#app.collapsed-y .fold-guide,
+#app.collapsed-x .fold-guide {
+  display: none !important;
+}
+
 /* Hide Focus Mode content when collapsed side */
 #app.collapsed-x .focus-mode .timer-modal,
 #app.collapsed-y .focus-mode .timer-modal {
@@ -338,28 +343,110 @@ body {
 .btn-minimize { background-color: #ffbd2e; }
 .btn-maximize { background-color: #28c840; }
 
-.btn-fold-y, .btn-fold-x {
-  width: 18px; /* Slightly larger as requested */
-  height: 18px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 11px;
-  margin-left: 6px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+/* Folding Guide Component */
+.fold-guide {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  cursor: default;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0.6;
+  z-index: 10;
+  user-select: none;
 }
 
-.btn-fold-y:hover, .btn-fold-x:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
+.fold-guide:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.02);
+  gap: 14px;
 }
 
-.collapsed-y .btn-fold-y { transform: rotate(180deg); }
-.collapsed-x .btn-fold-x { transform: rotate(180deg); }
+.guide-icon {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+  width: 11px;
+  height: 11px;
+}
 
-/* Maintain rotation on hover when folded */
-.collapsed-y .btn-fold-y:hover { transform: rotate(180deg) scale(1.1); }
-.collapsed-x .btn-fold-x:hover { transform: rotate(180deg) scale(1.1); }
+.guide-icon span {
+  width: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fold-guide:hover .guide-icon span {
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+}
+
+.guide-text {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+}
+
+.fold-guide:hover .guide-text {
+  max-width: 100px;
+  opacity: 1;
+}
+
+.btn-complete { 
+  background-color: rgba(40, 200, 64, 0.15); 
+  color: #28c840;
+  border: 1px solid rgba(40, 200, 64, 0.3);
+  font-size: 11px !important;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-exit { 
+  background-color: rgba(255, 255, 255, 0.08); 
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px !important;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-complete:hover {
+  background-color: rgba(40, 200, 64, 0.4);
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+.btn-exit:hover {
+  background-color: rgba(255, 59, 48, 0.2);
+  color: #ff5f56;
+  border-color: rgba(255, 59, 48, 0.3);
+  transform: scale(1.1);
+}
+
+/* Old fold button styles removed */
+
 
 .input-area {
   padding: 16px;
@@ -658,40 +745,8 @@ body {
   pointer-events: none;
 }
 
-.focus-secondary-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  width: 100%;
-}
+/* Focus secondary actions removed as they moved to navbar */
 
-.focus-action-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.4);
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-}
-
-.focus-action-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-  transform: rotate(90deg);
-}
-
-.focus-action-btn.complete:hover {
-  background: rgba(40, 200, 64, 0.2);
-  color: #28c840;
-  transform: scale(1.1);
-}
 
 /* Content: Task and Timer */
 .focus-content {

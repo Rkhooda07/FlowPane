@@ -20,9 +20,11 @@
         <button class="control-btn btn-maximize" id="maximize-btn" title="Maximize"></button>
       </div>
       <h1>FlowPane<span class="navbar-timer hidden"></span></h1>
-      <div class="action-controls">
-        <button class="control-btn btn-fold-y" id="fold-y-btn" title="Fold Up">↑</button>
-        <button class="control-btn btn-fold-x" id="fold-x-btn" title="Fold Side">←</button>
+      <div class="fold-guide" title="Drag to screen edges to collapse">
+        <div class="guide-icon">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <span class="guide-text">Drag to Snap</span>
       </div>
     </header>
 
@@ -48,15 +50,12 @@
         </div>
         <h1>FlowPane<span class="navbar-timer hidden"></span></h1>
         <div class="action-controls">
-          <button class="control-btn btn-fold-y" id="focus-fold-y-btn" title="Fold Up">↑</button>
-          <button class="control-btn btn-fold-x" id="focus-fold-x-btn" title="Fold Side">←</button>
+          <button class="control-btn btn-complete" id="focus-nav-complete-btn" title="Complete Task">✓</button>
+          <button class="control-btn btn-exit" id="focus-nav-exit-btn" title="Exit Focus Mode">×</button>
         </div>
       </header>
 
-      <div class="focus-secondary-actions">
-        <button id="focus-complete-btn" class="focus-action-btn complete" title="Mark Task as Complete">✓</button>
-        <button id="focus-exit-btn" class="focus-action-btn exit" title="Exit Focus Mode">×</button>
-      </div>
+
 
       <div class="focus-content">
         <h2 id="focus-task-name">Active Task</h2>

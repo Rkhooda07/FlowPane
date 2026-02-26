@@ -334,20 +334,9 @@ document.getElementById('maximize-btn').addEventListener('click', async (e) => {
   }
 });
 
-document.getElementById('fold-y-btn').addEventListener('click', async (e) => {
-  e.stopPropagation();
-  await toggleCollapseY();
-});
+// Double click defaults moved to dragging behavior
+// (Removed dblclick fold)
 
-document.getElementById('fold-x-btn').addEventListener('click', async (e) => {
-  e.stopPropagation();
-  await toggleCollapseX();
-});
-
-// Double click defaults to vertical collapse
-document.querySelector('.title-bar').addEventListener('dblclick', async () => {
-  await toggleCollapseY();
-});
 
 // No manual drag listener needed when using data-tauri-drag-region
 
@@ -709,43 +698,8 @@ async function snapToEdges() {
   }
 }
 
-async function updateControlIcons() {
-  try {
-    const monitor = await currentMonitor();
-    if (!monitor) return;
+// updateControlIcons removed as fold buttons are gone
 
-    const { x: winX, y: winY } = await appWindow.outerPosition();
-    const { width: winW, height: winH } = await appWindow.outerSize();
-    const { width: scrW, height: scrH } = monitor.size;
-    const { x: offsetX, y: offsetY } = monitor.position;
-
-    // Vertical Logic
-    const distTop = Math.abs(winY - offsetY);
-    const distBottom = Math.abs((offsetY + scrH) - (winY + winH));
-    const yIcon = distTop < distBottom ? '↑' : '↓';
-    const yTitle = distTop < distBottom ? 'Fold Up' : 'Fold Down';
-
-    // Horizontal Logic
-    const distLeft = Math.abs(winX - offsetX);
-    const distRight = Math.abs((offsetX + scrW) - (winX + winW));
-    const xIcon = distLeft < distRight ? '←' : '→';
-    const xTitle = distLeft < distRight ? 'Fold Side (Left)' : 'Fold Side (Right)';
-
-    // Update all y-fold buttons
-    document.querySelectorAll('.btn-fold-y').forEach(btn => {
-      btn.textContent = yIcon;
-      btn.title = yTitle;
-    });
-
-    // Update all x-fold buttons
-    document.querySelectorAll('.btn-fold-x').forEach(btn => {
-      btn.textContent = xIcon;
-      btn.title = xTitle;
-    });
-  } catch (err) {
-    console.error('Failed to update control icons:', err);
-  }
-}
 
 // Listen for move events to trigger snapping and icon updates
 async function clampToScreen() {
@@ -842,7 +796,6 @@ appWindow.onMoved(() => {
   checkInstantCollapse();
 
   clearTimeout(moveTimeout);
-  updateControlIcons();
   moveTimeout = setTimeout(snapToEdges, 200);
 });
 
@@ -994,17 +947,10 @@ document.getElementById('focus-close-btn').addEventListener('click', () => appWi
 document.getElementById('focus-minimize-btn').addEventListener('click', () => appWindow.minimize());
 document.getElementById('focus-maximize-btn').addEventListener('click', () => appWindow.toggleMaximize());
 
-document.getElementById('focus-fold-y-btn').addEventListener('click', async (e) => {
-  e.stopPropagation();
-  await toggleCollapseY();
-});
+// Fold buttons removed from Focus mode
 
-document.getElementById('focus-fold-x-btn').addEventListener('click', async (e) => {
-  e.stopPropagation();
-  await toggleCollapseX();
-});
 
-document.getElementById('focus-complete-btn').addEventListener('click', () => {
+document.getElementById('focus-nav-complete-btn').addEventListener('click', () => {
   if (currentFocusTask) {
     currentFocusTask.completed = true;
     saveTasks();
@@ -1013,7 +959,7 @@ document.getElementById('focus-complete-btn').addEventListener('click', () => {
   }
 });
 
-document.getElementById('focus-exit-btn').addEventListener('click', exitFocusMode);
+document.getElementById('focus-nav-exit-btn').addEventListener('click', exitFocusMode);
 
 // Helper function to update navbar title
 function updateNavbarTitle(title) {
@@ -1067,5 +1013,4 @@ function hideNavbarTimer() {
 
 // Initialize
 renderTasks();
-updateControlIcons(); // Set initial icons based on position
 console.log('FlowPane initialized');
