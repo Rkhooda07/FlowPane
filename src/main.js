@@ -8,6 +8,9 @@ let isInFocusMode = false;
 let lastNormalPosition = null;
 let isAnimating = false;
 let lastExpandTime = 0;
+let isPeeking = false;
+let peekTimeout = null;
+let peekMode = null;
 
 const appElement = document.getElementById('app');
 
@@ -72,6 +75,11 @@ async function toggleCollapseY(isManualDrag = false) {
   try {
     const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
     const isCollapsing = !appElement.classList.contains('collapsed-y');
+
+    if (isManualDrag) {
+      isPeeking = false;
+      appElement.classList.remove('peeking');
+    }
 
     if (isCollapsing) {
       // COLLAPSE FLOW
@@ -179,7 +187,23 @@ async function toggleCollapseY(isManualDrag = false) {
         if (monitor) {
           const currentPos = await appWindow.outerPosition();
           const currentSize = await appWindow.outerSize();
-          const endPos = lastNormalPosition || currentPos;
+          const { height: scrH } = monitor.size;
+          const { y: offsetY } = monitor.position;
+          const scale = monitor.scaleFactor;
+          const expandedPhysicalH = ALL_WINDOWS_SIZE.height * scale;
+
+          // Smart position: if at bottom, grow UPWARDS; if at top, grow DOWNWARDS
+          let endY = currentPos.y;
+          const isNearBottom = Math.abs((offsetY + scrH) - (currentPos.y + currentSize.height)) < 25;
+          if (isNearBottom) {
+            endY = (offsetY + scrH) - expandedPhysicalH;
+          } else if (Math.abs(currentPos.y - offsetY) < 25) {
+            endY = offsetY;
+          } else if (lastNormalPosition) {
+            endY = lastNormalPosition.y;
+          }
+
+          const endPos = { x: currentPos.x, y: Math.round(endY) };
 
           await animateWindowTransform(
             currentPos,
@@ -206,6 +230,11 @@ async function toggleCollapseX(isManualDrag = false) {
   try {
     const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
     const isCollapsing = !appElement.classList.contains('collapsed-x');
+
+    if (isManualDrag) {
+      isPeeking = false;
+      appElement.classList.remove('peeking');
+    }
 
     if (isCollapsing) {
       // COLLAPSE FLOW
@@ -290,7 +319,23 @@ async function toggleCollapseX(isManualDrag = false) {
         if (monitor) {
           const currentPos = await appWindow.outerPosition();
           const currentSize = await appWindow.outerSize();
-          const endPos = lastNormalPosition || currentPos;
+          const { width: scrW } = monitor.size;
+          const { x: offsetX } = monitor.position;
+          const scale = monitor.scaleFactor;
+          const expandedPhysicalW = ALL_WINDOWS_SIZE.width * scale;
+
+          // Smart position: if at right, grow LEFTWARDS; if at left, grow RIGHTWARDS
+          let endX = currentPos.x;
+          const isNearRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width)) < 25;
+          if (isNearRight) {
+            endX = (offsetX + scrW) - expandedPhysicalW;
+          } else if (Math.abs(currentPos.x - offsetX) < 25) {
+            endX = offsetX;
+          } else if (lastNormalPosition) {
+            endX = lastNormalPosition.x;
+          }
+
+          const endPos = { x: Math.round(endX), y: currentPos.y };
 
           await animateWindowTransform(
             currentPos,
@@ -427,6 +472,53 @@ function renderTasks() {
 const taskInput = document.getElementById('task-input');
 const dueInput = document.getElementById('due-input');
 const inputArea = document.querySelector('.input-area');
+
+// Hover peek logic for collapsed windows
+appElement.addEventListener('mouseenter', () => {
+  if (isAnimating) return;
+  const isCollapsedY = appElement.classList.contains('collapsed-y');
+  const isCollapsedX = appElement.classList.contains('collapsed-x');
+
+  if ((isCollapsedY || isCollapsedX) && !isPeeking) {
+    peekTimeout = setTimeout(() => {
+      // Re-verify after timeout
+      if (isAnimating) return;
+      const stillCollapsedY = appElement.classList.contains('collapsed-y');
+      const stillCollapsedX = appElement.classList.contains('collapsed-x');
+
+      if (stillCollapsedY || stillCollapsedX) {
+        isPeeking = true;
+        peekMode = stillCollapsedY ? 'y' : 'x';
+        appElement.classList.add('peeking');
+        if (peekMode === 'y') toggleCollapseY();
+        else toggleCollapseX();
+      }
+    }, 150); // Slight delay for intentional hover
+  }
+});
+
+appElement.addEventListener('mouseleave', () => {
+  clearTimeout(peekTimeout);
+  if (isPeeking) {
+    // If we are currently animating, we flag it so we can collapse back after finish
+    // For now, if we're not animating, collapse immediately.
+    // If we are animating, let the user stay expanded - it's less jarring than a half-jump.
+    if (!isAnimating) {
+      isPeeking = false;
+      appElement.classList.remove('peeking');
+      if (peekMode === 'y') toggleCollapseY();
+      else toggleCollapseX();
+    }
+  }
+});
+
+// If user interacts with any element while peeking, make it permanent
+appElement.addEventListener('mousedown', () => {
+  if (isPeeking) {
+    isPeeking = false;
+    appElement.classList.remove('peeking');
+  }
+}, { capture: true });
 
 function getDefaultDueDate() {
   const date = new Date();

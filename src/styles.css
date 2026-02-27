@@ -203,6 +203,15 @@ body {
   transform: translate(0, 0) scale(1);
 }
 
+/* Faster interior transition when peeking for seamless feel */
+#app.peeking .input-area,
+#app.peeking .task-container,
+#app.peeking .focus-content,
+#app.peeking .focus-bottom-controls {
+  transition-delay: 0s !important;
+  transition-duration: 0.3s !important;
+}
+
 .title-bar {
   display: flex;
   justify-content: space-between;
