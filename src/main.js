@@ -473,8 +473,8 @@ const taskInput = document.getElementById('task-input');
 const dueInput = document.getElementById('due-input');
 const inputArea = document.querySelector('.input-area');
 
-// Hover peek logic for collapsed windows
-appElement.addEventListener('mouseenter', () => {
+// Hover peek logic for collapsed windows - bridges from Rust polling for inactive window support
+appWindow.listen('mouse-enter', () => {
   if (isAnimating) return;
   const isCollapsedY = appElement.classList.contains('collapsed-y');
   const isCollapsedX = appElement.classList.contains('collapsed-x');
@@ -497,12 +497,9 @@ appElement.addEventListener('mouseenter', () => {
   }
 });
 
-appElement.addEventListener('mouseleave', () => {
+appWindow.listen('mouse-leave', () => {
   clearTimeout(peekTimeout);
   if (isPeeking) {
-    // If we are currently animating, we flag it so we can collapse back after finish
-    // For now, if we're not animating, collapse immediately.
-    // If we are animating, let the user stay expanded - it's less jarring than a half-jump.
     if (!isAnimating) {
       isPeeking = false;
       appElement.classList.remove('peeking');

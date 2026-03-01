@@ -1,7 +1,7 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-use tauri::Manager;
+use tauri::{Manager, Emitter};
 #[allow(unused_imports)]
 use window_vibrancy::{apply_acrylic, apply_vibrancy, NSVisualEffectMaterial};
+use std::time::Duration;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -15,14 +15,48 @@ pub fn run() {
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
 
+            // Background task to track mouse hover for inactive window
+            let window_clone = window.clone();
+            tauri::async_runtime::spawn(async move {
+                let mut is_over = false;
+                loop {
+                    tokio::time::sleep(Duration::from_millis(150)).await;
+                    
+                    let cursor_pos = match window_clone.app_handle().cursor_position() {
+                        Ok(pos) => pos,
+                        Err(_) => continue,
+                    };
+
+                    let win_pos = match window_clone.outer_position() {
+                        Ok(pos) => pos,
+                        Err(_) => continue,
+                    };
+
+                    let win_size = match window_clone.outer_size() {
+                        Ok(size) => size,
+                        Err(_) => continue,
+                    };
+
+                    let x_over = cursor_pos.x >= win_pos.x as f64 && cursor_pos.x <= (win_pos.x as f64 + win_size.width as f64);
+                    let y_over = cursor_pos.y >= win_pos.y as f64 && cursor_pos.y <= (win_pos.y as f64 + win_size.height as f64);
+                    
+                    let currently_over = x_over && y_over;
+
+                    if currently_over != is_over {
+                        is_over = currently_over;
+                        if is_over {
+                            let _ = window_clone.emit("mouse-enter", ());
+                        } else {
+                            let _ = window_clone.emit("mouse-leave", ());
+                        }
+                    }
+                }
+            });
+
             /* 
             #[cfg(target_os = "macos")]
             apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
                 .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
-
-            #[cfg(target_os = "windows")]
-            apply_acrylic(&window, Some((18, 18, 18, 125)))
-                .expect("Unsupported platform! 'apply_acrylic' is only supported on Windows");
             */
 
             // Tray setup
