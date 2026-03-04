@@ -112,29 +112,9 @@ async function toggleCollapseY(isManualDrag = false) {
 
           const collapsedPhysicalHeight = COLLAPSED_SIZE_Y.height * scaleFactor;
 
-          // Calculate distances to top and bottom edges from current position
-          const distTop = Math.abs(currentPos.y - offsetY);
-          const distBottom = Math.abs((offsetY + scrH) - (currentPos.y + currentSize.height));
-
-          let newY = (distTop < distBottom) ? offsetY : (offsetY + scrH - collapsedPhysicalHeight);
-          let newX = currentPos.x;
-
-          // If snapping to bottom, also snap to the nearest side to avoid macOS Dock
-          if (newY !== offsetY) {
-            const { width: scrW } = monitor.size;
-            const { x: offsetX } = monitor.position;
-            const collapsedPhysicalWidth = COLLAPSED_SIZE_Y.width * scaleFactor;
-
-            // Determine if left side or right side is closer
-            const midPoint = offsetX + (scrW / 2);
-            const windowMid = currentPos.x + (currentSize.width / 2);
-
-            if (windowMid < midPoint) {
-              newX = offsetX;
-            } else {
-              newX = offsetX + scrW - collapsedPhysicalWidth;
-            }
-          }
+          // Calculate distances to top edge from current position
+          const newY = offsetY;
+          const newX = currentPos.x;
 
           // Animate both size and position simultaneously
           await animateWindowTransform(
@@ -157,27 +137,6 @@ async function toggleCollapseY(isManualDrag = false) {
         hideNavbarTimer();
 
         if (isManualDrag) {
-          // SMART INSTANT EXPANSION: Offset if at bottom to grow UPWARDS
-          try {
-            const monitor = await currentMonitor();
-            const currentPos = await appWindow.outerPosition();
-            const { height: winH } = await appWindow.outerSize();
-            const scale = monitor ? monitor.scaleFactor : 1;
-
-            if (monitor) {
-              const { height: scrH } = monitor.size;
-              const { y: offsetY } = monitor.position;
-              const expandedPhysicalH = ALL_WINDOWS_SIZE.height * scale;
-
-              // If near bottom, move UP to accommodate new height
-              const isNearBottom = Math.abs((offsetY + scrH) - (currentPos.y + winH)) < 20;
-              if (isNearBottom) {
-                const newY = (offsetY + scrH) - expandedPhysicalH;
-                await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(currentPos.x, Math.round(newY)));
-              }
-            }
-          } catch (e) { }
-
           await appWindow.setSize(ALL_WINDOWS_SIZE);
           lastExpandTime = Date.now();
           return;
@@ -192,14 +151,9 @@ async function toggleCollapseY(isManualDrag = false) {
           const scale = monitor.scaleFactor;
           const expandedPhysicalH = ALL_WINDOWS_SIZE.height * scale;
 
-          // Smart position: if at bottom, grow UPWARDS; if at top, grow DOWNWARDS
-          let endY = currentPos.y;
-          const isNearBottom = Math.abs((offsetY + scrH) - (currentPos.y + currentSize.height)) < 25;
-          if (isNearBottom) {
-            endY = (offsetY + scrH) - expandedPhysicalH;
-          } else if (Math.abs(currentPos.y - offsetY) < 25) {
-            endY = offsetY;
-          } else if (lastNormalPosition) {
+          // Growing DOWNWARDS from top
+          let endY = offsetY;
+          if (lastNormalPosition) {
             endY = lastNormalPosition.y;
           }
 
@@ -780,7 +734,6 @@ async function snapToEdges() {
   else if (Math.abs(winX + winW - (offsetX + scrW)) < SNAP_THRESHOLD) newX = offsetX + scrW - winW;
 
   if (Math.abs(winY - offsetY) < SNAP_THRESHOLD) newY = offsetY;
-  else if (Math.abs(winY + winH - (offsetY + scrH)) < SNAP_THRESHOLD) newY = offsetY + scrH - winH;
 
   if (newX !== winX || newY !== winY) {
     await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(newX, newY));
@@ -806,7 +759,6 @@ async function clampToScreen() {
 
   // Clamp Y (The "Wall" effect)
   if (winY < offsetY) newY = offsetY;
-  else if (winY + winH > offsetY + scrH) newY = offsetY + scrH - winH;
 
   // Clamp X
   if (winX < offsetX) newX = offsetX;
@@ -833,14 +785,12 @@ async function checkInstantCollapse() {
 
   // Sensitive trigger for instant "genie" capture
   const TRIGGER_TOP_SIDES = 8;
-  const TRIGGER_BOTTOM = 2; // decreased to require more drag distance
 
   const dTop = Math.abs(winY - offsetY);
-  const dBottom = Math.abs((offsetY + scrH) - (winY + winH));
   const dLeft = Math.abs(winX - offsetX);
   const dRight = Math.abs((offsetX + scrW) - (winX + winW));
 
-  if (dTop < TRIGGER_TOP_SIDES || dBottom < TRIGGER_BOTTOM) {
+  if (dTop < TRIGGER_TOP_SIDES) {
     toggleCollapseY();
   } else if (dLeft < TRIGGER_TOP_SIDES || dRight < TRIGGER_TOP_SIDES) {
     toggleCollapseX();
@@ -863,11 +813,10 @@ async function checkInstantExpand() {
 
   const EXPAND_THRESHOLD = 12; // Intentional threshold for instant feel
   const dTop = Math.abs(winY - offsetY);
-  const dBottom = Math.abs((offsetY + scrH) - (winY + winH));
   const dLeft = Math.abs(winX - offsetX);
   const dRight = Math.abs((offsetX + scrW) - (winX + winW));
 
-  if (isCollapsedY && dTop > EXPAND_THRESHOLD && dBottom > EXPAND_THRESHOLD) {
+  if (isCollapsedY && dTop > EXPAND_THRESHOLD) {
     toggleCollapseY(true); // true = isManualDrag
   } else if (isCollapsedX && dLeft > EXPAND_THRESHOLD && dRight > EXPAND_THRESHOLD) {
     toggleCollapseX(true); // true = isManualDrag
