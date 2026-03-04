@@ -681,6 +681,7 @@ function addTask() {
   dueInput.value = formatDateTimeHuman(getDefaultDueDate());
 }
 
+
 // Resize logic
 const dirMap = {
   n: 'Top',
@@ -702,6 +703,7 @@ Object.entries(dirMap).forEach(([dir, tauriDir]) => {
     });
   }
 });
+
 
 // Update countdowns every minute
 setInterval(renderTasks, 60000);

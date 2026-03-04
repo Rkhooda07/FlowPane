@@ -733,6 +733,7 @@ body {
   color: var(--urgent-color);
 }
 
+
 /* Resize Handles */
 .resize-handle {
   position: absolute;
@@ -747,6 +748,7 @@ body {
 .resize-handle.ne { top: 0; right: 0; width: 10px; height: 10px; cursor: ne-resize; }
 .resize-handle.sw { bottom: 0; left: 0; width: 10px; height: 10px; cursor: sw-resize; }
 .resize-handle.se { bottom: 0; right: 0; width: 10px; height: 10px; cursor: se-resize; }
+
 
 /* Animations */
 @keyframes pulse {
