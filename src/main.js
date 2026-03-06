@@ -493,14 +493,6 @@ appWindow.listen('mouse-leave', () => {
   }
 });
 
-// If user interacts with any element while peeking, make it permanent
-appElement.addEventListener('mousedown', () => {
-  if (isPeeking) {
-    isPeeking = false;
-    appElement.classList.remove('peeking');
-  }
-}, { capture: true });
-
 function getDefaultDueDate() {
   const date = new Date();
   date.setHours(date.getHours() + 1);
@@ -859,6 +851,13 @@ async function checkInstantExpand() {
 let moveTimeout;
 appWindow.onMoved(() => {
   if (isMinimizing || isAnimating) return;
+
+  // If the window is moved manually while peeking (expanding via hover),
+  // end the peek state so it stays expanded and doesn't auto-collapse.
+  if (isPeeking) {
+    isPeeking = false;
+    appElement.classList.remove('peeking');
+  }
 
   // Instant reaction logic
   clampToScreen();
