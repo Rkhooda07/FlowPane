@@ -3,7 +3,8 @@ const { getCurrentWindow, currentMonitor, LogicalSize } = window.__TAURI__.windo
 const appWindow = getCurrentWindow();
 
 // State management
-let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+let tasks = [];
+let store = null;
 let isInFocusMode = false;
 let lastNormalPosition = null;
 let isAnimating = false;
@@ -341,8 +342,37 @@ document.getElementById('maximize-btn').addEventListener('click', async (e) => {
 
 
 // Task functions
-function saveTasks() {
-  localStorage.setItem('tasks', JSON.stringify(tasks));
+async function initStore() {
+  try {
+    const tauri = window.__TAURI__;
+    const StoreClass = (tauri.store && tauri.store.Store) ||
+      (tauri.plugins && tauri.plugins.store && tauri.plugins.store.Store);
+    if (!StoreClass) throw new Error('Store plugin not found on window.__TAURI__');
+
+    store = new StoreClass('tasks.json');
+    const saved = await store.get('tasks');
+    if (saved) {
+      tasks = saved;
+    }
+  } catch (e) {
+    console.error('Failed to load store, falling back to localStorage:', e);
+    tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+  }
+  renderTasks();
+}
+
+async function saveTasks() {
+  if (store) {
+    try {
+      await store.set('tasks', tasks);
+      await store.save();
+    } catch (e) {
+      console.error('Failed to save to store:', e);
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+  } else {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }
 }
 
 function renderTasks() {
@@ -1052,5 +1082,5 @@ function hideNavbarTimer() {
 }
 
 // Initialize
-renderTasks();
+initStore();
 console.log('FlowPane initialized');

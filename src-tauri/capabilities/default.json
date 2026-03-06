@@ -8,6 +8,7 @@
   "permissions": [
     "core:default",
     "opener:default",
+    "store:default",
     "core:window:allow-start-dragging",
     "core:window:allow-start-resize-dragging",
     "core:window:allow-outer-position",
