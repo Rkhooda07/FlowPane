@@ -13,10 +13,10 @@
       {
         "title": "FlowPane",
         "width": 325,
-        "height": 315,
+        "height": 375,
         "resizable": true,
         "minWidth": 325,
-        "minHeight": 315,
+        "minHeight": 375,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,

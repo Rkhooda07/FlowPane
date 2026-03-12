@@ -91,12 +91,12 @@ body {
 
 #app.collapsed-y {
   height: 38px !important; /* Increased from 28px for better spacing */
-  width: 300px !important;
+  width: 325px !important;
 }
 
 #app.collapsed-x {
   width: 38px !important; /* Matched to collapsed-y height */
-  height: 250px !important; /* Taller for better proportions */
+  height: 300px !important; /* Taller for better proportions */
 }
 
 #app.collapsed-y .title-bar {

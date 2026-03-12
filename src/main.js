@@ -15,9 +15,11 @@ let peekMode = null;
 
 const appElement = document.getElementById('app');
 
-const ALL_WINDOWS_SIZE = new LogicalSize(300, 500);
-const COLLAPSED_SIZE_Y = new LogicalSize(300, 38); // Match CSS height for bar
-const COLLAPSED_SIZE_X = new LogicalSize(38, 250); // Match CSS dimensions
+const ALL_WINDOWS_SIZE = new LogicalSize(325, 375);
+const PEEK_SIZE_Y = new LogicalSize(325, 270);
+const PEEK_SIZE_X = new LogicalSize(270, 325);
+const COLLAPSED_SIZE_Y = new LogicalSize(325, 38); // Match CSS height for bar
+const COLLAPSED_SIZE_X = new LogicalSize(38, 375); // Match CSS dimensions
 
 // Animation Helper - Animates both position and size simultaneously
 async function animateWindowTransform(startPos, endPos, startSize, endSize, duration = 450) {
@@ -150,11 +152,13 @@ async function toggleCollapseY(isManualDrag = false) {
           const { height: scrH } = monitor.size;
           const { y: offsetY } = monitor.position;
           const scale = monitor.scaleFactor;
-          const expandedPhysicalH = ALL_WINDOWS_SIZE.height * scale;
+          
+          const targetSize = isPeeking ? PEEK_SIZE_Y : ALL_WINDOWS_SIZE;
+          const expandedPhysicalH = targetSize.height * scale;
 
           // Growing DOWNWARDS from top
           let endY = offsetY;
-          if (lastNormalPosition) {
+          if (lastNormalPosition && !isPeeking) {
             endY = lastNormalPosition.y;
           }
 
@@ -164,7 +168,7 @@ async function toggleCollapseY(isManualDrag = false) {
             currentPos,
             endPos,
             currentSize,
-            ALL_WINDOWS_SIZE,
+            targetSize,
             450
           );
           lastExpandTime = Date.now();
@@ -277,7 +281,9 @@ async function toggleCollapseX(isManualDrag = false) {
           const { width: scrW } = monitor.size;
           const { x: offsetX } = monitor.position;
           const scale = monitor.scaleFactor;
-          const expandedPhysicalW = ALL_WINDOWS_SIZE.width * scale;
+          
+          const targetSize = isPeeking ? PEEK_SIZE_X : ALL_WINDOWS_SIZE;
+          const expandedPhysicalW = targetSize.width * scale;
 
           // Smart position: if at right, grow LEFTWARDS; if at left, grow RIGHTWARDS
           let endX = currentPos.x;
@@ -286,7 +292,7 @@ async function toggleCollapseX(isManualDrag = false) {
             endX = (offsetX + scrW) - expandedPhysicalW;
           } else if (Math.abs(currentPos.x - offsetX) < 25) {
             endX = offsetX;
-          } else if (lastNormalPosition) {
+          } else if (lastNormalPosition && !isPeeking) {
             endX = lastNormalPosition.x;
           }
 
@@ -296,7 +302,7 @@ async function toggleCollapseX(isManualDrag = false) {
             currentPos,
             endPos,
             currentSize,
-            ALL_WINDOWS_SIZE,
+            targetSize,
             450
           );
           lastExpandTime = Date.now();
@@ -886,14 +892,20 @@ async function checkInstantExpand() {
 
 // Listen for move events to trigger snapping and icon updates
 let moveTimeout;
-appWindow.onMoved(() => {
+appWindow.onMoved(async () => {
   if (isMinimizing || isAnimating) return;
 
   // If the window is moved manually while peeking (expanding via hover),
-  // end the peek state so it stays expanded and doesn't auto-collapse.
+  // end the peek state and force it to full size.
   if (isPeeking) {
     isPeeking = false;
     appElement.classList.remove('peeking');
+    
+    // Force instant full size expansion when starting to drag a peeked window
+    const monitor = await currentMonitor();
+    if (monitor) {
+      await appWindow.setSize(ALL_WINDOWS_SIZE);
+    }
   }
 
   // Instant reaction logic
