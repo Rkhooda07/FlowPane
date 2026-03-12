@@ -538,32 +538,37 @@ body {
 
 .due-container {
   position: relative;
-  width: fit-content;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
 }
 
 #due-input {
   background: rgba(255, 255, 255, 0.08);
   border: 0.5px solid rgba(255, 255, 255, 0.2);
-  padding: 0 12px;
+  padding: 0 10px;
   border-radius: 10px;
   color: rgba(255, 255, 255, 0.8);
   font-size: 12px;
+  letter-spacing: 0px;
   outline: none;
   cursor: pointer;
-  width: auto;
-  min-width: 160px;
+  width: 145px;
+  min-width: unset;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   opacity: 0;
   height: 0;
   pointer-events: none;
   overflow: hidden;
   border-width: 0;
+  flex: 0 0 auto;
 }
 
 .input-area.expanded #due-input {
   opacity: 1;
   height: 32px;
-  padding: 8px 12px;
+  padding: 8px 10px;
   margin-top: 4px;
   pointer-events: all;
   border-width: 0.5px;
@@ -576,6 +581,118 @@ body {
 #due-input::-webkit-calendar-picker-indicator {
   filter: invert(1);
   opacity: 0.5;
+}
+
+.quick-time-presets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+  transform: translateX(-10px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.input-area.expanded .quick-time-presets {
+  opacity: 1;
+  pointer-events: all;
+  height: 32px;
+  margin-top: 4px;
+  transform: translateX(0);
+}
+
+.quick-time-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 0 8px;
+  height: 26px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-time-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.quick-time-btn:active {
+  transform: translateY(1px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.quick-time-btn .btn-text,
+.quick-time-btn .btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-time-btn .btn-icon {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  color: #28c840;
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+@keyframes iconSlideUpIn {
+  0% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes textSlideUpOut {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-100%); opacity: 0; }
+}
+@keyframes iconSlideUpOut {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-100%); opacity: 0; }
+}
+@keyframes textSlideUpIn {
+  0% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.quick-time-btn.success-active {
+  background: rgba(40, 200, 64, 0.2) !important;
+  border-color: rgba(40, 200, 64, 0.4) !important;
+}
+
+.quick-time-btn.success-active .btn-icon {
+  animation: iconSlideUpIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.quick-time-btn.success-active .btn-text {
+  animation: textSlideUpOut 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.quick-time-btn.success-exit .btn-icon {
+  animation: iconSlideUpOut 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.quick-time-btn.success-exit .btn-text {
+  animation: textSlideUpIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-color-scheme: light) {
+  .quick-time-btn {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+  .quick-time-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+    border-color: rgba(0, 0, 0, 0.2);
+  }
 }
 
 .task-container {
