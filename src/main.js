@@ -500,10 +500,21 @@ appWindow.listen('mouse-leave', () => {
 });
 
 function getDefaultDueDate() {
-  const date = new Date();
-  date.setHours(date.getHours() + 1);
-  return date;
+  return new Date();
 }
+
+const quotes = [
+  "Flow with the moment, focus on the task.",
+  "Your focus determines your reality.",
+  "One task at a time, one step closer.",
+  "Stay in the flow, the rest will follow.",
+  "Focus is the art of knowing what to ignore.",
+  "Deep work is the superpower of the 21st century.",
+  "The secret to getting ahead is getting started.",
+  "Don't stop until you're proud.",
+  "Small steps lead to big results.",
+  "Flow is the state of effortless action."
+];
 
 // Initialize default date
 dueInput.value = formatDateTimeHuman(getDefaultDueDate());
@@ -547,6 +558,10 @@ document.querySelectorAll('.quick-time-btn').forEach(btn => {
 
 taskInput.addEventListener('focus', () => {
   inputArea.classList.add('expanded');
+  // Refresh the due input with current live time when user starts adding a task
+  if (!taskInput.value.trim()) {
+    dueInput.value = formatDateTimeHuman(new Date());
+  }
 });
 
 dueInput.addEventListener('focus', () => {
@@ -929,6 +944,10 @@ function enterFocusMode(task) {
 
   document.getElementById('focus-task-name').textContent = task.title;
   document.getElementById('focus-mode').classList.remove('hidden');
+
+  // Set a random quote
+  const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+  document.getElementById('focus-quote').textContent = `"${randomQuote}"`;
 
   // Update navbar title to task name immediately
   updateNavbarTitle(task.title);

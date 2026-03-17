@@ -955,6 +955,25 @@ body {
   text-shadow: 0 0 30px rgba(255, 180, 50, 0.3);
 }
 
+.focus-quote {
+  font-size: 13px;
+  font-weight: 300;
+  color: rgba(255, 204, 102, 0.6);
+  font-style: italic;
+  margin-top: 16px;
+  max-width: 240px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  animation: fadeInQuote 1.5s ease-out;
+}
+
+@keyframes fadeInQuote {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Bottom Controls: Round vibrant buttons */
 .focus-bottom-controls {
   display: flex;
