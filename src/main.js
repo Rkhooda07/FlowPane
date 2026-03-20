@@ -362,15 +362,29 @@ async function initStore() {
     }
     const savedNotes = await store.get('notesDrafts');
     if (savedNotes && typeof savedNotes === 'object') {
-      noteDrafts = savedNotes;
+      noteDrafts = Object.fromEntries(
+        Object.entries(savedNotes).map(([noteId, entry]) => [noteId, normalizeNoteEntry(entry)])
+      );
+    }
+    const savedSkipDeleteConfirm = await store.get('skipDeleteConfirm');
+    if (typeof savedSkipDeleteConfirm === 'boolean') {
+      skipDeleteConfirm = savedSkipDeleteConfirm;
     }
   } catch (e) {
     console.error('Failed to load store, falling back to localStorage:', e);
     tasks = JSON.parse(localStorage.getItem('tasks')) || [];
     try {
-      noteDrafts = JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY)) || {};
+      const localNotes = JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY)) || {};
+      noteDrafts = Object.fromEntries(
+        Object.entries(localNotes).map(([noteId, entry]) => [noteId, normalizeNoteEntry(entry)])
+      );
     } catch (err) {
       noteDrafts = {};
+    }
+    try {
+      skipDeleteConfirm = JSON.parse(localStorage.getItem(DELETE_CONFIRM_PREF_KEY)) === true;
+    } catch (err) {
+      skipDeleteConfirm = false;
     }
   }
   renderTasks();
@@ -404,9 +418,84 @@ async function persistNotesDrafts() {
   localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(noteDrafts));
 }
 
+async function persistSkipDeleteConfirmSetting() {
+  if (store) {
+    try {
+      await store.set('skipDeleteConfirm', skipDeleteConfirm);
+      await store.save();
+      return;
+    } catch (e) {
+      console.error('Failed to save delete confirm preference to store, falling back to localStorage:', e);
+    }
+  }
+
+  localStorage.setItem(DELETE_CONFIRM_PREF_KEY, JSON.stringify(skipDeleteConfirm));
+}
+
+async function requestDeleteConfirmation(itemType) {
+  if (skipDeleteConfirm) return true;
+
+  if (!deleteConfirmModal || !deleteConfirmTitle || !deleteConfirmText || !deleteConfirmNeverAgain || !deleteConfirmCancel || !deleteConfirmYes) {
+    return window.confirm(`Delete this ${itemType}?`);
+  }
+
+  deleteConfirmTitle.textContent = `Delete ${itemType}?`;
+  deleteConfirmText.textContent = `Are you sure you want to remove this ${itemType}?`;
+  deleteConfirmNeverAgain.checked = false;
+  deleteConfirmModal.classList.remove('hidden');
+  deleteConfirmModal.setAttribute('aria-hidden', 'false');
+
+  return new Promise(resolve => {
+    const close = (confirmed) => {
+      deleteConfirmModal.classList.add('hidden');
+      deleteConfirmModal.setAttribute('aria-hidden', 'true');
+      deleteConfirmCancel.removeEventListener('click', onCancel);
+      deleteConfirmYes.removeEventListener('click', onConfirm);
+      deleteConfirmModal.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onEscape);
+      resolve(confirmed);
+    };
+
+    const onCancel = (e) => {
+      e.stopPropagation();
+      close(false);
+    };
+
+    const onConfirm = async (e) => {
+      e.stopPropagation();
+      if (deleteConfirmNeverAgain.checked) {
+        skipDeleteConfirm = true;
+        await persistSkipDeleteConfirmSetting();
+      }
+      close(true);
+    };
+
+    const onBackdrop = (e) => {
+      if (e.target === deleteConfirmModal) {
+        close(false);
+      }
+    };
+
+    const onEscape = (e) => {
+      if (e.key === 'Escape') {
+        close(false);
+      }
+    };
+
+    deleteConfirmCancel.addEventListener('click', onCancel);
+    deleteConfirmYes.addEventListener('click', onConfirm);
+    deleteConfirmModal.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onEscape);
+  });
+}
+
 function renderTasks() {
   const taskList = document.getElementById('task-list');
   taskList.innerHTML = '';
+  const savedNotes = Object.entries(noteDrafts || {})
+    .map(([noteId, entry]) => [noteId, normalizeNoteEntry(entry)])
+    .filter(([noteId, note]) => ['1', '2', '3', '4'].includes(String(noteId)) && hasNoteContent(note))
+    .sort((a, b) => Number(a[0]) - Number(b[0]));
 
   tasks.sort((a, b) => new Date(a.due) - new Date(b.due)).forEach((task, index) => {
     const li = document.createElement('li');
@@ -447,16 +536,20 @@ function renderTasks() {
       renderTasks();
     });
 
-    li.querySelector('.delete-task-btn').addEventListener('click', (e) => {
+    li.querySelector('.delete-task-btn').addEventListener('click', async (e) => {
       e.stopPropagation();
+      const shouldDelete = await requestDeleteConfirmation('task');
+      if (!shouldDelete) return;
       tasks.splice(index, 1);
       saveTasks();
       renderTasks();
     });
 
     // Right click to delete
-    li.addEventListener('contextmenu', (e) => {
+    li.addEventListener('contextmenu', async (e) => {
       e.preventDefault();
+      const shouldDelete = await requestDeleteConfirmation('task');
+      if (!shouldDelete) return;
       tasks.splice(index, 1);
       saveTasks();
       renderTasks();
@@ -470,11 +563,59 @@ function renderTasks() {
     taskList.appendChild(li);
   });
 
-  if (tasks.length === 0) {
+  savedNotes.forEach(([noteId, note]) => {
+    const li = document.createElement('li');
+    li.className = `task-item note-entry note-entry-${noteId}`;
+
+    const swatch = document.createElement('span');
+    swatch.className = 'note-entry-swatch';
+
+    const info = document.createElement('div');
+    info.className = 'task-info';
+
+    const title = document.createElement('div');
+    title.className = 'task-title note-entry-title';
+    title.textContent = (note.title.trim() || 'Untitled note').replace(/\s+/g, ' ').slice(0, 72);
+
+    const subtitle = document.createElement('div');
+    subtitle.className = 'task-due note-entry-subtitle';
+    subtitle.textContent = 'Saved note';
+
+    const deleteNoteBtn = document.createElement('button');
+    deleteNoteBtn.className = 'delete-note-btn';
+    deleteNoteBtn.title = 'Delete note';
+    deleteNoteBtn.textContent = '×';
+
+    info.appendChild(title);
+    info.appendChild(subtitle);
+    li.appendChild(swatch);
+    li.appendChild(info);
+    li.appendChild(deleteNoteBtn);
+
+    deleteNoteBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const shouldDelete = await requestDeleteConfirmation('note');
+      if (!shouldDelete) return;
+      delete noteDrafts[noteId];
+      await persistNotesDrafts();
+      renderTasks();
+    });
+
+    li.addEventListener('click', () => {
+      const noteTab = document.querySelector(`.task-note-tab.note-${noteId}`);
+      if (noteTab) {
+        openNote(noteTab, noteId);
+      }
+    });
+
+    taskList.appendChild(li);
+  });
+
+  if (tasks.length === 0 && savedNotes.length === 0) {
     taskList.innerHTML = `
       <div class="empty-state">
         <div style="font-size: 32px; margin-bottom: 10px; opacity: 0.3;">✨</div>
-        <p>No tasks left!</p>
+        <p>No tasks or notes yet.</p>
         <p style="font-size: 11px; opacity: 0.6; margin-top: 4px;">Time to flow into something new.</p>
       </div>
     `;
@@ -488,13 +629,22 @@ const inputArea = document.querySelector('.input-area');
 const homeNavLinks = document.querySelectorAll('.navbar-home-link');
 const noteTabs = document.querySelectorAll('.task-note-tab');
 const notesWorkspace = document.getElementById('notes-workspace');
-const notesEditor = document.getElementById('notes-editor');
+const notesTitleInput = document.getElementById('notes-title-input');
+const notesBodyEditor = document.getElementById('notes-body-editor');
 const notesSaveBtn = document.getElementById('notes-nav-save-btn');
 const notesExitBtn = document.getElementById('notes-nav-exit-btn');
+const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+const deleteConfirmTitle = document.getElementById('delete-confirm-title');
+const deleteConfirmText = document.getElementById('delete-confirm-text');
+const deleteConfirmNeverAgain = document.getElementById('delete-confirm-never-again');
+const deleteConfirmCancel = document.getElementById('delete-confirm-cancel');
+const deleteConfirmYes = document.getElementById('delete-confirm-yes');
 
 const NOTES_STORAGE_KEY = 'flowpane-notes-drafts';
+const DELETE_CONFIRM_PREF_KEY = 'flowpane-skip-delete-confirm';
 let activeNoteId = null;
 let noteDrafts = {};
+let skipDeleteConfirm = false;
 
 function extractNoteId(tab) {
   const noteClass = [...tab.classList].find(c => /^note-\d+$/.test(c));
@@ -511,9 +661,27 @@ function setNotesRevealOrigin(tab) {
   notesWorkspace.style.setProperty('--reveal-y', `${y}px`);
 }
 
-function cacheActiveNoteDraft() {
-  if (!activeNoteId || !notesEditor) return;
-  noteDrafts[activeNoteId] = notesEditor.value;
+function normalizeNoteEntry(rawEntry) {
+  if (rawEntry && typeof rawEntry === 'object' && !Array.isArray(rawEntry)) {
+    return {
+      title: typeof rawEntry.title === 'string' ? rawEntry.title : '',
+      body: typeof rawEntry.body === 'string' ? rawEntry.body : ''
+    };
+  }
+
+  if (typeof rawEntry === 'string') {
+    const lines = rawEntry.split(/\r?\n/);
+    const title = lines[0] || '';
+    const body = lines.slice(1).join('\n');
+    return { title, body };
+  }
+
+  return { title: '', body: '' };
+}
+
+function hasNoteContent(note) {
+  if (!note) return false;
+  return note.title.trim().length > 0 || note.body.trim().length > 0;
 }
 
 function clearActiveTabState() {
@@ -526,7 +694,7 @@ function getActiveNoteTab() {
 }
 
 function openNote(tab, noteId) {
-  if (!notesWorkspace || !notesEditor) return;
+  if (!notesWorkspace || !notesTitleInput || !notesBodyEditor) return;
 
   notesWorkspace.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4');
   notesWorkspace.classList.add(`theme-${noteId}`);
@@ -541,10 +709,20 @@ function openNote(tab, noteId) {
   activeNoteId = noteId;
   clearActiveTabState();
   tab.classList.add('note-active');
-  notesEditor.value = noteDrafts[noteId] || '';
-  notesEditor.focus();
-  const end = notesEditor.value.length;
-  notesEditor.setSelectionRange(end, end);
+  const note = normalizeNoteEntry(noteDrafts[noteId]);
+  noteDrafts[noteId] = note;
+  notesTitleInput.value = note.title;
+  notesBodyEditor.value = note.body;
+
+  if (note.title.trim().length === 0) {
+    notesTitleInput.focus();
+    const titleEnd = notesTitleInput.value.length;
+    notesTitleInput.setSelectionRange(titleEnd, titleEnd);
+  } else {
+    notesBodyEditor.focus();
+    const bodyEnd = notesBodyEditor.value.length;
+    notesBodyEditor.setSelectionRange(bodyEnd, bodyEnd);
+  }
 }
 
 function closeNote(tab) {
@@ -562,10 +740,21 @@ function closeActiveNote() {
 }
 
 async function saveAndCloseActiveNote() {
-  if (!activeNoteId || !notesEditor) return;
-  cacheActiveNoteDraft();
+  if (!activeNoteId || !notesTitleInput || !notesBodyEditor) return;
+  const title = notesTitleInput.value.trim();
+  const body = notesBodyEditor.value.trim();
+
+  if (title.length === 0 && body.length === 0) {
+    delete noteDrafts[activeNoteId];
+  } else {
+    noteDrafts[activeNoteId] = {
+      title,
+      body: notesBodyEditor.value
+    };
+  }
   await persistNotesDrafts();
   closeActiveNote();
+  renderTasks();
 }
 
 function goToHomeView() {
@@ -604,6 +793,7 @@ noteTabs.forEach(tab => {
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || !activeNoteId || !notesWorkspace.classList.contains('active')) return;
+  if (deleteConfirmModal && !deleteConfirmModal.classList.contains('hidden')) return;
   closeActiveNote();
 });
 
@@ -618,6 +808,15 @@ if (notesExitBtn) {
   notesExitBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     closeActiveNote();
+  });
+}
+
+if (notesTitleInput && notesBodyEditor) {
+  notesTitleInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    notesBodyEditor.focus();
+    notesBodyEditor.setSelectionRange(0, 0);
   });
 }
 
