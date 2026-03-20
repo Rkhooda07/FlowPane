@@ -462,6 +462,136 @@ function renderTasks() {
 const taskInput = document.getElementById('task-input');
 const dueInput = document.getElementById('due-input');
 const inputArea = document.querySelector('.input-area');
+const homeNavLinks = document.querySelectorAll('.navbar-home-link');
+const noteTabs = document.querySelectorAll('.task-note-tab');
+const notesWorkspace = document.getElementById('notes-workspace');
+const notesEditor = document.getElementById('notes-editor');
+
+const NOTES_STORAGE_KEY = 'flowpane-notes-drafts';
+let activeNoteId = null;
+let noteDrafts = {};
+
+try {
+  noteDrafts = JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY)) || {};
+} catch (e) {
+  noteDrafts = {};
+}
+
+function extractNoteId(tab) {
+  const noteClass = [...tab.classList].find(c => /^note-\d+$/.test(c));
+  return noteClass ? noteClass.split('-')[1] : null;
+}
+
+function setNotesRevealOrigin(tab) {
+  if (!tab || !notesWorkspace) return;
+  const tabRect = tab.getBoundingClientRect();
+  const workspaceRect = notesWorkspace.getBoundingClientRect();
+  const x = Math.round(tabRect.left + tabRect.width / 2 - workspaceRect.left);
+  const y = Math.round(tabRect.top + tabRect.height / 2 - workspaceRect.top);
+  notesWorkspace.style.setProperty('--reveal-x', `${x}px`);
+  notesWorkspace.style.setProperty('--reveal-y', `${y}px`);
+}
+
+function saveActiveNoteDraft() {
+  if (!activeNoteId || !notesEditor) return;
+  noteDrafts[activeNoteId] = notesEditor.value;
+  localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(noteDrafts));
+}
+
+function clearActiveTabState() {
+  noteTabs.forEach(tab => tab.classList.remove('note-active'));
+}
+
+function openNote(tab, noteId) {
+  if (!notesWorkspace || !notesEditor) return;
+
+  notesWorkspace.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4');
+  notesWorkspace.classList.add(`theme-${noteId}`);
+  notesWorkspace.classList.remove('hidden');
+  setNotesRevealOrigin(tab);
+
+  requestAnimationFrame(() => {
+    notesWorkspace.classList.add('active');
+  });
+
+  activeNoteId = noteId;
+  clearActiveTabState();
+  tab.classList.add('note-active');
+  notesEditor.value = noteDrafts[noteId] || '';
+  notesEditor.focus();
+  const end = notesEditor.value.length;
+  notesEditor.setSelectionRange(end, end);
+}
+
+function closeNote(tab) {
+  if (!notesWorkspace) return;
+  setNotesRevealOrigin(tab);
+  saveActiveNoteDraft();
+  activeNoteId = null;
+  clearActiveTabState();
+  notesWorkspace.classList.remove('active');
+}
+
+function goToHomeView() {
+  if (activeNoteId && notesWorkspace && notesWorkspace.classList.contains('active')) {
+    const activeTab = document.querySelector(`.task-note-tab.note-${activeNoteId}`);
+    if (activeTab) closeNote(activeTab);
+  }
+
+  if (isInFocusMode) {
+    exitFocusMode();
+  }
+}
+
+if (notesWorkspace) {
+  notesWorkspace.addEventListener('transitionend', (e) => {
+    if (e.propertyName !== 'clip-path') return;
+    if (!notesWorkspace.classList.contains('active')) {
+      notesWorkspace.classList.add('hidden');
+    }
+  });
+}
+
+noteTabs.forEach(tab => {
+  tab.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const noteId = extractNoteId(tab);
+    if (!noteId) return;
+
+    if (activeNoteId === noteId && notesWorkspace.classList.contains('active')) {
+      closeNote(tab);
+      return;
+    }
+
+    saveActiveNoteDraft();
+    openNote(tab, noteId);
+  });
+});
+
+if (notesEditor) {
+  notesEditor.addEventListener('input', () => {
+    saveActiveNoteDraft();
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !activeNoteId || !notesWorkspace.classList.contains('active')) return;
+  const activeTab = document.querySelector(`.task-note-tab.note-${activeNoteId}`);
+  if (activeTab) closeNote(activeTab);
+});
+
+homeNavLinks.forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.stopPropagation();
+    goToHomeView();
+  });
+
+  link.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    goToHomeView();
+  });
+});
 
 // Hover peek logic for collapsed windows - bridges from Rust polling for inactive window support
 appWindow.listen('mouse-enter', () => {

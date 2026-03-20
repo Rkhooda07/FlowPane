@@ -19,7 +19,7 @@
         <button class="control-btn btn-minimize" id="minimize-btn" title="Minimize"></button>
         <button class="control-btn btn-maximize" id="maximize-btn" title="Maximize"></button>
       </div>
-      <h1>FlowPane<span class="navbar-timer hidden"></span></h1>
+      <h1 class="navbar-home-link" id="main-home-link" role="button" tabindex="0">FlowPane<span class="navbar-timer hidden"></span></h1>
       <div class="fold-guide" title="Drag to screen edges to collapse">
         <div class="guide-icon">
           <span></span><span></span><span></span><span></span>
@@ -29,7 +29,15 @@
     </header>
 
     <div class="input-area">
-      <input type="text" id="task-input" placeholder="What's next?" autocomplete="off" />
+      <div class="task-input-shell">
+        <input type="text" id="task-input" placeholder="What's next?" autocomplete="off" />
+        <div class="task-notes-icons" aria-hidden="true">
+          <span class="task-note-tab note-1"></span>
+          <span class="task-note-tab note-2"></span>
+          <span class="task-note-tab note-3"></span>
+          <span class="task-note-tab note-4"></span>
+        </div>
+      </div>
       <div class="due-container">
         <input type="text" id="due-input" placeholder="Date & Time (e.g. 01/30 12:00 PM)" />
         <div class="quick-time-presets">
@@ -49,6 +57,15 @@
       </div>
     </div>
 
+    <div id="notes-workspace" class="notes-workspace hidden" aria-hidden="true">
+      <textarea
+        id="notes-editor"
+        class="notes-editor"
+        spellcheck="false"
+        placeholder="Write your note..."
+      ></textarea>
+    </div>
+
     <main class="task-container">
       <ul class="task-list" id="task-list">
         <!-- Tasks will be injected here -->
@@ -62,7 +79,7 @@
           <button class="control-btn btn-minimize" id="focus-minimize-btn" title="Minimize"></button>
           <button class="control-btn btn-maximize" id="focus-maximize-btn" title="Maximize"></button>
         </div>
-        <h1>FlowPane<span class="navbar-timer hidden"></span></h1>
+        <h1 class="navbar-home-link" id="focus-home-link" role="button" tabindex="0">FlowPane<span class="navbar-timer hidden"></span></h1>
         <div class="action-controls">
           <button class="control-btn btn-complete" id="focus-nav-complete-btn" title="Complete Task">✓</button>
           <button class="control-btn btn-exit" id="focus-nav-exit-btn" title="Exit Focus Mode">×</button>
