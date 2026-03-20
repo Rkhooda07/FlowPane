@@ -581,8 +581,52 @@ document.addEventListener('keydown', (e) => {
 });
 
 homeNavLinks.forEach(link => {
+  let suppressNextClick = false;
+
+  link.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let didStartDrag = false;
+
+    const onMove = async (moveEvent) => {
+      if (didStartDrag) return;
+
+      const dx = Math.abs(moveEvent.clientX - startX);
+      const dy = Math.abs(moveEvent.clientY - startY);
+      if (dx + dy < 4) return;
+
+      didStartDrag = true;
+      suppressNextClick = true;
+      cleanup();
+
+      try {
+        await appWindow.startDragging();
+      } catch (err) {
+        console.error('Failed to start dragging from title link:', err);
+      }
+    };
+
+    const onUp = () => {
+      cleanup();
+    };
+
+    function cleanup() {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    }
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp, { once: true });
+  });
+
   link.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (suppressNextClick) {
+      suppressNextClick = false;
+      return;
+    }
     goToHomeView();
   });
 
