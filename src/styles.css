@@ -255,7 +255,7 @@ body {
 }
 
 .title-bar h1 {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.5px;
   color: var(--text-color);
@@ -373,6 +373,25 @@ body {
 
 .action-controls {
   justify-content: flex-end;
+}
+
+.notes-action-controls {
+  display: none;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+#app.notes-active .fold-guide {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#app.notes-active .notes-action-controls {
+  display: flex;
 }
 
 

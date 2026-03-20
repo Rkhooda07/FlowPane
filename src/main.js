@@ -360,9 +360,18 @@ async function initStore() {
     if (saved) {
       tasks = saved;
     }
+    const savedNotes = await store.get('notesDrafts');
+    if (savedNotes && typeof savedNotes === 'object') {
+      noteDrafts = savedNotes;
+    }
   } catch (e) {
     console.error('Failed to load store, falling back to localStorage:', e);
     tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    try {
+      noteDrafts = JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY)) || {};
+    } catch (err) {
+      noteDrafts = {};
+    }
   }
   renderTasks();
 }
@@ -379,6 +388,20 @@ async function saveTasks() {
   } else {
     localStorage.setItem('tasks', JSON.stringify(tasks));
   }
+}
+
+async function persistNotesDrafts() {
+  if (store) {
+    try {
+      await store.set('notesDrafts', noteDrafts);
+      await store.save();
+      return;
+    } catch (e) {
+      console.error('Failed to save notes to store, falling back to localStorage:', e);
+    }
+  }
+
+  localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(noteDrafts));
 }
 
 function renderTasks() {
@@ -466,16 +489,12 @@ const homeNavLinks = document.querySelectorAll('.navbar-home-link');
 const noteTabs = document.querySelectorAll('.task-note-tab');
 const notesWorkspace = document.getElementById('notes-workspace');
 const notesEditor = document.getElementById('notes-editor');
+const notesSaveBtn = document.getElementById('notes-nav-save-btn');
+const notesExitBtn = document.getElementById('notes-nav-exit-btn');
 
 const NOTES_STORAGE_KEY = 'flowpane-notes-drafts';
 let activeNoteId = null;
 let noteDrafts = {};
-
-try {
-  noteDrafts = JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY)) || {};
-} catch (e) {
-  noteDrafts = {};
-}
 
 function extractNoteId(tab) {
   const noteClass = [...tab.classList].find(c => /^note-\d+$/.test(c));
@@ -492,14 +511,18 @@ function setNotesRevealOrigin(tab) {
   notesWorkspace.style.setProperty('--reveal-y', `${y}px`);
 }
 
-function saveActiveNoteDraft() {
+function cacheActiveNoteDraft() {
   if (!activeNoteId || !notesEditor) return;
   noteDrafts[activeNoteId] = notesEditor.value;
-  localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(noteDrafts));
 }
 
 function clearActiveTabState() {
   noteTabs.forEach(tab => tab.classList.remove('note-active'));
+}
+
+function getActiveNoteTab() {
+  if (!activeNoteId) return null;
+  return document.querySelector(`.task-note-tab.note-${activeNoteId}`);
 }
 
 function openNote(tab, noteId) {
@@ -513,6 +536,7 @@ function openNote(tab, noteId) {
   requestAnimationFrame(() => {
     notesWorkspace.classList.add('active');
   });
+  appElement.classList.add('notes-active');
 
   activeNoteId = noteId;
   clearActiveTabState();
@@ -526,16 +550,27 @@ function openNote(tab, noteId) {
 function closeNote(tab) {
   if (!notesWorkspace) return;
   setNotesRevealOrigin(tab);
-  saveActiveNoteDraft();
   activeNoteId = null;
   clearActiveTabState();
   notesWorkspace.classList.remove('active');
+  appElement.classList.remove('notes-active');
+}
+
+function closeActiveNote() {
+  const activeTab = getActiveNoteTab();
+  if (activeTab) closeNote(activeTab);
+}
+
+async function saveAndCloseActiveNote() {
+  if (!activeNoteId || !notesEditor) return;
+  cacheActiveNoteDraft();
+  await persistNotesDrafts();
+  closeActiveNote();
 }
 
 function goToHomeView() {
   if (activeNoteId && notesWorkspace && notesWorkspace.classList.contains('active')) {
-    const activeTab = document.querySelector(`.task-note-tab.note-${activeNoteId}`);
-    if (activeTab) closeNote(activeTab);
+    closeActiveNote();
   }
 
   if (isInFocusMode) {
@@ -563,22 +598,28 @@ noteTabs.forEach(tab => {
       return;
     }
 
-    saveActiveNoteDraft();
     openNote(tab, noteId);
   });
 });
 
-if (notesEditor) {
-  notesEditor.addEventListener('input', () => {
-    saveActiveNoteDraft();
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !activeNoteId || !notesWorkspace.classList.contains('active')) return;
+  closeActiveNote();
+});
+
+if (notesSaveBtn) {
+  notesSaveBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await saveAndCloseActiveNote();
   });
 }
 
-document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape' || !activeNoteId || !notesWorkspace.classList.contains('active')) return;
-  const activeTab = document.querySelector(`.task-note-tab.note-${activeNoteId}`);
-  if (activeTab) closeNote(activeTab);
-});
+if (notesExitBtn) {
+  notesExitBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeActiveNote();
+  });
+}
 
 homeNavLinks.forEach(link => {
   let suppressNextClick = false;
