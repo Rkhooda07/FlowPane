@@ -520,6 +520,11 @@ body {
   transform: scale(1.1);
 }
 
+#notes-nav-exit-btn {
+  width: 30px;
+  height: 28px;
+}
+
 /* Old fold button styles removed */
 
 

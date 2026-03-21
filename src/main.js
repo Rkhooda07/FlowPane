@@ -631,7 +631,6 @@ const noteTabs = document.querySelectorAll('.task-note-tab');
 const notesWorkspace = document.getElementById('notes-workspace');
 const notesTitleInput = document.getElementById('notes-title-input');
 const notesBodyEditor = document.getElementById('notes-body-editor');
-const notesSaveBtn = document.getElementById('notes-nav-save-btn');
 const notesExitBtn = document.getElementById('notes-nav-exit-btn');
 const deleteConfirmModal = document.getElementById('delete-confirm-modal');
 const deleteConfirmTitle = document.getElementById('delete-confirm-title');
@@ -739,22 +738,27 @@ function closeActiveNote() {
   if (activeTab) closeNote(activeTab);
 }
 
-async function saveAndCloseActiveNote() {
+let noteAutoSaveTimeout = null;
+function autoSaveActiveNote() {
   if (!activeNoteId || !notesTitleInput || !notesBodyEditor) return;
-  const title = notesTitleInput.value.trim();
-  const body = notesBodyEditor.value.trim();
+  const title = notesTitleInput.value;
+  const body = notesBodyEditor.value;
 
-  if (title.length === 0 && body.length === 0) {
+  if (title.trim().length === 0 && body.trim().length === 0) {
     delete noteDrafts[activeNoteId];
   } else {
     noteDrafts[activeNoteId] = {
       title,
-      body: notesBodyEditor.value
+      body
     };
   }
-  await persistNotesDrafts();
-  closeActiveNote();
+  
   renderTasks();
+
+  if (noteAutoSaveTimeout) clearTimeout(noteAutoSaveTimeout);
+  noteAutoSaveTimeout = setTimeout(async () => {
+    await persistNotesDrafts();
+  }, 500);
 }
 
 function goToHomeView() {
@@ -797,13 +801,6 @@ document.addEventListener('keydown', (e) => {
   closeActiveNote();
 });
 
-if (notesSaveBtn) {
-  notesSaveBtn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    await saveAndCloseActiveNote();
-  });
-}
-
 if (notesExitBtn) {
   notesExitBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -812,6 +809,9 @@ if (notesExitBtn) {
 }
 
 if (notesTitleInput && notesBodyEditor) {
+  notesTitleInput.addEventListener('input', autoSaveActiveNote);
+  notesBodyEditor.addEventListener('input', autoSaveActiveNote);
+
   notesTitleInput.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
