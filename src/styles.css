@@ -544,10 +544,12 @@ body {
 
 .task-input-shell {
   position: relative;
-  display: inline-block;
+  display: block;
+  width: 100%;
 }
 
 #task-input {
+  width: 100%;
   background: var(--input-bg);
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 12px 100px 12px 12px;
