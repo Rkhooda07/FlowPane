@@ -497,8 +497,12 @@ function renderTasks() {
     .filter(([noteId, note]) => ['1', '2', '3', '4'].includes(String(noteId)) && hasNoteContent(note))
     .sort((a, b) => Number(a[0]) - Number(b[0]));
 
-  tasks.sort((a, b) => new Date(a.due) - new Date(b.due)).forEach((task, index) => {
-    const li = document.createElement('li');
+  let renderedCount = 0;
+  tasks.sort((a, b) => new Date(a.due) - new Date(b.due));
+
+  if (currentFilter === 'all' || currentFilter === 'tasks') {
+    tasks.forEach((task, index) => {
+      const li = document.createElement('li');
     li.className = `task-item ${task.urgent ? 'urgent' : ''} ${task.completed ? 'completed' : ''}`;
 
     const dueDate = new Date(task.due);
@@ -560,10 +564,13 @@ function renderTasks() {
       enterFocusMode(task);
     });
 
-    taskList.appendChild(li);
-  });
+      taskList.appendChild(li);
+      renderedCount++;
+    });
+  }
 
-  savedNotes.forEach(([noteId, note]) => {
+  if (currentFilter === 'all' || currentFilter === 'notes') {
+    savedNotes.forEach(([noteId, note]) => {
     const li = document.createElement('li');
     li.className = `task-item note-entry note-entry-${noteId}`;
 
@@ -608,14 +615,20 @@ function renderTasks() {
       }
     });
 
-    taskList.appendChild(li);
-  });
+      taskList.appendChild(li);
+      renderedCount++;
+    });
+  }
 
-  if (tasks.length === 0 && savedNotes.length === 0) {
+  if (renderedCount === 0) {
+    let emptyText = 'No tasks or notes yet.';
+    if (currentFilter === 'tasks') emptyText = 'No tasks yet.';
+    else if (currentFilter === 'notes') emptyText = 'No saved notes yet.';
+
     taskList.innerHTML = `
       <div class="empty-state">
         <div style="font-size: 32px; margin-bottom: 10px; opacity: 0.3;">✨</div>
-        <p>No tasks or notes yet.</p>
+        <p>${emptyText}</p>
         <p style="font-size: 11px; opacity: 0.6; margin-top: 4px;">Time to flow into something new.</p>
       </div>
     `;
@@ -638,10 +651,12 @@ const deleteConfirmText = document.getElementById('delete-confirm-text');
 const deleteConfirmNeverAgain = document.getElementById('delete-confirm-never-again');
 const deleteConfirmCancel = document.getElementById('delete-confirm-cancel');
 const deleteConfirmYes = document.getElementById('delete-confirm-yes');
+const filterBtns = document.querySelectorAll('.filter-btn');
 
 const NOTES_STORAGE_KEY = 'flowpane-notes-drafts';
 const DELETE_CONFIRM_PREF_KEY = 'flowpane-skip-delete-confirm';
 let activeNoteId = null;
+let currentFilter = 'all';
 let noteDrafts = {};
 let skipDeleteConfirm = false;
 
@@ -807,6 +822,16 @@ if (notesExitBtn) {
     closeActiveNote();
   });
 }
+
+filterBtns.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    currentFilter = btn.getAttribute('data-filter');
+    filterBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTasks();
+  });
+});
 
 if (notesTitleInput && notesBodyEditor) {
   notesTitleInput.addEventListener('input', autoSaveActiveNote);

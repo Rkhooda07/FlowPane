@@ -100,6 +100,16 @@
     </div>
 
     <main class="task-container">
+      <div class="list-filter" id="list-filter">
+        <svg class="filter-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+          <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path>
+        </svg>
+        <div class="filter-options">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="tasks">Tasks</button>
+          <button class="filter-btn" data-filter="notes">Notes</button>
+        </div>
+      </div>
       <ul class="task-list" id="task-list">
         <!-- Tasks will be injected here -->
       </ul>
