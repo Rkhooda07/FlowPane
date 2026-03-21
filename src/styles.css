@@ -163,7 +163,9 @@ body {
 }
 
 #app.collapsed-y .fold-guide,
-#app.collapsed-x .fold-guide {
+#app.collapsed-x .fold-guide,
+#app.collapsed-y .notes-action-controls,
+#app.collapsed-x .notes-action-controls {
   display: none !important;
 }
 
@@ -182,7 +184,8 @@ body {
 #app.collapsed-y .task-container,
 #app.collapsed-y .focus-content,
 #app.collapsed-y .focus-bottom-controls,
-#app.collapsed-y .focus-secondary-actions {
+#app.collapsed-y .focus-secondary-actions,
+#app.collapsed-y .notes-editor-shell {
   opacity: 0;
   transform: translateY(-20px) scale(0.95); /* Subtle drift up and shrink */
   pointer-events: none;
@@ -196,7 +199,8 @@ body {
 #app.collapsed-x .task-container,
 #app.collapsed-x .focus-content,
 #app.collapsed-x .focus-bottom-controls,
-#app.collapsed-x .focus-secondary-actions {
+#app.collapsed-x .focus-secondary-actions,
+#app.collapsed-x .notes-editor-shell {
   opacity: 0;
   transform: translateX(-20px) scale(0.95);
   pointer-events: none;
@@ -216,7 +220,8 @@ body {
 #app:not(.collapsed-x):not(.collapsed-y) .task-container,
 #app:not(.collapsed-x):not(.collapsed-y) .focus-content,
 #app:not(.collapsed-x):not(.collapsed-y) .focus-bottom-controls,
-#app:not(.collapsed-x):not(.collapsed-y) .focus-secondary-actions {
+#app:not(.collapsed-x):not(.collapsed-y) .focus-secondary-actions,
+#app:not(.collapsed-x):not(.collapsed-y) .notes-editor-shell {
   transition: opacity 0.4s ease-out 0.1s, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.1s; /* Delay entry slightly */
   opacity: 1;
   transform: translate(0, 0) scale(1);
@@ -226,7 +231,8 @@ body {
 #app.peeking .input-area,
 #app.peeking .task-container,
 #app.peeking .focus-content,
-#app.peeking .focus-bottom-controls {
+#app.peeking .focus-bottom-controls,
+#app.peeking .notes-editor-shell {
   transition-delay: 0s !important;
   transition-duration: 0.3s !important;
 }

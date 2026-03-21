@@ -101,6 +101,8 @@ async function toggleCollapseY(isManualDrag = false) {
       if (isInFocusMode && currentFocusTask) {
         updateNavbarTitle(currentFocusTask.title);
         showNavbarTimer();
+      } else if (activeNoteId && notesTitleInput) {
+        updateNavbarTitle(notesTitleInput.value.trim() || 'Untitled Note');
       }
 
       // Start both animations immediately
@@ -136,7 +138,10 @@ async function toggleCollapseY(isManualDrag = false) {
       try {
         // 1. Reveal content immediately
         appElement.classList.remove('collapsed-y');
-        updateNavbarTitle(isInFocusMode && currentFocusTask ? currentFocusTask.title : 'FlowPane');
+        let uncollapsedTitleY = 'FlowPane';
+        if (isInFocusMode && currentFocusTask) uncollapsedTitleY = currentFocusTask.title;
+        else if (activeNoteId && notesTitleInput) uncollapsedTitleY = notesTitleInput.value.trim() || 'Untitled Note';
+        updateNavbarTitle(uncollapsedTitleY);
         hideNavbarTimer();
 
         if (isManualDrag) {
@@ -211,6 +216,8 @@ async function toggleCollapseX(isManualDrag = false) {
       if (isInFocusMode && currentFocusTask) {
         updateNavbarTitle(currentFocusTask.title);
         showNavbarTimer();
+      } else if (activeNoteId && notesTitleInput) {
+        updateNavbarTitle(notesTitleInput.value.trim() || 'Untitled Note');
       }
 
       try {
@@ -244,7 +251,10 @@ async function toggleCollapseX(isManualDrag = false) {
       // EXPAND FLOW
       try {
         appElement.classList.remove('collapsed-x');
-        updateNavbarTitle(isInFocusMode && currentFocusTask ? currentFocusTask.title : 'FlowPane');
+        let uncollapsedTitleX = 'FlowPane';
+        if (isInFocusMode && currentFocusTask) uncollapsedTitleX = currentFocusTask.title;
+        else if (activeNoteId && notesTitleInput) uncollapsedTitleX = notesTitleInput.value.trim() || 'Untitled Note';
+        updateNavbarTitle(uncollapsedTitleX);
         hideNavbarTimer();
 
         if (isManualDrag) {
