@@ -98,11 +98,9 @@ async function toggleCollapseY(isManualDrag = false) {
       appElement.classList.add('collapsed-y');
 
       // Update UI immediately (fade out content, show title)
-      if (isInFocusMode && currentFocusTask) {
-        updateNavbarTitle(currentFocusTask.title);
+      updateNavbarTitle(getCurrentViewTitle());
+      if (isInFocusMode) {
         showNavbarTimer();
-      } else if (activeNoteId && notesTitleInput) {
-        updateNavbarTitle(notesTitleInput.value.trim() || 'Untitled Note');
       }
 
       // Start both animations immediately
@@ -138,10 +136,7 @@ async function toggleCollapseY(isManualDrag = false) {
       try {
         // 1. Reveal content immediately
         appElement.classList.remove('collapsed-y');
-        let uncollapsedTitleY = 'FlowPane';
-        if (isInFocusMode && currentFocusTask) uncollapsedTitleY = currentFocusTask.title;
-        else if (activeNoteId && notesTitleInput) uncollapsedTitleY = notesTitleInput.value.trim() || 'Untitled Note';
-        updateNavbarTitle(uncollapsedTitleY);
+        updateNavbarTitle(getCurrentViewTitle());
         hideNavbarTimer();
 
         if (isManualDrag) {
@@ -213,11 +208,9 @@ async function toggleCollapseX(isManualDrag = false) {
       appElement.classList.remove('collapsed-y');
       appElement.classList.add('collapsed-x');
 
-      if (isInFocusMode && currentFocusTask) {
-        updateNavbarTitle(currentFocusTask.title);
+      updateNavbarTitle(getCurrentViewTitle());
+      if (isInFocusMode) {
         showNavbarTimer();
-      } else if (activeNoteId && notesTitleInput) {
-        updateNavbarTitle(notesTitleInput.value.trim() || 'Untitled Note');
       }
 
       try {
@@ -251,10 +244,7 @@ async function toggleCollapseX(isManualDrag = false) {
       // EXPAND FLOW
       try {
         appElement.classList.remove('collapsed-x');
-        let uncollapsedTitleX = 'FlowPane';
-        if (isInFocusMode && currentFocusTask) uncollapsedTitleX = currentFocusTask.title;
-        else if (activeNoteId && notesTitleInput) uncollapsedTitleX = notesTitleInput.value.trim() || 'Untitled Note';
-        updateNavbarTitle(uncollapsedTitleX);
+        updateNavbarTitle(getCurrentViewTitle());
         hideNavbarTimer();
 
         if (isManualDrag) {
@@ -747,6 +737,9 @@ function openNote(tab, noteId) {
     const bodyEnd = notesBodyEditor.value.length;
     notesBodyEditor.setSelectionRange(bodyEnd, bodyEnd);
   }
+
+  // Sync navbar title immediately when opening note
+  updateNavbarTitle(getCurrentViewTitle());
 }
 
 function closeNote(tab) {
@@ -756,6 +749,9 @@ function closeNote(tab) {
   clearActiveTabState();
   notesWorkspace.classList.remove('active');
   appElement.classList.remove('notes-active');
+
+  // Reset title to FlowPane when closing note
+  updateNavbarTitle('FlowPane');
 }
 
 function closeActiveNote() {
@@ -779,6 +775,9 @@ function autoSaveActiveNote() {
   }
   
   renderTasks();
+
+  // Sync navbar title in real-time
+  updateNavbarTitle(getCurrentViewTitle());
 
   if (noteAutoSaveTimeout) clearTimeout(noteAutoSaveTimeout);
   noteAutoSaveTimeout = setTimeout(async () => {
@@ -1547,21 +1546,45 @@ document.getElementById('focus-nav-complete-btn').addEventListener('click', () =
 
 document.getElementById('focus-nav-exit-btn').addEventListener('click', exitFocusMode);
 
+// Helper function to get current title based on view
+function getCurrentViewTitle() {
+  if (isInFocusMode && currentFocusTask) {
+    return currentFocusTask.title;
+  } else if (activeNoteId) {
+    const rawTitle = notesTitleInput ? notesTitleInput.value.trim() : '';
+    return rawTitle || 'Untitled Note';
+  }
+  return 'FlowPane';
+}
+
 // Helper function to update navbar title
 function updateNavbarTitle(title) {
   // Update both main navbar and focus mode navbar
-  const mainTitle = document.querySelector('.title-bar h1');
-  const focusTitle = document.querySelector('.focus-header-bar h1');
+  const mainTitle = document.getElementById('main-home-link');
+  const focusTitle = document.getElementById('focus-home-link');
 
-  if (mainTitle) {
-    // Get the timer span and preserve it
-    const timerSpan = mainTitle.querySelector('.navbar-timer');
-    mainTitle.childNodes[0].textContent = title;
-  }
-  if (focusTitle) {
-    const timerSpan = focusTitle.querySelector('.navbar-timer');
-    focusTitle.childNodes[0].textContent = title;
-  }
+  const setNodeText = (element, text) => {
+    if (!element) return;
+    
+    let textNode = null;
+    for (let node of element.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        textNode = node;
+        break;
+      }
+    }
+    
+    if (textNode && textNode.textContent === text) return;
+
+    if (textNode) {
+      textNode.textContent = text;
+    } else {
+      element.prepend(document.createTextNode(text));
+    }
+  };
+
+  setNodeText(mainTitle, title);
+  setNodeText(focusTitle, title);
 }
 
 // Helper function to update navbar timer

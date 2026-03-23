@@ -138,8 +138,21 @@ body {
 }
 
 #app.collapsed-y h1 {
-  font-size: 12px;
-  transform: translate(-50%, -50%) scale(0.95);
+  font-size: 13px !important;
+  transform: translate(-50%, -50%) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: var(--text-color) !important;
+  z-index: 1000 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+#app.collapsed-y .title-bar {
+  overflow: visible !important;
 }
 
 #app.collapsed-y .window-controls,
@@ -278,6 +291,7 @@ body {
   will-change: transform, opacity;
   z-index: 5;
   white-space: nowrap; /* Prevent wrapping in narrow states */
+  line-height: 1; /* Ensure centering in thin bars */
 }
 
 .navbar-home-link {
@@ -1342,6 +1356,7 @@ body {
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 /* Focus secondary actions removed as they moved to navbar */
