@@ -503,7 +503,7 @@ function renderTasks() {
   if (currentFilter === 'all' || currentFilter === 'tasks') {
     tasks.forEach((task, index) => {
       const li = document.createElement('li');
-    li.className = `task-item ${task.urgent ? 'urgent' : ''} ${task.completed ? 'completed' : ''}`;
+    li.className = `task-item ${(task.urgent && !task.completed) ? 'urgent' : ''} ${task.completed ? 'completed' : ''}`;
 
     const dueDate = new Date(task.due);
     const now = new Date();
@@ -559,9 +559,11 @@ function renderTasks() {
       renderTasks();
     });
 
-    // Double click to enter focus mode
+    // Double click to enter focus mode (disabled for completed tasks)
     li.addEventListener('dblclick', () => {
-      enterFocusMode(task);
+      if (!task.completed) {
+        enterFocusMode(task);
+      }
     });
 
       taskList.appendChild(li);
