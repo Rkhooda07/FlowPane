@@ -39,7 +39,7 @@
 
     <div class="input-area">
       <div class="task-input-shell">
-        <input type="text" id="task-input" placeholder="What's next?" autocomplete="off" />
+        <input type="text" id="task-input" placeholder="What's next?" autocomplete="off" autocapitalize="sentences" />
         <div class="task-notes-icons" aria-hidden="true">
           <span class="task-note-tab note-1"></span>
           <span class="task-note-tab note-2"></span>
@@ -74,12 +74,14 @@
           class="notes-title-input"
           placeholder="Note title"
           autocomplete="off"
+          autocapitalize="sentences"
         />
         <textarea
           id="notes-body-editor"
           class="notes-body-editor"
           spellcheck="false"
           placeholder="Write your note..."
+          autocapitalize="sentences"
         ></textarea>
       </div>
     </div>

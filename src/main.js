@@ -494,8 +494,8 @@ function renderTasks() {
   taskList.innerHTML = '';
   const savedNotes = Object.entries(noteDrafts || {})
     .map(([noteId, entry]) => [noteId, normalizeNoteEntry(entry)])
-    .filter(([noteId, note]) => ['1', '2', '3', '4'].includes(String(noteId)) && hasNoteContent(note))
-    .sort((a, b) => Number(a[0]) - Number(b[0]));
+    .filter(([noteId, note]) => hasNoteContent(note))
+    .sort((a, b) => b[1].updatedAt - a[1].updatedAt); // Newest first
 
   let renderedCount = 0;
   tasks.sort((a, b) => new Date(a.due) - new Date(b.due));
@@ -572,7 +572,7 @@ function renderTasks() {
   if (currentFilter === 'all' || currentFilter === 'notes') {
     savedNotes.forEach(([noteId, note]) => {
     const li = document.createElement('li');
-    li.className = `task-item note-entry note-entry-${noteId}`;
+    li.className = `task-item note-entry note-entry-${note.theme || 1}`;
 
     const swatch = document.createElement('span');
     swatch.className = 'note-entry-swatch';
@@ -587,7 +587,7 @@ function renderTasks() {
     const subtitle = document.createElement('div');
     subtitle.className = 'task-due note-entry-subtitle';
     const bodyPreview = (note.body || '').trim().split('\n')[0];
-    subtitle.textContent = bodyPreview || 'No additional content';
+    subtitle.textContent = bodyPreview || 'Click to start writing... ✍️';
 
     const deleteNoteBtn = document.createElement('button');
     deleteNoteBtn.className = 'delete-note-btn';
@@ -610,7 +610,8 @@ function renderTasks() {
     });
 
     li.addEventListener('click', () => {
-      const noteTab = document.querySelector(`.task-note-tab.note-${noteId}`);
+      const themeId = note.theme || 1;
+      const noteTab = document.querySelector(`.task-note-tab.note-${themeId}`);
       if (noteTab) {
         openNote(noteTab, noteId);
       }
@@ -680,7 +681,9 @@ function normalizeNoteEntry(rawEntry) {
   if (rawEntry && typeof rawEntry === 'object' && !Array.isArray(rawEntry)) {
     return {
       title: typeof rawEntry.title === 'string' ? rawEntry.title : '',
-      body: typeof rawEntry.body === 'string' ? rawEntry.body : ''
+      body: typeof rawEntry.body === 'string' ? rawEntry.body : '',
+      theme: rawEntry.theme || 1,
+      updatedAt: rawEntry.updatedAt || Date.now()
     };
   }
 
@@ -688,10 +691,10 @@ function normalizeNoteEntry(rawEntry) {
     const lines = rawEntry.split(/\r?\n/);
     const title = lines[0] || '';
     const body = lines.slice(1).join('\n');
-    return { title, body };
+    return { title, body, theme: 1, updatedAt: Date.now() };
   }
 
-  return { title: '', body: '' };
+  return { title: '', body: '', theme: 1, updatedAt: Date.now() };
 }
 
 function hasNoteContent(note) {
@@ -704,17 +707,23 @@ function clearActiveTabState() {
 }
 
 function getActiveNoteTab() {
-  if (!activeNoteId) return null;
-  return document.querySelector(`.task-note-tab.note-${activeNoteId}`);
+  if (!activeNoteId || !noteDrafts[activeNoteId]) return null;
+  const themeId = noteDrafts[activeNoteId].theme || 1;
+  return document.querySelector(`.task-note-tab.note-${themeId}`);
 }
 
-function openNote(tab, noteId) {
+function openNote(tab, noteId, themeIdSuggestion) {
   if (!notesWorkspace || !notesTitleInput || !notesBodyEditor) return;
 
+  const note = normalizeNoteEntry(noteDrafts[noteId]);
+  if (themeIdSuggestion) note.theme = themeIdSuggestion;
+  
+  const themeId = note.theme || 1;
+
   notesWorkspace.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4');
-  notesWorkspace.classList.add(`theme-${noteId}`);
+  notesWorkspace.classList.add(`theme-${themeId}`);
   appElement.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4');
-  appElement.classList.add(`theme-${noteId}`);
+  appElement.classList.add(`theme-${themeId}`);
   notesWorkspace.classList.remove('hidden');
   setNotesRevealOrigin(tab);
 
@@ -726,8 +735,8 @@ function openNote(tab, noteId) {
   activeNoteId = noteId;
   clearActiveTabState();
   tab.classList.add('note-active');
-  const note = normalizeNoteEntry(noteDrafts[noteId]);
-  noteDrafts[noteId] = note;
+  
+  noteDrafts[noteId] = note; // Ensure theme and updatedAt are stored
   notesTitleInput.value = note.title;
   notesBodyEditor.value = note.body;
 
@@ -768,13 +777,16 @@ function autoSaveActiveNote() {
   if (!activeNoteId || !notesTitleInput || !notesBodyEditor) return;
   const title = notesTitleInput.value;
   const body = notesBodyEditor.value;
+  const currentTheme = noteDrafts[activeNoteId] ? noteDrafts[activeNoteId].theme : 1;
 
   if (title.trim().length === 0 && body.trim().length === 0) {
     delete noteDrafts[activeNoteId];
   } else {
     noteDrafts[activeNoteId] = {
       title,
-      body
+      body,
+      theme: currentTheme,
+      updatedAt: Date.now()
     };
   }
   
@@ -811,17 +823,34 @@ if (notesWorkspace) {
 noteTabs.forEach(tab => {
   tab.addEventListener('click', (e) => {
     e.stopPropagation();
-    const noteId = extractNoteId(tab);
-    if (!noteId) return;
+    const themeId = extractNoteId(tab);
+    if (!themeId) return;
 
-    if (activeNoteId === noteId && notesWorkspace.classList.contains('active')) {
-      closeNote(tab);
-      return;
+    if (activeNoteId && noteDrafts[activeNoteId]) {
+      if (String(noteDrafts[activeNoteId].theme) === String(themeId) && notesWorkspace.classList.contains('active')) {
+        closeNote(tab);
+        return;
+      }
     }
 
-    openNote(tab, noteId);
+    // Always create a new unique ID for tab clicks to start fresh
+    const newNoteId = 'note_' + Date.now();
+    openNote(tab, newNoteId, themeId);
   });
 });
+
+function capitalizeFirstLetter(e) {
+  const input = e.target;
+  const val = input.value;
+  // Only auto-capitalize when typing the very first character of an empty field
+  if (val && val.length === 1 && val[0] !== val[0].toUpperCase()) {
+    input.value = val[0].toUpperCase();
+  }
+}
+
+if (taskInput) {
+  taskInput.addEventListener('input', capitalizeFirstLetter);
+}
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || !activeNoteId || !notesWorkspace.classList.contains('active')) return;
@@ -847,8 +876,14 @@ filterBtns.forEach(btn => {
 });
 
 if (notesTitleInput && notesBodyEditor) {
-  notesTitleInput.addEventListener('input', autoSaveActiveNote);
-  notesBodyEditor.addEventListener('input', autoSaveActiveNote);
+  notesTitleInput.addEventListener('input', (e) => {
+    capitalizeFirstLetter(e);
+    autoSaveActiveNote();
+  });
+  notesBodyEditor.addEventListener('input', (e) => {
+    capitalizeFirstLetter(e);
+    autoSaveActiveNote();
+  });
 
   notesTitleInput.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
