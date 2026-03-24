@@ -586,7 +586,8 @@ function renderTasks() {
 
     const subtitle = document.createElement('div');
     subtitle.className = 'task-due note-entry-subtitle';
-    subtitle.textContent = 'Saved note';
+    const bodyPreview = (note.body || '').trim().split('\n')[0];
+    subtitle.textContent = bodyPreview || 'No additional content';
 
     const deleteNoteBtn = document.createElement('button');
     deleteNoteBtn.className = 'delete-note-btn';
@@ -712,6 +713,8 @@ function openNote(tab, noteId) {
 
   notesWorkspace.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4');
   notesWorkspace.classList.add(`theme-${noteId}`);
+  appElement.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4');
+  appElement.classList.add(`theme-${noteId}`);
   notesWorkspace.classList.remove('hidden');
   setNotesRevealOrigin(tab);
 
@@ -749,6 +752,7 @@ function closeNote(tab) {
   clearActiveTabState();
   notesWorkspace.classList.remove('active');
   appElement.classList.remove('notes-active');
+  appElement.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4');
 
   // Reset title to FlowPane when closing note
   updateNavbarTitle('FlowPane');

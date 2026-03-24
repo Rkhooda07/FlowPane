@@ -142,17 +142,42 @@ body {
   transform: translate(-50%, -50%) !important;
   opacity: 1 !important;
   visibility: visible !important;
-  color: var(--text-color) !important;
+  color: var(--theme-text, var(--text-color)) !important;
   z-index: 1000 !important;
   display: flex !important;
   align-items: center;
   justify-content: center;
   white-space: nowrap;
   pointer-events: auto;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); /* Better readability on bright themes */
 }
 
-#app.collapsed-y .title-bar {
+#app:not(.notes-active).collapsed-y .title-bar {
   overflow: visible !important;
+}
+
+/* Note Theme Overrides for Collapsed States */
+#app.notes-active.collapsed-x,
+#app.notes-active.collapsed-y {
+  background: linear-gradient(160deg, 
+    rgba(var(--theme-accent-rgb), 0.38), 
+    rgba(var(--theme-accent-rgb), 0.12)
+  ) !important;
+  border: 1px solid rgba(var(--theme-accent-rgb), 0.45) !important;
+  box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.15);
+}
+
+#app.notes-active.collapsed-x .title-bar,
+#app.notes-active.collapsed-y .title-bar {
+  background: transparent !important;
+}
+
+#app.notes-active.collapsed-x h1,
+#app.notes-active.collapsed-y h1 {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(var(--theme-accent-rgb), 0.6), 0 1px 2px rgba(0,0,0,0.8);
+  font-weight: 600;
+  letter-spacing: 0.8px;
 }
 
 #app.collapsed-y .window-controls,
@@ -755,6 +780,12 @@ body {
   --note-caret: #301628;
 }
 
+/* App-level Themes for Notes */
+#app.theme-1 { --theme-accent-rgb: 223, 223, 19; --theme-text: #171600; }
+#app.theme-2 { --theme-accent-rgb: 255, 194, 15; --theme-text: #201300; }
+#app.theme-3 { --theme-accent-rgb: 166, 217, 7; --theme-text: #102400; }
+#app.theme-4 { --theme-accent-rgb: 244, 127, 202; --theme-text: #301628; }
+
 .notes-title-input::placeholder,
 .notes-body-editor::placeholder {
   color: var(--note-fg);
@@ -1165,10 +1196,14 @@ body {
 }
 
 .note-entry-subtitle {
-  color: rgba(255, 255, 255, 0.62);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.1px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  font-weight: 300;
 }
 
 .note-entry-swatch {
