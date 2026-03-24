@@ -19,7 +19,7 @@
         <button class="control-btn btn-minimize" id="minimize-btn" title="Minimize"></button>
         <button class="control-btn btn-maximize" id="maximize-btn" title="Maximize"></button>
       </div>
-      <h1 class="navbar-home-link" id="main-home-link" role="button" tabindex="0">FlowPane<span class="navbar-timer hidden"></span></h1>
+      <h1 class="navbar-home-link" id="main-home-link" role="button" tabindex="0" data-tauri-drag-region>FlowPane<span class="navbar-timer hidden"></span></h1>
       <div class="fold-guide" title="Drag to screen edges to collapse">
         <div class="guide-icon">
           <span></span><span></span><span></span><span></span>
@@ -86,6 +86,28 @@
       </div>
     </div>
 
+    <div id="history-workspace" class="history-workspace hidden" aria-hidden="true">
+      <div class="history-content-shell">
+        <div class="history-header">
+          <h2>Completed Tasks</h2>
+          <button id="clear-history-btn" class="clear-history-btn" title="Clear All History">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+            </svg>
+            Clear All
+          </button>
+        </div>
+        <ul id="history-list" class="history-list">
+          <!-- Completed tasks will be injected here -->
+        </ul>
+        <div id="history-empty-state" class="history-empty-state">
+          <p>Your finished tasks will appear here ✨</p>
+        </div>
+      </div>
+    </div>
+
     <div id="delete-confirm-modal" class="delete-confirm-modal hidden" aria-hidden="true">
       <div class="delete-confirm-card">
         <h3 id="delete-confirm-title">Delete item?</h3>
@@ -111,6 +133,13 @@
           <button class="filter-btn" data-filter="tasks">Tasks</button>
           <button class="filter-btn" data-filter="notes">Notes</button>
         </div>
+        <button class="history-btn" id="history-btn" title="View History">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+            <path d="M12 7v5l4 2"></path>
+          </svg>
+        </button>
       </div>
       <ul class="task-list" id="task-list">
         <!-- Tasks will be injected here -->
@@ -124,7 +153,7 @@
           <button class="control-btn btn-minimize" id="focus-minimize-btn" title="Minimize"></button>
           <button class="control-btn btn-maximize" id="focus-maximize-btn" title="Maximize"></button>
         </div>
-        <h1 class="navbar-home-link" id="focus-home-link" role="button" tabindex="0">FlowPane<span class="navbar-timer hidden"></span></h1>
+        <h1 class="navbar-home-link" id="focus-home-link" role="button" tabindex="0" data-tauri-drag-region>FlowPane<span class="navbar-timer hidden"></span></h1>
         <div class="action-controls">
           <button class="control-btn btn-complete" id="focus-nav-complete-btn" title="Complete Task">✓</button>
           <button class="control-btn btn-exit" id="focus-nav-exit-btn" title="Exit Focus Mode">×</button>

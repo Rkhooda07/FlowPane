@@ -12,6 +12,7 @@ let lastExpandTime = 0;
 let isPeeking = false;
 let peekTimeout = null;
 let peekMode = null;
+let isHistoryOpen = false;
 
 const appElement = document.getElementById('app');
 
@@ -497,13 +498,21 @@ function renderTasks() {
     .filter(([noteId, note]) => hasNoteContent(note))
     .sort((a, b) => b[1].updatedAt - a[1].updatedAt); // Newest first
 
+  const activeTasks = tasks.filter(t => !t.completed);
+  const completedTasks = tasks.filter(t => t.completed)
+                              .sort((a, b) => b.completedAt - a.completedAt);
+
+  renderHistory(completedTasks);
+
   let renderedCount = 0;
-  tasks.sort((a, b) => new Date(a.due) - new Date(b.due));
+  activeTasks.sort((a, b) => new Date(a.due) - new Date(b.due));
 
   if (currentFilter === 'all' || currentFilter === 'tasks') {
-    tasks.forEach((task, index) => {
+    activeTasks.forEach((task) => {
+      // Find the original index in the tasks array for event handlers
+      const taskIndex = tasks.indexOf(task);
       const li = document.createElement('li');
-    li.className = `task-item ${(task.urgent && !task.completed) ? 'urgent' : ''} ${task.completed ? 'completed' : ''}`;
+      li.className = `task-item ${(task.urgent && !task.completed) ? 'urgent' : ''}`;
 
     const dueDate = new Date(task.due);
     const now = new Date();
@@ -534,17 +543,24 @@ function renderTasks() {
       <button class="delete-task-btn" title="Delete task">×</button>
     `;
 
-    li.querySelector('.task-checkbox').addEventListener('change', (e) => {
-      tasks[index].completed = e.target.checked;
-      saveTasks();
-      renderTasks();
+    li.querySelector('.task-checkbox').addEventListener('change', async (e) => {
+      if (e.target.checked) {
+        li.classList.add('task-completing');
+        // Wait for animation to finish
+        setTimeout(async () => {
+          task.completed = true;
+          task.completedAt = Date.now();
+          await saveTasks();
+          renderTasks();
+        }, 400);
+      }
     });
 
     li.querySelector('.delete-task-btn').addEventListener('click', async (e) => {
       e.stopPropagation();
       const shouldDelete = await requestDeleteConfirmation('task');
       if (!shouldDelete) return;
-      tasks.splice(index, 1);
+      tasks.splice(taskIndex, 1);
       saveTasks();
       renderTasks();
     });
@@ -554,7 +570,7 @@ function renderTasks() {
       e.preventDefault();
       const shouldDelete = await requestDeleteConfirmation('task');
       if (!shouldDelete) return;
-      tasks.splice(index, 1);
+      tasks.splice(taskIndex, 1);
       saveTasks();
       renderTasks();
     });
@@ -1576,9 +1592,93 @@ document.getElementById('focus-maximize-btn').addEventListener('click', () => ap
 // Fold buttons removed from Focus mode
 
 
+function renderHistory(completedTasks) {
+  const historyList = document.getElementById('history-list');
+  const emptyState = document.getElementById('history-empty-state');
+  if (!historyList || !emptyState) return;
+
+  historyList.innerHTML = '';
+  
+  if (completedTasks.length === 0) {
+    emptyState.classList.remove('hidden');
+  } else {
+    emptyState.classList.add('hidden');
+    completedTasks.forEach(task => {
+      const li = document.createElement('li');
+      li.className = 'history-item';
+      
+      const date = new Date(task.completedAt || Date.now());
+      const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
+      li.innerHTML = `
+        <div class="history-item-content">
+          <div class="history-item-title">${task.title}</div>
+          <div class="history-item-meta">Completed ${dateStr} at ${timeStr}</div>
+        </div>
+        <button class="delete-history-item" title="Delete from history">×</button>
+      `;
+
+      li.querySelector('.delete-history-item').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const index = tasks.indexOf(task);
+        if (index !== -1) {
+          tasks.splice(index, 1);
+          saveTasks();
+          renderTasks();
+        }
+      });
+
+      historyList.appendChild(li);
+    });
+  }
+}
+
+function toggleHistory() {
+  const historyWorkspace = document.getElementById('history-workspace');
+  if (!historyWorkspace) return;
+  
+  isHistoryOpen = !isHistoryOpen;
+  
+  if (isHistoryOpen) {
+    historyWorkspace.classList.remove('hidden');
+    historyWorkspace.setAttribute('aria-hidden', 'false');
+    appElement.classList.add('history-active');
+    // Ensure notes are closed when opening history
+    if (activeNoteId) closeActiveNote();
+  } else {
+    historyWorkspace.classList.add('hidden');
+    historyWorkspace.setAttribute('aria-hidden', 'true');
+    appElement.classList.remove('history-active');
+  }
+}
+
+// History Event Listeners
+document.getElementById('history-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleHistory();
+});
+
+document.getElementById('clear-history-btn').addEventListener('click', async (e) => {
+  e.stopPropagation();
+  const shouldClear = await requestDeleteConfirmation('entire history');
+  if (shouldClear) {
+    tasks = tasks.filter(t => !t.completed);
+    await saveTasks();
+    renderTasks();
+  }
+});
+
+// Allow clicking the title to go home from history
+document.getElementById('main-home-link').addEventListener('click', () => {
+  if (isHistoryOpen) toggleHistory();
+});
+
+// Update focus mode complete to handle animation/delay if needed
 document.getElementById('focus-nav-complete-btn').addEventListener('click', () => {
   if (currentFocusTask) {
     currentFocusTask.completed = true;
+    currentFocusTask.completedAt = Date.now();
     saveTasks();
     renderTasks();
     exitFocusMode();
