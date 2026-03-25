@@ -692,6 +692,7 @@ const deleteConfirmNeverAgain = document.getElementById('delete-confirm-never-ag
 const deleteConfirmCancel = document.getElementById('delete-confirm-cancel');
 const deleteConfirmYes = document.getElementById('delete-confirm-yes');
 const filterBtns = document.querySelectorAll('.filter-btn');
+const filterPill = document.getElementById('filter-pill');
 
 const NOTES_STORAGE_KEY = 'flowpane-notes-drafts';
 const DELETE_CONFIRM_PREF_KEY = 'flowpane-skip-delete-confirm';
@@ -903,12 +904,21 @@ if (notesExitBtn) {
   });
 }
 
+function updateFilterPill() {
+  const activeBtn = document.querySelector('.filter-btn.active');
+  if (activeBtn && filterPill) {
+    filterPill.style.width = `${activeBtn.offsetWidth}px`;
+    filterPill.style.transform = `translateX(${activeBtn.offsetLeft - 3}px)`; 
+  }
+}
+
 filterBtns.forEach(btn => {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     currentFilter = btn.getAttribute('data-filter');
     filterBtns.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    updateFilterPill();
     renderTasks();
   });
 });
@@ -1802,4 +1812,5 @@ function hideNavbarTimer() {
 
 // Initialize
 initStore();
+setTimeout(updateFilterPill, 50); // Set initial position after layout
 console.log('FlowPane initialized');
