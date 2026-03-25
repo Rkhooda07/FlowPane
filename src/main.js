@@ -841,13 +841,9 @@ function autoSaveActiveNote() {
 }
 
 function goToHomeView() {
-  if (activeNoteId && notesWorkspace && notesWorkspace.classList.contains('active')) {
-    closeActiveNote();
-  }
-
-  if (isInFocusMode) {
-    exitFocusMode();
-  }
+  if (activeNoteId) closeActiveNote();
+  if (isInFocusMode) exitFocusMode();
+  if (isHistoryOpen) toggleHistory();
 }
 
 if (notesWorkspace) {
@@ -1725,10 +1721,7 @@ document.getElementById('clear-history-btn').addEventListener('click', async (e)
   }
 });
 
-// Allow clicking the title to go home from history
-document.getElementById('main-home-link').addEventListener('click', () => {
-  if (isHistoryOpen) toggleHistory();
-});
+// Redundant main-home-link listener removed; it is now handled by homeNavLinks.forEach
 
 // Update focus mode complete to handle animation/delay if needed
 document.getElementById('focus-nav-complete-btn').addEventListener('click', () => {
