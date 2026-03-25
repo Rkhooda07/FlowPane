@@ -543,16 +543,32 @@ function renderTasks() {
       <button class="delete-task-btn" title="Delete task">×</button>
     `;
 
+    // Prevent double-clicks on interactive elements from opening the task
+    const stopBubbling = (e) => e.stopPropagation();
+    li.querySelector('.task-checkbox').addEventListener('dblclick', stopBubbling);
+    li.querySelector('.delete-task-btn').addEventListener('dblclick', stopBubbling);
+
     li.querySelector('.task-checkbox').addEventListener('change', async (e) => {
       if (e.target.checked) {
         li.classList.add('task-completing');
-        // Wait for animation to finish
+        // Wait for 2-step animation (strikethrough then slide)
         setTimeout(async () => {
           task.completed = true;
           task.completedAt = Date.now();
           await saveTasks();
           renderTasks();
-        }, 400);
+
+          // Provide visual feedback that task went to history
+          const historyBtn = document.getElementById('history-btn');
+          if (historyBtn) {
+            setTimeout(() => {
+              historyBtn.classList.add('history-uplift');
+              setTimeout(() => {
+                historyBtn.classList.remove('history-uplift');
+              }, 600); // Wait for the uplift animation
+            }, 50); // Slight delay after DOM update
+          }
+        }, 700);
       }
     });
 
@@ -618,6 +634,10 @@ function renderTasks() {
     li.appendChild(info);
     li.appendChild(deleteNoteBtn);
 
+    // Prevent double-clicks on interactive elements from opening the note
+    const stopBubbling = (e) => e.stopPropagation();
+    deleteNoteBtn.addEventListener('dblclick', stopBubbling);
+
     deleteNoteBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const shouldDelete = await requestDeleteConfirmation('note');
@@ -627,7 +647,7 @@ function renderTasks() {
       renderTasks();
     });
 
-    li.addEventListener('click', () => {
+    li.addEventListener('dblclick', () => {
       const themeId = note.theme || 1;
       const noteTab = document.querySelector(`.task-note-tab.note-${themeId}`);
       if (noteTab) {
