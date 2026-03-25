@@ -1631,8 +1631,10 @@ function renderHistory(completedTasks) {
   
   if (completedTasks.length === 0) {
     emptyState.classList.remove('hidden');
+    historyList.classList.add('hidden');
   } else {
     emptyState.classList.add('hidden');
+    historyList.classList.remove('hidden');
     completedTasks.forEach(task => {
       const li = document.createElement('li');
       li.className = 'history-item';
@@ -1817,5 +1819,11 @@ function hideNavbarTimer() {
 
 // Initialize
 initStore();
-setTimeout(updateFilterPill, 50); // Set initial position after layout
+// Use staggered timeouts to ensure layout is truly settled (catch font loads etc.)
+updateFilterPill(); // Instant
+setTimeout(updateFilterPill, 50); 
+setTimeout(updateFilterPill, 300);
+window.addEventListener('load', updateFilterPill);
+window.addEventListener('resize', updateFilterPill);
+
 console.log('FlowPane initialized');

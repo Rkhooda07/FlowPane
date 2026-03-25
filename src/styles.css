@@ -1127,7 +1127,7 @@ body {
   align-items: center;
   justify-content: center;
   position: absolute;
-  top: 49%; /* Fixed position relative to app, shifted down for space */
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 100%;
@@ -1837,16 +1837,12 @@ body {
 }
 
 .history-empty-state {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: rgba(255, 255, 255, 0.15);
-  font-size: 15px;
-  font-weight: 300;
-  letter-spacing: 0.5px;
-  padding-bottom: 60px; /* Offset for visual balance */
+  position: relative;
+  height: 100%; /* Take up the full history area height */
 }
 
 /* Completion Animation */
