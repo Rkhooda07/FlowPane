@@ -1700,6 +1700,34 @@ body {
   margin-bottom: 24px;
 }
 
+.history-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-back-btn {
+  background: transparent;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-left: -4px; /* Pull closer to edge */
+}
+
+.history-back-btn:hover {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.history-back-btn:active {
+  transform: translateY(0) scale(0.92);
+}
+
 .history-header h2 {
   font-size: 20px;
   font-weight: 600;

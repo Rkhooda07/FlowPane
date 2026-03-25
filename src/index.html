@@ -89,7 +89,14 @@
     <div id="history-workspace" class="history-workspace hidden" aria-hidden="true">
       <div class="history-content-shell">
         <div class="history-header">
-          <h2>Completed Tasks</h2>
+          <div class="history-title-wrap">
+            <button id="history-back-btn" class="history-back-btn" title="Back to tasks">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <h2>Completed Tasks</h2>
+          </div>
           <button id="clear-history-btn" class="clear-history-btn" title="Clear All History">
             <svg class="trash-bin-svg" width="18" height="20" viewBox="0 0 18 20" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path id="trash-body" d="M3 6V17C3 18.1046 3.89543 19 5 19H13C14.1046 19 15 18.1046 15 17V6H3ZM6 16V8H8V16H6ZM10 16V8H12V16H10Z" fill="currentColor"/>

@@ -591,8 +591,8 @@ function renderTasks() {
       renderTasks();
     });
 
-    // Double click to enter focus mode (disabled for completed tasks)
-    li.addEventListener('dblclick', () => {
+    // Click to enter focus mode (disabled for completed tasks)
+    li.addEventListener('click', () => {
       if (!task.completed) {
         enterFocusMode(task);
       }
@@ -647,7 +647,7 @@ function renderTasks() {
       renderTasks();
     });
 
-    li.addEventListener('dblclick', () => {
+    li.addEventListener('click', () => {
       const themeId = note.theme || 1;
       const noteTab = document.querySelector(`.task-note-tab.note-${themeId}`);
       if (noteTab) {
@@ -1694,6 +1694,11 @@ function toggleHistory() {
 
 // History Event Listeners
 document.getElementById('history-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleHistory();
+});
+
+document.getElementById('history-back-btn').addEventListener('click', (e) => {
   e.stopPropagation();
   toggleHistory();
 });
