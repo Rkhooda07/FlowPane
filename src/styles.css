@@ -1689,24 +1689,49 @@ body {
 }
 
 .clear-history-btn {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.5);
-  padding: 6px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
+  background: transparent !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.3);
+  padding: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: visible;
+  position: relative;
+  margin-right: -8px; /* Offset padding for alignment */
 }
 
 .clear-history-btn:hover {
-  background: rgba(244, 67, 54, 0.15);
-  border-color: rgba(244, 67, 54, 0.3);
-  color: #ff8a80;
+  color: #ff5252;
+  transform: scale(1.15);
+}
+
+.trash-bin-svg {
+  pointer-events: none;
+  overflow: visible !important;
+}
+
+#trash-lid {
+  transform-origin: 2px 5px;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.clear-history-btn.animating #trash-lid {
+  transform: rotate(-45deg) translateY(-2px);
+}
+
+/* History items swallowing animation */
+.history-item.swallowing {
+  animation: swallowToBin 0.6s cubic-bezier(0.45, 0, 0.55, 1) forwards !important;
+  pointer-events: none;
+}
+
+@keyframes swallowToBin {
+  0% { transform: scale(1) translate(0, 0); opacity: 1; filter: blur(0); }
+  40% { transform: scale(0.8) translate(40px, -20px); opacity: 0.6; filter: blur(1px); }
+  100% { transform: scale(0) translate(120px, -80px); opacity: 0; filter: blur(4px); }
 }
 
 .history-list {

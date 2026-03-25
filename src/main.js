@@ -1641,12 +1641,21 @@ function renderHistory(completedTasks) {
 
       li.querySelector('.delete-history-item').addEventListener('click', (e) => {
         e.stopPropagation();
-        const index = tasks.indexOf(task);
-        if (index !== -1) {
-          tasks.splice(index, 1);
-          saveTasks();
-          renderTasks();
-        }
+        const btn = document.getElementById('clear-history-btn');
+        
+        // Trigger bin animation
+        li.classList.add('swallowing');
+        if (btn) btn.classList.add('animating');
+        
+        setTimeout(async () => {
+          const index = tasks.indexOf(task);
+          if (index !== -1) {
+            tasks.splice(index, 1);
+            await saveTasks();
+            renderTasks();
+          }
+          if (btn) btn.classList.remove('animating');
+        }, 500);
       });
 
       historyList.appendChild(li);
@@ -1683,9 +1692,19 @@ document.getElementById('clear-history-btn').addEventListener('click', async (e)
   e.stopPropagation();
   const shouldClear = await requestDeleteConfirmation('entire history');
   if (shouldClear) {
-    tasks = tasks.filter(t => !t.completed);
-    await saveTasks();
-    renderTasks();
+    const btn = document.getElementById('clear-history-btn');
+    const items = document.querySelectorAll('.history-item');
+    
+    // Play swallow animation
+    if (btn) btn.classList.add('animating');
+    items.forEach(li => li.classList.add('swallowing'));
+    
+    setTimeout(async () => {
+      tasks = tasks.filter(t => !t.completed);
+      await saveTasks();
+      renderTasks();
+      if (btn) btn.classList.remove('animating');
+    }, 600);
   }
 });
 
