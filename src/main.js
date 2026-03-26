@@ -15,18 +15,36 @@ let peekMode = null;
 let isHistoryOpen = false;
 
 const appElement = document.getElementById('app');
+let isWindowFocused = false;
+let isMouseInside = false;
 
-appWindow.onFocusChanged(({ payload: focused }) => {
-  if (focused) {
+function updateFocusState() {
+  if (isWindowFocused || isMouseInside) {
     appElement.classList.add('focused');
   } else {
     appElement.classList.remove('focused');
   }
+}
+
+appWindow.onFocusChanged(({ payload: focused }) => {
+  isWindowFocused = focused;
+  updateFocusState();
+});
+
+appWindow.listen('mouse-enter', () => {
+  isMouseInside = true;
+  updateFocusState();
+});
+
+appWindow.listen('mouse-leave', () => {
+  isMouseInside = false;
+  updateFocusState();
 });
 
 // Initial check
 appWindow.isFocused().then(focused => {
-  if (focused) appElement.classList.add('focused');
+  isWindowFocused = focused;
+  updateFocusState();
 });
 
 const ALL_WINDOWS_SIZE = new LogicalSize(325, 375);
