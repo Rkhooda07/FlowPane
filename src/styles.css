@@ -65,11 +65,17 @@ body {
   overflow: hidden;
   transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
               height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
               border-radius 0.3s,
               background 0.4s,
               box-shadow 0.4s,
               border 0.4s;
   animation: appAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#app:not(.focused) {
+  opacity: 0.7;
+  filter: saturate(0.85) grayscale(0.1); /* Subtle dimming effect for unfocused state */
 }
 
 /* Brightness tweak for visibility protection */
@@ -420,6 +426,14 @@ body {
 
 .action-controls {
   justify-content: flex-end;
+}
+
+/* Hide controls in collapsed focus view for minimal look */
+#app.collapsed-y .focus-header-bar .action-controls,
+#app.collapsed-x .focus-header-bar .action-controls,
+#app.collapsed-y .focus-header-bar .window-controls,
+#app.collapsed-x .focus-header-bar .window-controls {
+  display: none !important;
 }
 
 .notes-action-controls {

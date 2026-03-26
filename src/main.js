@@ -16,6 +16,19 @@ let isHistoryOpen = false;
 
 const appElement = document.getElementById('app');
 
+appWindow.onFocusChanged(({ payload: focused }) => {
+  if (focused) {
+    appElement.classList.add('focused');
+  } else {
+    appElement.classList.remove('focused');
+  }
+});
+
+// Initial check
+appWindow.isFocused().then(focused => {
+  if (focused) appElement.classList.add('focused');
+});
+
 const ALL_WINDOWS_SIZE = new LogicalSize(325, 375);
 const PEEK_SIZE_Y = new LogicalSize(325, 270);
 const PEEK_SIZE_X = new LogicalSize(270, 325);
