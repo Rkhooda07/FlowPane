@@ -1043,6 +1043,13 @@ body {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.task-container * {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .list-filter {
