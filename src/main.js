@@ -29,28 +29,6 @@ function updateFocusState() {
 appWindow.onFocusChanged(({ payload: focused }) => {
   isWindowFocused = focused;
   updateFocusState();
-  if (focused) {
-    if (shouldDockRestore) {
-      shouldDockRestore = false;
-      suppressAutoMinimizeUntil = Date.now() + 1800;
-      appElement.classList.add('dock-snapshot-mode');
-      appElement.classList.add('restore-repositioning');
-
-      setTimeout(async () => {
-        await ensureWindowVisibleAfterRestore();
-        requestAnimationFrame(() => {
-          appElement.classList.remove('restore-repositioning');
-          appElement.classList.add('genie-restoring');
-          setTimeout(() => {
-            appElement.classList.remove('genie-restoring');
-            appElement.classList.remove('dock-snapshot-mode');
-          }, 340);
-        });
-      }, 36);
-      return;
-    }
-    appElement.classList.remove('dock-snapshot-mode');
-  }
 });
 
 appWindow.listen('mouse-enter', () => {
@@ -379,7 +357,7 @@ document.getElementById('close-btn').addEventListener('click', (e) => {
 
 document.getElementById('minimize-btn').addEventListener('click', (e) => {
   e.stopPropagation();
-  minimizeWithGenieAnimation();
+  appWindow.minimize();
 });
 
 document.getElementById('maximize-btn').addEventListener('click', async (e) => {
@@ -1371,147 +1349,10 @@ setInterval(renderTasks, 60000);
 
 // Edge Snapping Logic
 const SNAP_THRESHOLD = 30;
-const AUTO_MINIMIZE_BOTTOM_THRESHOLD = 16;
-const MINIMIZE_GENIE_DURATION_MS = 260;
-let lastAutoMinimizeTime = 0;
-
-// State for preventing snap during specific actions
-let isMinimizing = false;
-let shouldDockRestore = false;
-let suppressAutoMinimizeUntil = 0;
-
-async function minimizeWithGenieAnimation() {
-  if (isMinimizing) return;
-  isMinimizing = true;
-  shouldDockRestore = true;
-  appElement.classList.add('dock-snapshot-mode');
-  appElement.classList.add('genie-minimizing');
-
-  try {
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    await new Promise(resolve => setTimeout(resolve, MINIMIZE_GENIE_DURATION_MS));
-    await appWindow.minimize();
-  } catch (e) {
-    console.error('Failed to minimize window:', e);
-  } finally {
-    appElement.classList.remove('genie-minimizing');
-    setTimeout(() => {
-      if (!shouldDockRestore) {
-        appElement.classList.remove('dock-snapshot-mode');
-      }
-    }, 480);
-    setTimeout(() => { isMinimizing = false; }, 900);
-  }
-}
-
-function getMonitorWorkBottom(monitor) {
-  const workBounds = getMonitorWorkBounds(monitor);
-  if (!workBounds) return null;
-  return workBounds.y + workBounds.height;
-}
-
-function getMonitorWorkBounds(monitor) {
-  if (!monitor) return null;
-
-  const fallback = {
-    x: monitor.position.x,
-    y: monitor.position.y,
-    width: monitor.size.width,
-    height: monitor.size.height
-  };
-
-  const workArea = monitor.workArea;
-  if (!workArea) return fallback;
-
-  if (typeof workArea.x === 'number' &&
-      typeof workArea.y === 'number' &&
-      typeof workArea.width === 'number' &&
-      typeof workArea.height === 'number') {
-    return {
-      x: workArea.x,
-      y: workArea.y,
-      width: workArea.width,
-      height: workArea.height
-    };
-  }
-
-  if (workArea.position && workArea.size &&
-      typeof workArea.position.x === 'number' &&
-      typeof workArea.position.y === 'number' &&
-      typeof workArea.size.width === 'number' &&
-      typeof workArea.size.height === 'number') {
-    return {
-      x: workArea.position.x,
-      y: workArea.position.y,
-      width: workArea.size.width,
-      height: workArea.size.height
-    };
-  }
-
-  return fallback;
-}
-
-async function ensureWindowVisibleAfterRestore() {
-  try {
-    if (isMinimizing) return;
-    if (await appWindow.isMaximized()) return;
-
-    const monitor = await currentMonitor();
-    if (!monitor) return;
-
-    const bounds = getMonitorWorkBounds(monitor);
-    if (!bounds) return;
-
-    const { width: winW, height: winH } = await appWindow.outerSize();
-    const { PhysicalPosition } = window.__TAURI__.window;
-    const RESTORE_DOCK_MARGIN = 8;
-
-    const maxX = Math.max(bounds.x, bounds.x + bounds.width - winW);
-    const maxY = Math.max(bounds.y, bounds.y + bounds.height - winH - RESTORE_DOCK_MARGIN);
-    const minX = bounds.x;
-    const minY = bounds.y;
-
-    // Always reopen in a fixed dock-adjacent spot, regardless of where it was minimized.
-    let newX = bounds.x + Math.round((bounds.width - winW) / 2);
-    let newY = maxY;
-
-    newX = Math.min(maxX, Math.max(minX, newX));
-    newY = Math.min(maxY, Math.max(minY, newY));
-
-    const { x: winX, y: winY } = await appWindow.outerPosition();
-
-    if (newX !== winX || newY !== winY) {
-      await appWindow.setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)));
-    }
-  } catch (e) {
-    console.error('Failed to normalize restored position:', e);
-  }
-}
-
-async function checkAutoMinimizeNearBottom() {
-  if (isAnimating || isMinimizing) return;
-  if (Date.now() < suppressAutoMinimizeUntil) return;
-  if (Date.now() - lastAutoMinimizeTime < 1200) return;
-
-  const monitor = await currentMonitor();
-  if (!monitor) return;
-
-  const { y: winY } = await appWindow.outerPosition();
-  const { height: winH } = await appWindow.outerSize();
-  const winBottom = winY + winH;
-  const workBottom = getMonitorWorkBottom(monitor);
-
-  if (workBottom == null) return;
-
-  const distanceToWorkBottom = workBottom - winBottom;
-  if (distanceToWorkBottom <= AUTO_MINIMIZE_BOTTOM_THRESHOLD) {
-    lastAutoMinimizeTime = Date.now();
-    await minimizeWithGenieAnimation();
-  }
-}
+let moveTimeout;
 
 async function snapToEdges() {
-  if (isMinimizing || isAnimating) return;
+  if (isAnimating) return;
 
   const monitor = await currentMonitor();
   if (!monitor) return;
@@ -1621,10 +1462,8 @@ async function checkInstantExpand() {
   }
 }
 
-// Listen for move events to trigger snapping and icon updates
-let moveTimeout;
 appWindow.onMoved(async () => {
-  if (isMinimizing || isAnimating) return;
+  if (isAnimating) return;
 
   // If the window is moved manually while peeking (expanding via hover),
   // end the peek state and force it to full size.
@@ -1643,7 +1482,6 @@ appWindow.onMoved(async () => {
   clampToScreen();
   checkInstantExpand();
   checkInstantCollapse();
-  checkAutoMinimizeNearBottom();
 
   clearTimeout(moveTimeout);
   moveTimeout = setTimeout(snapToEdges, 200);
@@ -1909,7 +1747,7 @@ timerInput.addEventListener('keypress', (e) => {
 
 // Focus Mode Window Controls
 document.getElementById('focus-close-btn').addEventListener('click', () => appWindow.close());
-document.getElementById('focus-minimize-btn').addEventListener('click', () => minimizeWithGenieAnimation());
+document.getElementById('focus-minimize-btn').addEventListener('click', () => appWindow.minimize());
 document.getElementById('focus-maximize-btn').addEventListener('click', () => appWindow.toggleMaximize());
 
 // Fold buttons removed from Focus mode
