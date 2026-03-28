@@ -440,26 +440,6 @@ async function toggleCollapseX(isManualDrag = false) {
   }
 }
 
-// Window controls
-document.getElementById('close-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  appWindow.close();
-});
-
-document.getElementById('minimize-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  appWindow.minimize();
-});
-
-document.getElementById('maximize-btn').addEventListener('click', async (e) => {
-  e.stopPropagation();
-  if (await appWindow.isMaximized()) {
-    await appWindow.unmaximize();
-  } else {
-    await appWindow.maximize();
-  }
-});
-
 // Double click defaults moved to dragging behavior
 // (Removed dblclick fold)
 
@@ -1874,11 +1854,6 @@ document.getElementById('timer-start-btn').addEventListener('click', startCountd
 timerInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') startCountdown();
 });
-
-// Focus Mode Window Controls
-document.getElementById('focus-close-btn').addEventListener('click', () => appWindow.close());
-document.getElementById('focus-minimize-btn').addEventListener('click', () => appWindow.minimize());
-document.getElementById('focus-maximize-btn').addEventListener('click', () => appWindow.toggleMaximize());
 
 // Fold buttons removed from Focus mode
 
