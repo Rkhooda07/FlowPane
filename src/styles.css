@@ -478,6 +478,35 @@ body {
 .btn-minimize { background-color: #ffbd2e; }
 .btn-maximize { background-color: #28c840; }
 
+.googly-eyes {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  pointer-events: none; /* Let clicks pass through if dragging */
+}
+
+.eye {
+  width: 18px;
+  height: 18px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  position: relative;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pupil {
+  width: 9px;
+  height: 9px;
+  background-color: #1a1a1a;
+  border-radius: 50%;
+  transform: translate(0px, 0px);
+  transition: transform 0.05s linear;
+  box-shadow: inset -1px -1px 2px rgba(255, 255, 255, 0.2);
+}
+
 /* Folding Guide Component */
 .fold-guide {
   display: flex;

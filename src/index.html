@@ -14,7 +14,12 @@
 <body>
   <div id="app">
     <header class="title-bar" data-tauri-drag-region>
-      <div class="window-controls" aria-hidden="true"></div>
+      <div class="window-controls" aria-hidden="true">
+        <div class="googly-eyes">
+          <div class="eye"><div class="pupil"></div></div>
+          <div class="eye"><div class="pupil"></div></div>
+        </div>
+      </div>
       <h1 class="navbar-home-link" id="main-home-link" role="button" tabindex="0">FlowPane<span class="navbar-timer hidden"></span></h1>
       <div class="fold-guide" title="Drag to screen edges to collapse">
         <div class="guide-icon">
@@ -165,7 +170,12 @@
 
     <div id="focus-mode" class="focus-mode hidden">
       <header class="title-bar focus-header-bar" data-tauri-drag-region>
-        <div class="window-controls" aria-hidden="true"></div>
+        <div class="window-controls" aria-hidden="true">
+          <div class="googly-eyes">
+            <div class="eye"><div class="pupil"></div></div>
+            <div class="eye"><div class="pupil"></div></div>
+          </div>
+        </div>
         <h1 class="navbar-home-link" id="focus-home-link" role="button" tabindex="0">FlowPane<span class="navbar-timer hidden"></span></h1>
         <div class="action-controls">
           <button class="control-btn btn-complete" id="focus-nav-complete-btn" title="Complete Task">✓</button>

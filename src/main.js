@@ -2069,4 +2069,53 @@ setTimeout(updateFilterPill, 300);
 window.addEventListener('load', updateFilterPill);
 window.addEventListener('resize', updateFilterPill);
 
+// Googly Eyes Cursor Tracking
+// Clean up previous event listener if it still exists (not really needed since we replace the code, but conceptually)
+let globalEyeRafId = null;
+
+async function trackCursorGlobally() {
+  try {
+    // Fetch physical cursor position from the Rust backend (returns [x, y])
+    const pos = await window.__TAURI__.core.invoke("get_cursor_position"); 
+    
+    // Fetch physical window position (inner window)
+    const winPos = await appWindow.innerPosition(); 
+    const scale = await appWindow.scaleFactor();
+
+    // Convert to logical (CSS) coordinates relative to the webview
+    const logicalX = (pos[0] - winPos.x) / scale;
+    const logicalY = (pos[1] - winPos.y) / scale;
+
+    const eyes = document.querySelectorAll('.eye');
+    eyes.forEach(eye => {
+      const pupil = eye.querySelector('.pupil');
+      if (!pupil) return;
+
+      const rect = eye.getBoundingClientRect();
+      const eyeCenterX = rect.left + rect.width / 2;
+      const eyeCenterY = rect.top + rect.height / 2;
+
+      const dx = logicalX - eyeCenterX;
+      const dy = logicalY - eyeCenterY;
+      const angle = Math.atan2(dy, dx);
+      
+      const maxBound = 4.0;
+      const dist = Math.min(Math.sqrt(dx * dx + dy * dy), maxBound);
+
+      const pupilX = Math.cos(angle) * dist;
+      const pupilY = Math.sin(angle) * dist;
+
+      pupil.style.transform = `translate(${pupilX}px, ${pupilY}px)`;
+    });
+  } catch (err) {
+    // Silently continue if something temporarily fails
+  }
+  
+  // Continuously track on every frame
+  globalEyeRafId = requestAnimationFrame(trackCursorGlobally);
+}
+
+// Start tracking immediately
+trackCursorGlobally();
+
 console.log('FlowPane initialized');
