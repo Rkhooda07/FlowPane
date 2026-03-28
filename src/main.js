@@ -52,6 +52,97 @@ const PEEK_SIZE_Y = new LogicalSize(325, 270);
 const PEEK_SIZE_X = new LogicalSize(270, 325);
 const COLLAPSED_SIZE_Y = new LogicalSize(325, 38); // Match CSS height for bar
 const COLLAPSED_SIZE_X = new LogicalSize(38, 375); // Match CSS dimensions
+const BOTTOM_DOCK_MINIMIZE_THRESHOLD = 0;
+
+let isWindowDragGesture = false;
+let isDockMinimizing = false;
+let windowDragGestureExpiresAt = 0;
+
+function getMonitorBounds(monitor) {
+  const workArea = monitor.workArea ?? {
+    position: monitor.position,
+    size: monitor.size
+  };
+
+  return {
+    full: {
+      x: monitor.position.x,
+      y: monitor.position.y,
+      width: monitor.size.width,
+      height: monitor.size.height
+    },
+    work: {
+      x: workArea.position.x,
+      y: workArea.position.y,
+      width: workArea.size.width,
+      height: workArea.size.height
+    }
+  };
+}
+
+function beginWindowDragGesture() {
+  isWindowDragGesture = true;
+  windowDragGestureExpiresAt = Date.now() + 5000;
+}
+
+function endWindowDragGesture() {
+  isWindowDragGesture = false;
+  windowDragGestureExpiresAt = 0;
+}
+
+async function moveWindowIntoVisibleWorkArea() {
+  const monitor = await currentMonitor();
+  if (!monitor) return null;
+
+  const { work } = getMonitorBounds(monitor);
+  const currentPos = await appWindow.outerPosition();
+  const currentSize = await appWindow.outerSize();
+
+  const maxX = work.x + Math.max(0, work.width - currentSize.width);
+  const maxY = work.y + Math.max(0, work.height - currentSize.height);
+
+  const newX = Math.min(Math.max(currentPos.x, work.x), maxX);
+  const newY = Math.min(Math.max(currentPos.y, work.y), maxY);
+
+  if (newX !== currentPos.x || newY !== currentPos.y) {
+    await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(newX, newY));
+  }
+
+  lastNormalPosition = { x: newX, y: newY };
+
+  return {
+    x: newX,
+    y: newY,
+    width: currentSize.width,
+    height: currentSize.height,
+    workBottom: work.y + work.height
+  };
+}
+
+async function minimizeIntoDockFromBottomEdge() {
+  if (isDockMinimizing || isAnimating) return false;
+  if (await appWindow.isMinimized()) return true;
+
+  isDockMinimizing = true;
+  endWindowDragGesture();
+
+  try {
+    isPeeking = false;
+    appElement.classList.remove('peeking');
+    clearTimeout(peekTimeout);
+
+    await moveWindowIntoVisibleWorkArea();
+    await appWindow.minimize();
+    return true;
+  } catch (error) {
+    console.error('Failed to minimize window into dock:', error);
+    return false;
+  } finally {
+    setTimeout(() => {
+      isDockMinimizing = false;
+    }, 250);
+  }
+}
 
 // Animation Helper - Animates both position and size simultaneously
 async function animateWindowTransform(startPos, endPos, startSize, endSize, duration = 450) {
@@ -1022,6 +1113,17 @@ homeNavLinks.forEach(link => {
   });
 });
 
+document.querySelectorAll('.title-bar').forEach(titleBar => {
+  titleBar.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest('button, input, textarea, select, a')) return;
+    beginWindowDragGesture();
+  });
+});
+
+window.addEventListener('mouseup', endWindowDragGesture);
+window.addEventListener('blur', endWindowDragGesture);
+
 // Hover peek logic for collapsed windows - bridges from Rust polling for inactive window support
 appWindow.listen('mouse-enter', () => {
   if (isAnimating) return;
@@ -1352,15 +1454,15 @@ const SNAP_THRESHOLD = 30;
 let moveTimeout;
 
 async function snapToEdges() {
-  if (isAnimating) return;
+  if (isAnimating || isDockMinimizing) return;
 
   const monitor = await currentMonitor();
   if (!monitor) return;
 
   const { x: winX, y: winY } = await appWindow.outerPosition();
   const { width: winW, height: winH } = await appWindow.outerSize();
-  const { width: scrW, height: scrH } = monitor.size;
-  const { x: offsetX, y: offsetY } = monitor.position;
+  const { full } = getMonitorBounds(monitor);
+  const { x: offsetX, y: offsetY, width: scrW } = full;
 
   const isCollapsedY = appElement.classList.contains('collapsed-y');
   const isCollapsedX = appElement.classList.contains('collapsed-x');
@@ -1384,14 +1486,14 @@ async function snapToEdges() {
 
 // Listen for move events to trigger snapping and icon updates
 async function clampToScreen() {
-  if (isAnimating) return;
+  if (isAnimating || isDockMinimizing) return;
   const monitor = await currentMonitor();
   if (!monitor) return;
 
   const { x: winX, y: winY } = await appWindow.outerPosition();
   const { width: winW, height: winH } = await appWindow.outerSize();
-  const { width: scrW, height: scrH } = monitor.size;
-  const { x: offsetX, y: offsetY } = monitor.position;
+  const { full } = getMonitorBounds(monitor);
+  const { x: offsetX, y: offsetY, width: scrW } = full;
 
   let newX = winX;
   let newY = winY;
@@ -1409,7 +1511,7 @@ async function clampToScreen() {
 }
 
 async function checkInstantCollapse() {
-  if (isAnimating) return;
+  if (isAnimating || isDockMinimizing) return;
   if (Date.now() - lastExpandTime < 800) return; // Prevent flip-flop right after expansion
   const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
   if (isCollapsed) return;
@@ -1437,7 +1539,7 @@ async function checkInstantCollapse() {
 }
 
 async function checkInstantExpand() {
-  if (isAnimating) return;
+  if (isAnimating || isDockMinimizing) return;
   const isCollapsedY = appElement.classList.contains('collapsed-y');
   const isCollapsedX = appElement.classList.contains('collapsed-x');
   if (!isCollapsedY && !isCollapsedX) return;
@@ -1462,8 +1564,32 @@ async function checkInstantExpand() {
   }
 }
 
+async function checkBottomEdgeMinimize() {
+  if (isAnimating || isDockMinimizing || !isWindowDragGesture) return false;
+  if (Date.now() > windowDragGestureExpiresAt) {
+    endWindowDragGesture();
+    return false;
+  }
+
+  const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
+  if (isCollapsed) return false;
+
+  const monitor = await currentMonitor();
+  if (!monitor) return false;
+
+  const { work } = getMonitorBounds(monitor);
+  const { y: winY } = await appWindow.outerPosition();
+  const { height: winH } = await appWindow.outerSize();
+  const workBottom = work.y + work.height;
+  const windowBottom = winY + winH;
+
+  if (windowBottom < workBottom - BOTTOM_DOCK_MINIMIZE_THRESHOLD) return false;
+
+  return minimizeIntoDockFromBottomEdge();
+}
+
 appWindow.onMoved(async () => {
-  if (isAnimating) return;
+  if (isAnimating || isDockMinimizing) return;
 
   // If the window is moved manually while peeking (expanding via hover),
   // end the peek state and force it to full size.
@@ -1476,6 +1602,10 @@ appWindow.onMoved(async () => {
     if (monitor) {
       await appWindow.setSize(ALL_WINDOWS_SIZE);
     }
+  }
+
+  if (await checkBottomEdgeMinimize()) {
+    return;
   }
 
   // Instant reaction logic
