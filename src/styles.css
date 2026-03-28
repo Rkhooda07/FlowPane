@@ -73,7 +73,35 @@ body {
   animation: appAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-#app:not(.focused) {
+#app.genie-minimizing {
+  transform-origin: 50% 100%;
+  animation: genieMinimize 260ms cubic-bezier(0.22, 0.8, 0.24, 1) forwards;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+#app.restore-repositioning {
+  opacity: 0 !important;
+  transition: none !important;
+  pointer-events: none;
+}
+
+#app.genie-restoring {
+  transform-origin: 50% 100%;
+  animation: genieRestore 340ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+#app.dock-snapshot-mode {
+  opacity: 1 !important;
+  filter: none !important;
+  background: rgba(26, 28, 38, 0.97) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+#app:not(.focused):not(.dock-snapshot-mode) {
   opacity: 0.7;
   filter: saturate(0.85) grayscale(0.1); /* Subtle dimming effect for unfocused state */
 }
@@ -89,6 +117,36 @@ body {
 @keyframes appAppear {
   from { opacity: 0; transform: scale(0.98) translateY(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes genieMinimize {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1, 1) skewX(0deg);
+  }
+  45% {
+    opacity: 0.98;
+    transform: translateY(8px) scale(0.88, 0.72) skewX(-4deg);
+  }
+  100% {
+    opacity: 0.84;
+    transform: translateY(28px) scale(0.2, 0.08) skewX(-12deg);
+  }
+}
+
+@keyframes genieRestore {
+  0% {
+    opacity: 0.84;
+    transform: translateY(28px) scale(0.2, 0.08) skewX(-12deg);
+  }
+  55% {
+    opacity: 0.98;
+    transform: translateY(8px) scale(0.9, 0.76) skewX(-3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1, 1) skewX(0deg);
+  }
 }
 
 /* Glow/Active state for collapsed modes */
@@ -1326,8 +1384,93 @@ body {
   align-items: center;
   justify-content: center;
   background: rgba(8, 10, 18, 0.45);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.congrats-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 18, 0.75); /* Darker overlay for focus */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 20px;
+}
+
+#confetti-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.congrats-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: modalPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.8) translateY(20px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.congrats-icon {
+  font-size: 64px; /* Larger icon for full screen */
+  margin-bottom: 20px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
+}
+
+.congrats-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.congrats-time {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 24px;
+}
+
+#congrats-timer-val {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.congrats-fun-text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 32px;
+  max-width: 250px;
+  font-style: italic;
+  font-family: inherit;
+}
+
+#congrats-done-btn {
+  padding: 12px 36px;
+  font-size: 15px;
+  box-shadow: 0 4px 12px rgba(255, 204, 102, 0.2);
 }
 
 .delete-confirm-card {

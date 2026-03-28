@@ -29,6 +29,28 @@ function updateFocusState() {
 appWindow.onFocusChanged(({ payload: focused }) => {
   isWindowFocused = focused;
   updateFocusState();
+  if (focused) {
+    if (shouldDockRestore) {
+      shouldDockRestore = false;
+      suppressAutoMinimizeUntil = Date.now() + 1800;
+      appElement.classList.add('dock-snapshot-mode');
+      appElement.classList.add('restore-repositioning');
+
+      setTimeout(async () => {
+        await ensureWindowVisibleAfterRestore();
+        requestAnimationFrame(() => {
+          appElement.classList.remove('restore-repositioning');
+          appElement.classList.add('genie-restoring');
+          setTimeout(() => {
+            appElement.classList.remove('genie-restoring');
+            appElement.classList.remove('dock-snapshot-mode');
+          }, 340);
+        });
+      }, 36);
+      return;
+    }
+    appElement.classList.remove('dock-snapshot-mode');
+  }
 });
 
 appWindow.listen('mouse-enter', () => {
@@ -357,10 +379,7 @@ document.getElementById('close-btn').addEventListener('click', (e) => {
 
 document.getElementById('minimize-btn').addEventListener('click', (e) => {
   e.stopPropagation();
-  isMinimizing = true;
-  appWindow.minimize();
-  // Reset after animation finishes
-  setTimeout(() => { isMinimizing = false; }, 1000);
+  minimizeWithGenieAnimation();
 });
 
 document.getElementById('maximize-btn').addEventListener('click', async (e) => {
@@ -1352,9 +1371,144 @@ setInterval(renderTasks, 60000);
 
 // Edge Snapping Logic
 const SNAP_THRESHOLD = 30;
+const AUTO_MINIMIZE_BOTTOM_THRESHOLD = 16;
+const MINIMIZE_GENIE_DURATION_MS = 260;
+let lastAutoMinimizeTime = 0;
 
 // State for preventing snap during specific actions
 let isMinimizing = false;
+let shouldDockRestore = false;
+let suppressAutoMinimizeUntil = 0;
+
+async function minimizeWithGenieAnimation() {
+  if (isMinimizing) return;
+  isMinimizing = true;
+  shouldDockRestore = true;
+  appElement.classList.add('dock-snapshot-mode');
+  appElement.classList.add('genie-minimizing');
+
+  try {
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await new Promise(resolve => setTimeout(resolve, MINIMIZE_GENIE_DURATION_MS));
+    await appWindow.minimize();
+  } catch (e) {
+    console.error('Failed to minimize window:', e);
+  } finally {
+    appElement.classList.remove('genie-minimizing');
+    setTimeout(() => {
+      if (!shouldDockRestore) {
+        appElement.classList.remove('dock-snapshot-mode');
+      }
+    }, 480);
+    setTimeout(() => { isMinimizing = false; }, 900);
+  }
+}
+
+function getMonitorWorkBottom(monitor) {
+  const workBounds = getMonitorWorkBounds(monitor);
+  if (!workBounds) return null;
+  return workBounds.y + workBounds.height;
+}
+
+function getMonitorWorkBounds(monitor) {
+  if (!monitor) return null;
+
+  const fallback = {
+    x: monitor.position.x,
+    y: monitor.position.y,
+    width: monitor.size.width,
+    height: monitor.size.height
+  };
+
+  const workArea = monitor.workArea;
+  if (!workArea) return fallback;
+
+  if (typeof workArea.x === 'number' &&
+      typeof workArea.y === 'number' &&
+      typeof workArea.width === 'number' &&
+      typeof workArea.height === 'number') {
+    return {
+      x: workArea.x,
+      y: workArea.y,
+      width: workArea.width,
+      height: workArea.height
+    };
+  }
+
+  if (workArea.position && workArea.size &&
+      typeof workArea.position.x === 'number' &&
+      typeof workArea.position.y === 'number' &&
+      typeof workArea.size.width === 'number' &&
+      typeof workArea.size.height === 'number') {
+    return {
+      x: workArea.position.x,
+      y: workArea.position.y,
+      width: workArea.size.width,
+      height: workArea.size.height
+    };
+  }
+
+  return fallback;
+}
+
+async function ensureWindowVisibleAfterRestore() {
+  try {
+    if (isMinimizing) return;
+    if (await appWindow.isMaximized()) return;
+
+    const monitor = await currentMonitor();
+    if (!monitor) return;
+
+    const bounds = getMonitorWorkBounds(monitor);
+    if (!bounds) return;
+
+    const { width: winW, height: winH } = await appWindow.outerSize();
+    const { PhysicalPosition } = window.__TAURI__.window;
+    const RESTORE_DOCK_MARGIN = 8;
+
+    const maxX = Math.max(bounds.x, bounds.x + bounds.width - winW);
+    const maxY = Math.max(bounds.y, bounds.y + bounds.height - winH - RESTORE_DOCK_MARGIN);
+    const minX = bounds.x;
+    const minY = bounds.y;
+
+    // Always reopen in a fixed dock-adjacent spot, regardless of where it was minimized.
+    let newX = bounds.x + Math.round((bounds.width - winW) / 2);
+    let newY = maxY;
+
+    newX = Math.min(maxX, Math.max(minX, newX));
+    newY = Math.min(maxY, Math.max(minY, newY));
+
+    const { x: winX, y: winY } = await appWindow.outerPosition();
+
+    if (newX !== winX || newY !== winY) {
+      await appWindow.setPosition(new PhysicalPosition(Math.round(newX), Math.round(newY)));
+    }
+  } catch (e) {
+    console.error('Failed to normalize restored position:', e);
+  }
+}
+
+async function checkAutoMinimizeNearBottom() {
+  if (isAnimating || isMinimizing) return;
+  if (Date.now() < suppressAutoMinimizeUntil) return;
+  if (Date.now() - lastAutoMinimizeTime < 1200) return;
+
+  const monitor = await currentMonitor();
+  if (!monitor) return;
+
+  const { y: winY } = await appWindow.outerPosition();
+  const { height: winH } = await appWindow.outerSize();
+  const winBottom = winY + winH;
+  const workBottom = getMonitorWorkBottom(monitor);
+
+  if (workBottom == null) return;
+
+  const distanceToWorkBottom = workBottom - winBottom;
+  if (distanceToWorkBottom <= AUTO_MINIMIZE_BOTTOM_THRESHOLD) {
+    lastAutoMinimizeTime = Date.now();
+    await minimizeWithGenieAnimation();
+  }
+}
 
 async function snapToEdges() {
   if (isMinimizing || isAnimating) return;
@@ -1489,6 +1643,7 @@ appWindow.onMoved(async () => {
   clampToScreen();
   checkInstantExpand();
   checkInstantCollapse();
+  checkAutoMinimizeNearBottom();
 
   clearTimeout(moveTimeout);
   moveTimeout = setTimeout(snapToEdges, 200);
@@ -1498,6 +1653,117 @@ appWindow.onMoved(async () => {
 let focusTimerInterval = null;
 let focusSeconds = 0;
 let currentFocusTask = null;
+
+const congratsMessages = [
+  "Great focus. Keep this momentum going.",
+  "One step closer to your goals. Well done.",
+  "Consistent effort pays off. Take a moment to appreciate your work.",
+  "Task completed successfully. You're doing great.",
+  "Outstanding focus session. Ready for the next challenge?",
+  "Consistency is key. Excellent job staying on track.",
+  "Progress is made one task at a time. Keep it up."
+];
+
+let confettiAnimationId = null;
+
+function playVictorySound() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  const ctx = new AudioContext();
+  
+  const playNote = (freq, startTime, duration) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
+    
+    gain.gain.setValueAtTime(0, ctx.currentTime + startTime);
+    gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + startTime + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + startTime + duration);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start(ctx.currentTime + startTime);
+    osc.stop(ctx.currentTime + startTime + duration);
+  };
+  
+  // Triumphant fast arpeggio
+  playNote(523.25, 0.0, 0.15); // C5
+  playNote(659.25, 0.1, 0.15); // E5
+  playNote(783.99, 0.2, 0.15); // G5
+  playNote(1046.50, 0.3, 0.5); // C6
+}
+
+function startConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const pieces = [];
+  const colors = ['#eff226', '#ffc928', '#ace322', '#f3a8d5', '#007aff', '#ff3b30'];
+
+  // Start explosion from center-bottom
+  for (let i = 0; i < 150; i++) {
+    pieces.push({
+      x: canvas.width / 2,
+      y: canvas.height * 0.8,
+      vx: (Math.random() - 0.5) * 35, // Wide horizontal spread
+      vy: (Math.random() - 1) * 20 - 15, // Powerful upward burst
+      size: Math.random() * 8 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * 360,
+      rs: (Math.random() - 0.5) * 15 // Spin speed
+    });
+  }
+
+  function update() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let active = false;
+    
+    pieces.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.6; // Gravity
+      p.rotation += p.rs;
+      
+      if (p.y < canvas.height + 20) active = true;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.5);
+      ctx.restore();
+    });
+
+    if (active) {
+      confettiAnimationId = requestAnimationFrame(update);
+    }
+  }
+  
+  if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
+  update();
+}
+
+function showCongrats(seconds) {
+  const modal = document.getElementById('congrats-modal');
+  const timerVal = document.getElementById('congrats-timer-val');
+  const funText = document.getElementById('congrats-fun-text');
+  
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  
+  if (timerVal) timerVal.textContent = `${m}:${s}`;
+  if (funText) funText.textContent = congratsMessages[Math.floor(Math.random() * congratsMessages.length)];
+  
+  modal.classList.remove('hidden');
+  
+  playVictorySound();
+  startConfetti();
+}
 let isCountdown = false;
 
 function enterFocusMode(task) {
@@ -1643,7 +1909,7 @@ timerInput.addEventListener('keypress', (e) => {
 
 // Focus Mode Window Controls
 document.getElementById('focus-close-btn').addEventListener('click', () => appWindow.close());
-document.getElementById('focus-minimize-btn').addEventListener('click', () => appWindow.minimize());
+document.getElementById('focus-minimize-btn').addEventListener('click', () => minimizeWithGenieAnimation());
 document.getElementById('focus-maximize-btn').addEventListener('click', () => appWindow.toggleMaximize());
 
 // Fold buttons removed from Focus mode
@@ -1761,8 +2027,18 @@ document.getElementById('focus-nav-complete-btn').addEventListener('click', () =
     currentFocusTask.completedAt = Date.now();
     saveTasks();
     renderTasks();
-    exitFocusMode();
+    
+    // Stop the timer and show congrats before exiting
+    const finalSeconds = focusSeconds;
+    stopTimer();
+    showCongrats(finalSeconds);
   }
+});
+
+document.getElementById('congrats-done-btn').addEventListener('click', () => {
+  document.getElementById('congrats-modal').classList.add('hidden');
+  if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
+  exitFocusMode();
 });
 
 document.getElementById('focus-nav-exit-btn').addEventListener('click', exitFocusMode);

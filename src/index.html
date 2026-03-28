@@ -156,6 +156,17 @@
       </ul>
     </main>
 
+    <div id="congrats-modal" class="congrats-modal hidden" aria-hidden="true">
+      <canvas id="confetti-canvas"></canvas>
+      <div class="congrats-content">
+        <div class="congrats-icon">🥳</div>
+        <h3>Great Session!</h3>
+        <p class="congrats-time">You finished in <span id="congrats-timer-val">00:00</span></p>
+        <p id="congrats-fun-text" class="congrats-fun-text">Progress is made one task at a time. Keep it up.</p>
+        <button id="congrats-done-btn" class="modal-btn start">Continue</button>
+      </div>
+    </div>
+
     <div id="focus-mode" class="focus-mode hidden">
       <header class="title-bar focus-header-bar" data-tauri-drag-region>
         <div class="window-controls">
