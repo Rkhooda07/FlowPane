@@ -1731,6 +1731,7 @@ function enterFocusMode(task) {
 
   document.getElementById('focus-task-name').textContent = task.title;
   document.getElementById('focus-mode').classList.remove('hidden');
+  appElement.classList.add('focus-mode-active');
 
   // Set a random quote
   const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
@@ -1752,6 +1753,7 @@ function enterFocusMode(task) {
 function exitFocusMode() {
   stopTimer();
   document.getElementById('focus-mode').classList.add('hidden');
+  appElement.classList.remove('focus-mode-active');
   currentFocusTask = null;
   isInFocusMode = false;
   isCountdown = false;

@@ -74,14 +74,25 @@ body {
   animation: appAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-#app:not(.focused):not(:hover) {
+#app:not(.focused):not(:hover):not(.collapsed-x):not(.collapsed-y):not(.focus-mode-active) {
   opacity: 0.4;
   filter: saturate(0.6) grayscale(0.3) brightness(0.8); /* Stronger dimming effect when working on other apps */
 }
 
-#app:not(.focused):hover {
-  opacity: 0.8;
+#app.focus-mode-active:not(.focused):not(:hover):not(.collapsed-x):not(.collapsed-y) {
+  opacity: 0.75; /* Much clearer for timer visibility while backgrounded */
+  filter: saturate(0.85) brightness(0.92); /* Subtle dimming, mostly opaque */
+}
+
+#app:not(.focused):hover:not(.collapsed-x):not(.collapsed-y) {
+  opacity: 0.85;
   filter: saturate(0.9) grayscale(0.1) brightness(0.95); /* Lift dimness slightly when hovered but unfocused */
+}
+
+/* Ensure collapsed states are always fully visible regardless of focus */
+#app.collapsed-x, #app.collapsed-y {
+  opacity: 1 !important;
+  filter: none !important;
 }
 
 /* Brightness tweak for visibility protection */
@@ -201,7 +212,18 @@ body {
 }
 
 #app.collapsed-x .window-controls {
-  display: none; /* Hide window controls to prevent collision */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  order: -1; /* Keep eyes at the top in vertical layout */
+  min-width: 0;
+  gap: 4px;
+}
+
+#app.collapsed-x .googly-eyes {
+  flex-direction: column;
+  gap: 3px;
 }
 
 #app.collapsed-x .action-controls {
@@ -450,10 +472,21 @@ body {
 
 /* Hide controls in collapsed focus view for minimal look */
 #app.collapsed-y .focus-header-bar .action-controls,
-#app.collapsed-x .focus-header-bar .action-controls,
-#app.collapsed-y .focus-header-bar .window-controls,
-#app.collapsed-x .focus-header-bar .window-controls {
+#app.collapsed-x .focus-header-bar .action-controls {
   display: none !important;
+}
+
+#app.collapsed-y .focus-header-bar .window-controls {
+  display: flex !important;
+  transform: scale(0.8);
+}
+
+#app.collapsed-x .focus-header-bar .window-controls {
+  display: flex !important;
+  flex-direction: column;
+  transform: scale(0.85);
+  gap: 4px;
+  min-width: 0;
 }
 
 .notes-action-controls {
