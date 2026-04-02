@@ -1506,6 +1506,21 @@ body {
   padding: 12px 36px;
   font-size: 15px;
   box-shadow: 0 4px 12px rgba(255, 204, 102, 0.2);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#congrats-done-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 8px 24px rgba(255, 204, 102, 0.3);
+}
+
+#congrats-done-btn:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .delete-confirm-card {
