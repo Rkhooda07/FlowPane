@@ -644,12 +644,17 @@ function renderTasks() {
 
     // Prevent double-clicks on interactive elements from opening the task
     const stopBubbling = (e) => e.stopPropagation();
+    li.querySelector('.task-checkbox').addEventListener('click', stopBubbling);
     li.querySelector('.task-checkbox').addEventListener('dblclick', stopBubbling);
     li.querySelector('.delete-task-btn').addEventListener('dblclick', stopBubbling);
 
     li.querySelector('.task-checkbox').addEventListener('change', async (e) => {
       if (e.target.checked) {
         li.classList.add('task-completing');
+        
+        // Trigger completion modal much sooner for responsiveness
+        setTimeout(() => showCongrats(0), 500);
+        
         // Wait for 2-step animation (strikethrough then slide)
         setTimeout(async () => {
           task.completed = true;
@@ -1083,13 +1088,19 @@ homeNavLinks.forEach(link => {
       suppressNextClick = false;
       return;
     }
-    goToHomeView();
+    // Prevent redirect to home if in focus/notes mode for better UX
+    if (!isInFocusMode && !activeNoteId) {
+      goToHomeView();
+    }
   });
 
   link.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();
-    goToHomeView();
+    // Same guard for key navigation
+    if (!isInFocusMode && !activeNoteId) {
+      goToHomeView();
+    }
   });
 });
 
@@ -2006,21 +2017,22 @@ function updateNavbarTitle(title) {
   const setNodeText = (element, text) => {
     if (!element) return;
     
-    let textNode = null;
-    for (let node of element.childNodes) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        textNode = node;
-        break;
+    let titleTextSpan = element.querySelector('.navbar-title-text');
+    if (!titleTextSpan) {
+      titleTextSpan = document.createElement('span');
+      titleTextSpan.className = 'navbar-title-text';
+      element.prepend(titleTextSpan);
+      
+      // Clean up any stray text nodes that might have been there
+      for (let node of [...element.childNodes]) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          element.removeChild(node);
+        }
       }
     }
     
-    if (textNode && textNode.textContent === text) return;
-
-    if (textNode) {
-      textNode.textContent = text;
-    } else {
-      element.prepend(document.createTextNode(text));
-    }
+    if (titleTextSpan.textContent === text) return;
+    titleTextSpan.textContent = text;
   };
 
   setNodeText(mainTitle, title);

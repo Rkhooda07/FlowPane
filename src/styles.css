@@ -336,6 +336,20 @@ body {
 .navbar-home-link {
   user-select: none;
   -webkit-user-select: none;
+  max-width: 190px;
+  /* Use display flex to keep title and timer on the same line */
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* Standard gap between text and timer */
+}
+
+.navbar-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  text-align: center;
 }
 
 /* Slide and fade title when guide is hovered to prevent overlap */
@@ -1284,6 +1298,10 @@ body {
   font-size: 14px;
   margin-bottom: 4px;
   line-height: 1.4;
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .task-item.completed .task-title {
@@ -1905,6 +1923,11 @@ body {
 #trash-lid {
   transform-origin: 2px 5px;
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.clear-history-btn.animating {
+  color: #ff5252;
+  transform: scale(1.1);
 }
 
 .clear-history-btn.animating #trash-lid {
