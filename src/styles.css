@@ -2082,3 +2082,133 @@ body {
   pointer-events: none;
   z-index: 100;
 }
+
+/* Resume Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 38px; /* Start below the navbar */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4); /* Slightly lighter background */
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.modal-overlay:not(.hidden) {
+  opacity: 1;
+  visibility: visible;
+}
+
+.resume-card {
+  width: min(260px, calc(100% - 32px)); /* Slightly narrower */
+  background: rgba(30, 30, 45, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 16px 20px; /* Reduced padding */
+  text-align: center;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+  transform: scale(0.9);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-overlay:not(.hidden) .resume-card {
+  transform: scale(1);
+}
+
+.resume-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.resume-card h3 {
+  margin: 0 0 2px 0;
+  font-size: 16px;
+  color: #fff;
+}
+
+.resume-card p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 20px;
+}
+
+.resume-time-box {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px 14px;
+  border-radius: 10px;
+  margin-bottom: 16px; /* Reduced from 24px */
+  display: inline-block;
+}
+
+#resume-time-val {
+  font-family: var(--font-family);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #ffcc66;
+  font-size: 20px;
+}
+
+.resume-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.resume-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.resume-btn.continue {
+  background: var(--accent-color);
+  color: #fff;
+}
+
+.resume-btn.restart {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.resume-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.resume-btn:active {
+  transform: scale(0.98);
+}
+
+.resume-cancel {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.resume-cancel:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.btn-icon {
+  font-size: 12px;
+}

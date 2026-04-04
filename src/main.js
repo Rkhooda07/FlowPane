@@ -1726,6 +1726,16 @@ function showCongrats(seconds) {
 let isCountdown = false;
 
 function enterFocusMode(task) {
+  // If there's saved progress, ask them what to do
+  if (task.elapsedSeconds && task.elapsedSeconds > 0) {
+    showResumeModal(task);
+    return;
+  }
+  
+  startFocusSession(task, false);
+}
+
+function startFocusSession(task, resume = false) {
   currentFocusTask = task;
   isInFocusMode = true;
 
@@ -1742,16 +1752,74 @@ function enterFocusMode(task) {
 
   // Reset timer
   stopTimer();
-  focusSeconds = 0;
-  isCountdown = false;
+  focusSeconds = resume ? task.elapsedSeconds : 0;
+  isCountdown = resume ? (task.isCountdownSession || false) : false;
   updateTimerDisplay();
+
+  // If starting over, clear the saved time
+  if (!resume) {
+    task.elapsedSeconds = 0;
+    saveTasks();
+  }
 
   // Auto-start
   toggleTimer();
 }
 
-function exitFocusMode() {
+let taskToResume = null;
+function showResumeModal(task) {
+  taskToResume = task;
+  const modal = document.getElementById('resume-modal');
+  const timerVal = document.getElementById('resume-time-val');
+  
+  const hrs = Math.floor(task.elapsedSeconds / 3600);
+  const mins = Math.floor((task.elapsedSeconds % 3600) / 60);
+  const secs = task.elapsedSeconds % 60;
+  timerVal.textContent = [hrs, mins, secs].map(v => String(v).padStart(2, '0')).join(':');
+  
+  modal.classList.remove('hidden');
+}
+
+function hideResumeModal() {
+  document.getElementById('resume-modal').classList.add('hidden');
+  taskToResume = null;
+}
+
+// Resume Modal Event Listeners
+document.getElementById('resume-continue-btn').addEventListener('click', () => {
+  if (taskToResume) {
+    const task = taskToResume;
+    hideResumeModal();
+    startFocusSession(task, true);
+  }
+});
+
+document.getElementById('resume-start-over-btn').addEventListener('click', () => {
+  if (taskToResume) {
+    const task = taskToResume;
+    hideResumeModal();
+    startFocusSession(task, false);
+  }
+});
+
+document.getElementById('resume-cancel-btn').addEventListener('click', hideResumeModal);
+
+
+async function exitFocusMode() {
   stopTimer();
+  
+  // Save progress if session was active AND task not completed
+  if (currentFocusTask) {
+    if (currentFocusTask.completed) {
+      currentFocusTask.elapsedSeconds = 0;
+      currentFocusTask.isCountdownSession = false;
+    } else if (focusSeconds > 0) {
+      currentFocusTask.elapsedSeconds = focusSeconds;
+      currentFocusTask.isCountdownSession = isCountdown;
+    }
+    await saveTasks();
+  }
+
   document.getElementById('focus-mode').classList.add('hidden');
   appElement.classList.remove('focus-mode-active');
   currentFocusTask = null;

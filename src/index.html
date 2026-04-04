@@ -168,6 +168,26 @@
       </div>
     </div>
 
+    <div id="resume-modal" class="modal-overlay hidden">
+      <div class="resume-card">
+        <div class="resume-icon">⏳</div>
+        <h3>Welcome Back!</h3>
+        <p>You have progress saved for this task.</p>
+        <div class="resume-time-box">
+          <span id="resume-time-val">00:00:00</span>
+        </div>
+        <div class="resume-actions">
+          <button id="resume-continue-btn" class="resume-btn continue">
+            <span class="btn-icon">▶</span> Continue Session
+          </button>
+          <button id="resume-start-over-btn" class="resume-btn restart">
+            <span class="btn-icon">↺</span> Start Over
+          </button>
+        </div>
+        <button id="resume-cancel-btn" class="resume-cancel">Maybe later</button>
+      </div>
+    </div>
+
     <div id="focus-mode" class="focus-mode hidden">
       <header class="title-bar focus-header-bar" data-tauri-drag-region>
         <div class="window-controls" aria-hidden="true">
