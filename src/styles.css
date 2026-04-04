@@ -2021,8 +2021,15 @@ body {
   border-radius: 14px;
   padding: 14px 18px;
   margin-bottom: 10px;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   animation: slideIn 0.3s ease-out;
+  cursor: pointer;
+}
+
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
 }
 
 @keyframes slideIn {

@@ -2021,10 +2021,39 @@ function renderHistory(completedTasks) {
         }, 500);
       });
 
+      li.addEventListener('click', () => {
+        showRestoreModal(task);
+      });
+
       historyList.appendChild(li);
     });
   }
 }
+
+let taskToRestore = null;
+function showRestoreModal(task) {
+  taskToRestore = task;
+  document.getElementById('restore-modal').classList.remove('hidden');
+}
+
+function hideRestoreModal() {
+  document.getElementById('restore-modal').classList.add('hidden');
+  taskToRestore = null;
+}
+
+// Restore Modal Event Listeners
+document.getElementById('restore-yes-btn').addEventListener('click', async () => {
+  if (taskToRestore) {
+    taskToRestore.completed = false;
+    taskToRestore.completedAt = null;
+    await saveTasks();
+    renderTasks();
+    hideRestoreModal();
+  }
+});
+
+document.getElementById('restore-no-btn').addEventListener('click', hideRestoreModal);
+
 
 function toggleHistory() {
   const historyWorkspace = document.getElementById('history-workspace');
