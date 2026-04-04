@@ -163,7 +163,7 @@ body {
 }
 
 #app.collapsed-y h1 {
-  font-size: 13px !important;
+  font-size: 14px !important; /* Unified with original size */
   transform: translate(-50%, -50%) !important;
   opacity: 1 !important;
   visibility: visible !important;
@@ -208,7 +208,7 @@ body {
 #app.collapsed-y .window-controls,
 #app.collapsed-y .action-controls {
   gap: 4px;
-  transform: scale(0.8);
+  transform: scale(1); /* Reset from 0.8 */
 }
 
 #app.collapsed-x .window-controls {
@@ -478,7 +478,7 @@ body {
 
 #app.collapsed-y .focus-header-bar .window-controls {
   display: flex !important;
-  transform: scale(0.8);
+  transform: scale(1); /* Reset from 0.8 */
 }
 
 #app.collapsed-x .focus-header-bar .window-controls {
