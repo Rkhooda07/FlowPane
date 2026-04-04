@@ -188,6 +188,22 @@
       </div>
     </div>
 
+    <div id="times-up-modal" class="modal-overlay hidden">
+      <div class="resume-card times-up-card">
+        <div class="resume-icon">🔔</div>
+        <h3>Time's Up!</h3>
+        <p>Your session has ended. Did you finish?</p>
+        <div class="resume-actions">
+          <button id="times-up-complete-btn" class="resume-btn continue">
+            <span class="btn-icon">✓</span> Finish Task
+          </button>
+          <button id="times-up-not-done-btn" class="resume-btn restart">
+            <span class="btn-icon">↺</span> Still Working
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="focus-mode" class="focus-mode hidden">
       <header class="title-bar focus-header-bar" data-tauri-drag-region>
         <div class="window-controls" aria-hidden="true">

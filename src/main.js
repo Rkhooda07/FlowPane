@@ -1847,10 +1847,10 @@ function toggleTimer() {
           updateTimerDisplay();
         } else {
           stopTimer();
-          // Optional: Add completion sound or notification here
           playIcon.classList.remove('hidden');
           pauseIcon.classList.add('hidden');
           isCountdown = false;
+          showTimesUpModal(); // Show completion options
         }
       } else {
         focusSeconds++;
@@ -1861,6 +1861,39 @@ function toggleTimer() {
     pauseIcon.classList.remove('hidden');
   }
 }
+
+let sessionOriginalDuration = 0;
+
+function showTimesUpModal() {
+  const modal = document.getElementById('times-up-modal');
+  modal.classList.remove('hidden');
+}
+
+function hideTimesUpModal() {
+  document.getElementById('times-up-modal').classList.add('hidden');
+}
+
+// Time's Up Modal Handlers
+document.getElementById('times-up-complete-btn').addEventListener('click', async () => {
+  if (currentFocusTask) {
+    currentFocusTask.completed = true;
+    currentFocusTask.completedAt = Date.now();
+    currentFocusTask.elapsedSeconds = 0;
+    
+    await saveTasks();
+    renderTasks();
+    
+    hideTimesUpModal();
+    // Show congrats with the duration they actually spent (the original timer)
+    showCongrats(sessionOriginalDuration || 0);
+  }
+});
+
+document.getElementById('times-up-not-done-btn').addEventListener('click', () => {
+  hideTimesUpModal();
+  // Optionally reset to 0 or leave at 0 so they can start a new timer/stopwatch
+  resetTimer();
+});
 
 function resetTimer() {
   stopTimer();
@@ -1915,6 +1948,7 @@ function startCountdown() {
   if (mins && mins > 0) {
     stopTimer();
     focusSeconds = mins * 60;
+    sessionOriginalDuration = focusSeconds;
     isCountdown = true;
     updateTimerDisplay();
     closeTimerModal();
