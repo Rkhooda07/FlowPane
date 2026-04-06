@@ -797,6 +797,8 @@ const deleteConfirmCancel = document.getElementById('delete-confirm-cancel');
 const deleteConfirmYes = document.getElementById('delete-confirm-yes');
 const filterBtns = document.querySelectorAll('.filter-btn');
 const filterPill = document.getElementById('filter-pill');
+const taskReminderBtn = document.getElementById('task-reminder-btn');
+const reminderDropdown = document.getElementById('reminder-dropdown');
 
 const NOTES_STORAGE_KEY = 'flowpane-notes-drafts';
 const DELETE_CONFIRM_PREF_KEY = 'flowpane-skip-delete-confirm';
@@ -808,6 +810,37 @@ let skipDeleteConfirm = false;
 function extractNoteId(tab) {
   const noteClass = [...tab.classList].find(c => /^note-\d+$/.test(c));
   return noteClass ? noteClass.split('-')[1] : null;
+}
+
+if (taskReminderBtn && reminderDropdown) {
+  taskReminderBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = reminderDropdown.classList.contains('hidden');
+    if (isHidden) {
+      reminderDropdown.classList.remove('hidden');
+      taskReminderBtn.classList.add('active');
+    } else {
+      reminderDropdown.classList.add('hidden');
+      taskReminderBtn.classList.remove('active');
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!reminderDropdown.classList.contains('hidden') && 
+        !reminderDropdown.contains(e.target) && 
+        e.target !== taskReminderBtn && 
+        !taskReminderBtn.contains(e.target)) {
+      reminderDropdown.classList.add('hidden');
+      taskReminderBtn.classList.remove('active');
+    }
+  });
+  
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !reminderDropdown.classList.contains('hidden')) {
+      reminderDropdown.classList.add('hidden');
+      taskReminderBtn.classList.remove('active');
+    }
+  });
 }
 
 function setNotesRevealOrigin(tab) {

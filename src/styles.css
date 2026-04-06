@@ -679,6 +679,8 @@ body {
   background: rgba(255, 255, 255, 0.04);
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 30;
 }
 
 .input-area.expanded {
@@ -695,7 +697,7 @@ body {
   width: 100%;
   background: var(--input-bg);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 100px 12px 12px;
+  padding: 12px 115px 12px 12px;
   border-radius: 12px;
   color: var(--text-color);
   font-size: 14px;
@@ -703,6 +705,154 @@ body {
   user-select: none;
   -webkit-user-select: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.task-reminder-btn {
+  position: absolute;
+  right: 85px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.task-reminder-btn:hover {
+  color: var(--text-color);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.task-reminder-btn.active {
+  color: var(--text-color);
+}
+
+.task-reminder-btn.active svg {
+  fill: currentColor;
+}
+
+.reminder-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 60px;
+  margin-top: 12px;
+  background: var(--bg-color);
+  backdrop-filter: blur(32px) saturate(200%) brightness(var(--glass-brightness, 1));
+  -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(var(--glass-brightness, 1));
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.1);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+              transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              visibility 0.3s;
+  pointer-events: auto;
+}
+
+.reminder-dropdown::before {
+  content: "";
+  position: absolute;
+  top: -6.5px;
+  right: 33px;
+  width: 13px;
+  height: 13px;
+  background: var(--bg-color);
+  backdrop-filter: blur(32px) saturate(200%) brightness(var(--glass-brightness, 1));
+  -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(var(--glass-brightness, 1));
+  border-left: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.2);
+  transform: rotate(45deg);
+  border-top-left-radius: 3.5px;
+  z-index: 2;
+}
+
+.reminder-dropdown::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 28px;
+  width: 25px;
+  height: 8px;
+  background: var(--bg-color);
+  backdrop-filter: blur(32px) saturate(200%) brightness(var(--glass-brightness, 1));
+  -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(var(--glass-brightness, 1));
+  z-index: 3;
+  border-radius: 4px 4px 0 0;
+  margin-top: -1px;
+}
+
+@media (prefers-color-scheme: light) {
+  .reminder-dropdown, .reminder-dropdown::before, .reminder-dropdown::after {
+    background: rgba(255, 255, 255, 0.85);
+  }
+  .reminder-dropdown {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+  }
+  .reminder-dropdown::before {
+    border-left: 1.5px solid rgba(0, 0, 0, 0.08);
+    border-top: 1.5px solid rgba(0, 0, 0, 0.08);
+  }
+}
+
+.reminder-dropdown.hidden {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-15px) scale(0.95);
+  pointer-events: none;
+  display: flex !important;
+}
+
+.reminder-dropdown-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 4px;
+}
+
+@media (prefers-color-scheme: light) {
+  .reminder-dropdown-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+}
+
+.reminder-option {
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reminder-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-color-scheme: light) {
+  .reminder-option:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
 }
 
 .task-notes-icons {
