@@ -13,6 +13,8 @@ let isPeeking = false;
 let peekTimeout = null;
 let peekMode = null;
 let isHistoryOpen = false;
+let hasUserModifiedDate = false;
+
 
 const appElement = document.getElementById('app');
 let isWindowFocused = false;
@@ -604,7 +606,13 @@ function renderTasks() {
   renderHistory(completedTasks);
 
   let renderedCount = 0;
-  activeTasks.sort((a, b) => new Date(a.due) - new Date(b.due));
+  activeTasks.sort((a, b) => {
+    if (a.due === null && b.due === null) return 0;
+    if (a.due === null) return 1;
+    if (b.due === null) return -1;
+    return new Date(a.due) - new Date(b.due);
+  });
+
 
   if (currentFilter === 'all' || currentFilter === 'tasks') {
     activeTasks.forEach((task) => {
@@ -613,25 +621,31 @@ function renderTasks() {
       const li = document.createElement('li');
       li.className = `task-item ${(task.urgent && !task.completed) ? 'urgent' : ''}`;
 
-    const dueDate = new Date(task.due);
-    const now = new Date();
-    const isOverdue = dueDate < now && !task.completed;
+      const hasDeadline = task.due !== null;
 
-    let dueText = '';
-    if (task.completed) {
-      dueText = 'Completed';
-    } else {
-      const diffMs = dueDate - now;
-      const diffMins = Math.floor(diffMs / (1000 * 60));
-      const diffHrs = Math.floor(diffMins / 60);
-      const diffDays = Math.floor(diffHrs / 24);
+      const dueDate = hasDeadline ? new Date(task.due) : null;
+      const now = new Date();
 
-      if (diffMs < 0) dueText = 'Overdue';
-      else if (diffDays > 0) dueText = `Due in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
-      else if (diffHrs > 0) dueText = `Due in ${diffHrs} hour${diffHrs > 1 ? 's' : ''}`;
-      else if (diffMins > 0) dueText = `Due in ${diffMins} min${diffMins > 1 ? 's' : ''}`;
-      else dueText = 'Due now';
-    }
+      let dueText = '';
+      if (task.completed) {
+        dueText = 'Completed';
+      } else if (!hasDeadline) {
+        dueText = '<span style="font-size: 1.4em; line-height: 1; margin-right: 2px;">∞</span> Plenty of time';
+
+
+      } else {
+        const diffMs = dueDate - now;
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        const diffHrs = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHrs / 24);
+
+        if (diffMs < 0) dueText = 'Overdue';
+        else if (diffDays > 0) dueText = `Due in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
+        else if (diffHrs > 0) dueText = `Due in ${diffHrs} hour${diffHrs > 1 ? 's' : ''}`;
+        else if (diffMins > 0) dueText = `Due in ${diffMins} min${diffMins > 1 ? 's' : ''}`;
+        else dueText = 'Due now';
+      }
+
 
     li.innerHTML = `
       <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} />
@@ -1212,7 +1226,9 @@ document.querySelectorAll('.quick-time-btn').forEach(btn => {
 
   btn.addEventListener('click', (e) => {
     e.preventDefault();
+    hasUserModifiedDate = true;
     if (btn.classList.contains('success-active')) return;
+
     
     const minutes = parseInt(btn.getAttribute('data-minutes'), 10);
     
@@ -1246,8 +1262,10 @@ taskInput.addEventListener('focus', () => {
   // Refresh the due input with current live time when user starts adding a task
   if (!taskInput.value.trim()) {
     dueInput.value = formatDateTimeHuman(new Date());
+    hasUserModifiedDate = false;
   }
 });
+
 
 dueInput.addEventListener('focus', () => {
   // Select first block on focus
@@ -1273,6 +1291,8 @@ taskInput.addEventListener('keypress', (e) => {
 dueInput.addEventListener('keydown', (e) => {
   // Navigation & special keys
   if (['ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Shift'].includes(e.key)) return;
+  hasUserModifiedDate = true;
+
 
   const cursor = dueInput.selectionStart;
   const val = dueInput.value;
@@ -1420,23 +1440,22 @@ function addTask() {
   if (!titleInput.value.trim()) return;
 
   let dueDate = parseMaskedDate(dueInput.value);
-  if (!dueDate) {
-    dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 1);
-    dueDate.setHours(12, 0, 0, 0);
-  }
+  const finalDue = (hasUserModifiedDate && dueDate) ? dueDate.toISOString() : null;
 
   const newTask = {
     title: titleInput.value.trim(),
-    due: dueDate.toISOString(),
+    due: finalDue,
     completed: false,
     urgent: false
   };
 
-  const diffHrs = (new Date(newTask.due) - new Date()) / (1000 * 60 * 60);
-  if (diffHrs < 0.25) newTask.urgent = true; // 15 minutes = 0.25 hours
+  if (finalDue) {
+    const diffHrs = (new Date(finalDue) - new Date()) / (1000 * 60 * 60);
+    if (diffHrs < 0.25) newTask.urgent = true; // 15 minutes = 0.25 hours
+  }
 
   tasks.push(newTask);
+
   saveTasks();
   renderTasks();
 
@@ -1444,6 +1463,8 @@ function addTask() {
 
   // Reset date input to next default
   dueInput.value = formatDateTimeHuman(getDefaultDueDate());
+  hasUserModifiedDate = false;
+
 }
 
 
