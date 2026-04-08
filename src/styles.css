@@ -323,7 +323,7 @@ body {
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
   min-height: 38px;
   position: relative;
-  z-index: 20; /* Ensure title bar is above content */
+  z-index: 100; /* Always on top */
 }
 
 .title-bar:hover {
@@ -1576,7 +1576,7 @@ body {
 .congrats-modal {
   position: absolute;
   inset: 0;
-  z-index: 200;
+  z-index: 400;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1778,7 +1778,7 @@ body {
   background: rgba(15, 10, 5, 0.96);
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
-  z-index: 50;
+  z-index: 150;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -2042,7 +2042,7 @@ body {
   right: 0;
   bottom: 0;
   background: var(--history-bg);
-  z-index: 15;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   padding: 58px 20px 20px 20px; /* 38px navbar + 20px padding */
@@ -2249,7 +2249,7 @@ body {
   bottom: 0;
   background: rgba(0, 0, 0, 0.4); /* Slightly lighter background */
   backdrop-filter: blur(8px);
-  z-index: 100;
+  z-index: 300;
   display: flex;
   align-items: center;
   justify-content: center;

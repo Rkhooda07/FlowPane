@@ -1741,6 +1741,8 @@ function startConfetti() {
 }
 
 function showCongrats(seconds) {
+  if (seconds <= 0) return;
+  
   const modal = document.getElementById('congrats-modal');
   const timerVal = document.getElementById('congrats-timer-val');
   const funText = document.getElementById('congrats-fun-text');
