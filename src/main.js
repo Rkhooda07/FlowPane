@@ -14,6 +14,8 @@ let peekTimeout = null;
 let peekMode = null;
 let isHistoryOpen = false;
 let hasUserModifiedDate = false;
+let selectedReminderMinutes = null;
+
 
 
 const appElement = document.getElementById('app');
@@ -846,8 +848,11 @@ if (taskReminderBtn && reminderDropdown) {
         !taskReminderBtn.contains(e.target)) {
       reminderDropdown.classList.add('hidden');
       taskReminderBtn.classList.remove('active');
+      const unitMenu = document.getElementById('reminder-unit-menu');
+      if (unitMenu) unitMenu.classList.add('hidden');
     }
   });
+
   
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !reminderDropdown.classList.contains('hidden')) {
@@ -855,7 +860,162 @@ if (taskReminderBtn && reminderDropdown) {
       taskReminderBtn.classList.remove('active');
     }
   });
+
+  // Handle reminder option clicks
+  reminderDropdown.querySelectorAll('.reminder-option:not(.custom-trigger)').forEach(option => {
+    option.addEventListener('click', () => {
+      const minutes = parseInt(option.dataset.value);
+      selectedReminderMinutes = minutes;
+      
+      // Update visual state
+      reminderDropdown.querySelectorAll('.reminder-option').forEach(btn => btn.classList.remove('active'));
+      option.classList.add('active');
+      
+      // Close dropdown
+      setTimeout(() => {
+        reminderDropdown.classList.add('hidden');
+        taskReminderBtn.classList.remove('active');
+        taskReminderBtn.classList.add('has-reminder');
+      }, 300);
+    });
+  });
+
+  // Handle None button
+  const noneBtn = document.getElementById('reminder-none-btn');
+  if (noneBtn) {
+    noneBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectedReminderMinutes = null;
+      taskReminderBtn.classList.remove('has-reminder');
+      reminderDropdown.querySelectorAll('.reminder-option').forEach(btn => btn.classList.remove('active'));
+      reminderDropdown.classList.add('hidden');
+      taskReminderBtn.classList.remove('active');
+    });
+  }
+
+  // Handle Custom trigger
+  const customTrigger = document.getElementById('reminder-custom-trigger');
+  const customInputWrap = document.getElementById('reminder-custom-input-wrap');
+  if (customTrigger && customInputWrap) {
+    customTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      customTrigger.classList.add('hidden');
+      customInputWrap.classList.remove('hidden');
+      const input = document.getElementById('reminder-custom-input');
+      if (input) input.focus();
+    });
+  }
+
+  // Handle Custom Set
+  const customSetBtn = document.getElementById('reminder-custom-set');
+  if (customSetBtn) {
+    customSetBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const input = document.getElementById('reminder-custom-input');
+      const val = parseInt(input.value);
+      const unit = document.getElementById('reminder-unit-toggle').dataset.unit;
+      
+      if (val && val > 0) {
+        let minutes = val;
+        if (unit === 'h') minutes *= 60;
+        else if (unit === 'd') minutes *= 1440;
+        
+        selectedReminderMinutes = minutes;
+
+        taskReminderBtn.classList.add('has-reminder');
+        
+        setTimeout(() => {
+          reminderDropdown.classList.add('hidden');
+          taskReminderBtn.classList.remove('active');
+          // Reset UI for next time
+          customTrigger.classList.remove('hidden');
+          customInputWrap.classList.add('hidden');
+          input.value = '';
+          const unitToggle = document.getElementById('reminder-unit-toggle');
+          unitToggle.dataset.unit = 'm';
+          unitToggle.textContent = 'm';
+        }, 300);
+      }
+    });
+  }
+
+  // Handle Units
+  const unitToggle = document.getElementById('reminder-unit-toggle');
+  const unitMenu = document.getElementById('reminder-unit-menu');
+  if (unitToggle && unitMenu) {
+    unitToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      unitMenu.classList.toggle('hidden');
+    });
+
+    unitMenu.querySelectorAll('.unit-opt').forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const unit = opt.dataset.unit;
+        unitToggle.dataset.unit = unit;
+        unitToggle.textContent = unit;
+        unitMenu.classList.add('hidden');
+      });
+    });
+  }
 }
+
+function showReminderPopup(task, minutesBefore) {
+  const popup = document.getElementById('reminder-popup');
+  const title = document.getElementById('reminder-task-title');
+  const timeText = document.getElementById('reminder-task-time');
+  const closeBtn = document.getElementById('reminder-close-btn');
+
+  if (!popup || !title || !timeText) return;
+
+  title.textContent = task.title;
+  const timeDesc = minutesBefore >= 60 
+    ? (minutesBefore >= 1440 ? '1 day before' : '1 hour before') 
+    : `${minutesBefore} minutes before`;
+  timeText.textContent = `Deadline approaching: ${timeDesc}`;
+
+  popup.classList.remove('hidden');
+  popup.setAttribute('aria-hidden', 'false');
+
+  // Multi-platform sound/vibration could be added here if needed
+
+  const closePopup = () => {
+    popup.classList.add('hidden');
+    popup.setAttribute('aria-hidden', 'true');
+    closeBtn.removeEventListener('click', closePopup);
+  };
+
+  closeBtn.addEventListener('click', closePopup);
+  
+  // Auto-close after 10 seconds if not clicked
+  setTimeout(closePopup, 10000);
+}
+
+function checkReminders() {
+  const now = Date.now();
+  let changed = false;
+
+  tasks.forEach(task => {
+    if (task.completed || !task.due || task.reminded || !task.reminderMinutes) return;
+
+    const dueDate = new Date(task.due).getTime();
+    const reminderTime = dueDate - (task.reminderMinutes * 60 * 1000);
+
+    if (now >= reminderTime) {
+      showReminderPopup(task, task.reminderMinutes);
+      task.reminded = true;
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    saveTasks();
+  }
+}
+
+// Check reminders every 30 seconds
+setInterval(checkReminders, 30000);
+
 
 function setNotesRevealOrigin(tab) {
   if (!tab || !notesWorkspace) return;
@@ -1446,7 +1606,9 @@ function addTask() {
     title: titleInput.value.trim(),
     due: finalDue,
     completed: false,
-    urgent: false
+    urgent: false,
+    reminderMinutes: selectedReminderMinutes,
+    reminded: false
   };
 
   if (finalDue) {
@@ -1455,17 +1617,31 @@ function addTask() {
   }
 
   tasks.push(newTask);
-
   saveTasks();
   renderTasks();
 
   titleInput.value = '';
 
-  // Reset date input to next default
+  // Reset date input and reminder state
   dueInput.value = formatDateTimeHuman(getDefaultDueDate());
   hasUserModifiedDate = false;
+  selectedReminderMinutes = null;
+  taskReminderBtn.classList.remove('has-reminder');
+  reminderDropdown.querySelectorAll('.reminder-option').forEach(btn => btn.classList.remove('active'));
 
+  // Reset custom area if open
+  const customTrigger = document.getElementById('reminder-custom-trigger');
+  const customInputWrap = document.getElementById('reminder-custom-input-wrap');
+  if (customTrigger) customTrigger.classList.remove('hidden');
+  if (customInputWrap) customInputWrap.classList.add('hidden');
+  const unitToggle = document.getElementById('reminder-unit-toggle');
+  if (unitToggle) {
+    unitToggle.dataset.unit = 'm';
+    unitToggle.textContent = 'm';
+  }
 }
+
+
 
 
 // Resize logic

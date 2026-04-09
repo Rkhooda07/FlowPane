@@ -48,11 +48,33 @@
           </svg>
         </button>
         <div id="reminder-dropdown" class="reminder-dropdown hidden">
-          <div class="reminder-dropdown-header">Remind me -</div>
-          <button class="reminder-option" type="button">30 mins before deadline</button>
-          <button class="reminder-option" type="button">1 hr before deadline</button>
-          <button class="reminder-option" type="button">1 day before deadline</button>
+          <div class="reminder-dropdown-header">
+            <span>Remind me -</span>
+            <button id="reminder-none-btn" class="reminder-action-btn none" type="button">Clear</button>
+          </div>
+
+          <button class="reminder-option" type="button" data-value="30">30 mins before deadline</button>
+          <button class="reminder-option" type="button" data-value="60">1 hr before deadline</button>
+          <button class="reminder-option" type="button" data-value="1440">1 day before deadline</button>
+          <div class="reminder-custom-area">
+            <button class="reminder-option custom-trigger" id="reminder-custom-trigger" type="button">Custom...</button>
+            <div id="reminder-custom-input-wrap" class="reminder-custom-input-wrap hidden">
+              <input type="number" id="reminder-custom-input" placeholder="Value" min="1" />
+              <div class="unit-selector-shell">
+                <button id="reminder-unit-toggle" class="unit-toggle-btn" type="button" data-unit="m">m</button>
+                <div id="reminder-unit-menu" class="unit-menu hidden">
+                  <button type="button" class="unit-opt" data-unit="m">min</button>
+                  <button type="button" class="unit-opt" data-unit="h">hrs</button>
+                  <button type="button" class="unit-opt" data-unit="d">days</button>
+                </div>
+              </div>
+              <button id="reminder-custom-set" type="button">Set</button>
+            </div>
+
+          </div>
         </div>
+
+
         <div class="task-notes-icons" aria-hidden="true">
           <span class="task-note-tab note-1"></span>
           <span class="task-note-tab note-2"></span>
@@ -231,6 +253,20 @@
         </div>
       </div>
     </div>
+
+    <!-- Reminder Notification Popup -->
+    <div id="reminder-popup" class="reminder-popup hidden" aria-hidden="true">
+      <div class="reminder-popup-card">
+        <div class="reminder-popup-icon">🔔</div>
+        <div class="reminder-popup-info">
+          <div class="reminder-popup-label">Task Reminder</div>
+          <h3 id="reminder-task-title">Task Name</h3>
+          <p id="reminder-task-time">Due in 30 minutes</p>
+        </div>
+        <button id="reminder-close-btn" class="reminder-popup-close">Got it</button>
+      </div>
+    </div>
+
 
     <div id="focus-mode" class="focus-mode hidden">
       <header class="title-bar focus-header-bar" data-tauri-drag-region>
