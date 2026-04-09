@@ -61,13 +61,27 @@
             <div id="reminder-custom-input-wrap" class="reminder-custom-input-wrap hidden">
               <input type="number" id="reminder-custom-input" placeholder="Value" min="1" />
               <div class="unit-selector-shell">
-                <button id="reminder-unit-toggle" class="unit-toggle-btn" type="button" data-unit="m">m</button>
+                <button id="reminder-unit-toggle" class="unit-toggle-btn" type="button" data-unit="m">
+                  <span class="unit-toggle-text">min</span>
+                  <span class="unit-toggle-icon">
+                    <svg width="8" height="12" viewBox="0 0 8 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1 4L4 1L7 4M1 8L4 11L7 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                </button>
                 <div id="reminder-unit-menu" class="unit-menu hidden">
-                  <button type="button" class="unit-opt" data-unit="m">min</button>
-                  <button type="button" class="unit-opt" data-unit="h">hrs</button>
-                  <button type="button" class="unit-opt" data-unit="d">days</button>
+                  <button type="button" class="unit-opt active" data-unit="m">
+                    <span class="check-icon">✓</span> Minutes
+                  </button>
+                  <button type="button" class="unit-opt" data-unit="h">
+                    <span class="check-icon">✓</span> Hours
+                  </button>
+                  <button type="button" class="unit-opt" data-unit="d">
+                    <span class="check-icon">✓</span> Days
+                  </button>
                 </div>
               </div>
+
               <button id="reminder-custom-set" type="button">Set</button>
             </div>
 

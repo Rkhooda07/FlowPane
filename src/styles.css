@@ -909,43 +909,67 @@ body {
 
 
 .unit-toggle-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--text-color);
   font-size: 11px;
   font-weight: 600;
-  padding: 4px 8px;
-
+  padding: 2px 4px 2px 10px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
-  min-width: 34px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 65px;
+  height: 28px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 6px;
 }
 
 .unit-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.unit-toggle-icon {
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+}
+
+
+.unit-toggle-text {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.9;
 }
 
 .unit-menu {
   position: absolute;
-  bottom: calc(100% + 8px);
-  right: -10px;
-  background: rgba(32, 32, 34, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 4px;
+  bottom: calc(100% + 12px);
+  right: 0;
+  background: rgba(28, 28, 30, 0.92);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 70px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  min-width: 120px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   z-index: 100;
-  animation: scaleUpFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: scaleUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .unit-menu.hidden {
@@ -955,37 +979,60 @@ body {
 .unit-opt {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
-  font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 6px;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 10px;
   text-align: left;
   cursor: pointer;
   width: 100%;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.unit-opt .check-icon {
+  opacity: 0;
+  font-size: 12px;
+  transition: opacity 0.2s;
+}
+
+.unit-opt.active .check-icon {
+  opacity: 1;
 }
 
 .unit-opt:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: var(--text-color);
+}
+
+.unit-opt:active {
+  transform: scale(0.97);
 }
 
 @keyframes scaleUpFade {
-  from { opacity: 0; transform: scale(0.9) translateY(10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from { opacity: 0; transform: scale(0.9) translateY(10px); filter: blur(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
 }
 
 #reminder-custom-set {
   background: var(--accent-color);
   color: white;
   border: none;
-  padding: 6px 12px;
+  padding: 0 12px;
   border-radius: 8px;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
 
 
 

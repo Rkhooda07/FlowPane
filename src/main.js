@@ -932,8 +932,18 @@ if (taskReminderBtn && reminderDropdown) {
           customInputWrap.classList.add('hidden');
           input.value = '';
           const unitToggle = document.getElementById('reminder-unit-toggle');
-          unitToggle.dataset.unit = 'm';
-          unitToggle.textContent = 'm';
+          if (unitToggle) {
+            unitToggle.dataset.unit = 'm';
+            const textSpan = unitToggle.querySelector('.unit-toggle-text');
+            if (textSpan) textSpan.textContent = 'min';
+          }
+          const unitMenu = document.getElementById('reminder-unit-menu');
+          if (unitMenu) {
+            unitMenu.querySelectorAll('.unit-opt').forEach(btn => btn.classList.remove('active'));
+            const defaultOpt = unitMenu.querySelector('[data-unit="m"]');
+            if (defaultOpt) defaultOpt.classList.add('active');
+          }
+
         }, 300);
       }
     });
@@ -952,13 +962,23 @@ if (taskReminderBtn && reminderDropdown) {
       opt.addEventListener('click', (e) => {
         e.stopPropagation();
         const unit = opt.dataset.unit;
+        
+        // Update selection state
         unitToggle.dataset.unit = unit;
-        unitToggle.textContent = unit;
+        const textSpan = unitToggle.querySelector('.unit-toggle-text');
+        const unitLabel = unit === 'm' ? 'min' : (unit === 'h' ? 'hrs' : 'days');
+        if (textSpan) textSpan.textContent = unitLabel;
+        
+        // Update checkmarks
+        unitMenu.querySelectorAll('.unit-opt').forEach(btn => btn.classList.remove('active'));
+        opt.classList.add('active');
+        
         unitMenu.classList.add('hidden');
       });
     });
   }
 }
+
 
 function showReminderPopup(task, minutesBefore) {
   const popup = document.getElementById('reminder-popup');
@@ -1637,9 +1657,17 @@ function addTask() {
   const unitToggle = document.getElementById('reminder-unit-toggle');
   if (unitToggle) {
     unitToggle.dataset.unit = 'm';
-    unitToggle.textContent = 'm';
+    const textSpan = unitToggle.querySelector('.unit-toggle-text');
+    if (textSpan) textSpan.textContent = 'min';
+  }
+  const unitMenu = document.getElementById('reminder-unit-menu');
+  if (unitMenu) {
+    unitMenu.querySelectorAll('.unit-opt').forEach(btn => btn.classList.remove('active'));
+    const defaultOpt = unitMenu.querySelector('[data-unit="m"]');
+    if (defaultOpt) defaultOpt.classList.add('active');
   }
 }
+
 
 
 
