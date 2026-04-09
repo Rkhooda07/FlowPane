@@ -729,6 +729,60 @@ body {
   transform: translateY(-50%) scale(1.1);
 }
 
+.task-reminder-btn.shake {
+  animation: bellShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+  color: #FF9500 !important;
+  opacity: 1 !important;
+}
+
+.reminder-warning {
+  position: absolute;
+  left: 20px;
+  top: 100%;
+  margin-top: 10px;
+  background: rgba(255, 165, 0, 0.6); /* Lighter orange */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top center;
+}
+
+.reminder-warning::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid rgba(255, 165, 0, 0.6);
+}
+
+.reminder-warning.hidden {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.8);
+  visibility: hidden;
+}
+
+
+@keyframes bellShake {
+  10%, 90% { transform: translateY(-50%) translateX(-1px) rotate(-3deg); }
+  20%, 80% { transform: translateY(-50%) translateX(2px) rotate(6deg); }
+  30%, 50%, 70% { transform: translateY(-50%) translateX(-3px) rotate(-9deg); }
+  40%, 60% { transform: translateY(-50%) translateX(3px) rotate(9deg); }
+}
+
+
+
 .task-reminder-btn.active svg,
 .task-reminder-btn.has-reminder svg {
   fill: currentColor;
@@ -1265,7 +1319,15 @@ body {
   display: flex;
   align-items: flex-end;
   gap: 6px;
+  transition: all 0.3s ease;
 }
+
+.due-container.warning #due-input {
+  border-color: rgba(255, 149, 0, 0.5) !important;
+  background: rgba(255, 149, 0, 0.1) !important;
+  box-shadow: 0 0 10px rgba(255, 149, 0, 0.1);
+}
+
 
 #due-input {
   background: rgba(255, 255, 255, 0.08);

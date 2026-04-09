@@ -42,6 +42,8 @@
       <div class="task-input-shell">
         <input type="text" id="task-input" placeholder="What's next?" autocomplete="off" autocapitalize="sentences" />
         <button id="task-reminder-btn" class="task-reminder-btn" title="Add reminder" aria-label="Add reminder" type="button">
+
+
           <svg id="reminder-bell-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
@@ -96,8 +98,10 @@
           <span class="task-note-tab note-4"></span>
         </div>
       </div>
-      <div class="due-container">
+      <div class="due-container" id="due-container">
         <input type="text" id="due-input" placeholder="Date & Time (e.g. 01/30 12:00 PM)" />
+        <span id="reminder-warning" class="reminder-warning hidden">Set a deadline first</span>
+
         <div class="quick-time-presets">
           <button type="button" class="quick-time-btn" data-minutes="15">
             <span class="btn-text">+15m</span>

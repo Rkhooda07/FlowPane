@@ -16,6 +16,20 @@ let isHistoryOpen = false;
 let hasUserModifiedDate = false;
 let selectedReminderMinutes = null;
 
+function updateReminderBtnState() {
+  if (!taskReminderBtn) return;
+  if (hasUserModifiedDate) {
+    taskReminderBtn.title = "Add reminder";
+    taskReminderBtn.style.opacity = "1";
+    taskReminderBtn.style.cursor = "pointer";
+  } else {
+    taskReminderBtn.title = "Set a deadline first";
+    taskReminderBtn.style.opacity = "0.5";
+    taskReminderBtn.style.cursor = "default";
+  }
+}
+
+
 
 
 const appElement = document.getElementById('app');
@@ -831,6 +845,30 @@ function extractNoteId(tab) {
 if (taskReminderBtn && reminderDropdown) {
   taskReminderBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+
+    // Restriction: Cannot add reminder without a deadline
+    if (!hasUserModifiedDate) {
+      inputArea.classList.add('expanded'); // Ensure deadline area is visible
+      taskReminderBtn.classList.add('shake');
+      const warning = document.getElementById('reminder-warning');
+      const dueContainer = document.getElementById('due-container');
+
+      
+      if (warning) {
+        warning.classList.remove('hidden');
+        if (dueContainer) dueContainer.classList.add('warning');
+        
+        setTimeout(() => {
+          warning.classList.add('hidden');
+          if (dueContainer) dueContainer.classList.remove('warning');
+        }, 2000);
+      }
+      setTimeout(() => taskReminderBtn.classList.remove('shake'), 400);
+      return;
+    }
+
+
+
     const isHidden = reminderDropdown.classList.contains('hidden');
     if (isHidden) {
       reminderDropdown.classList.remove('hidden');
@@ -840,6 +878,7 @@ if (taskReminderBtn && reminderDropdown) {
       taskReminderBtn.classList.remove('active');
     }
   });
+
 
   document.addEventListener('click', (e) => {
     if (!reminderDropdown.classList.contains('hidden') && 
@@ -1407,6 +1446,8 @@ document.querySelectorAll('.quick-time-btn').forEach(btn => {
   btn.addEventListener('click', (e) => {
     e.preventDefault();
     hasUserModifiedDate = true;
+    updateReminderBtnState();
+
     if (btn.classList.contains('success-active')) return;
 
     
@@ -1443,6 +1484,8 @@ taskInput.addEventListener('focus', () => {
   if (!taskInput.value.trim()) {
     dueInput.value = formatDateTimeHuman(new Date());
     hasUserModifiedDate = false;
+    updateReminderBtnState();
+
   }
 });
 
@@ -1472,6 +1515,8 @@ dueInput.addEventListener('keydown', (e) => {
   // Navigation & special keys
   if (['ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Shift'].includes(e.key)) return;
   hasUserModifiedDate = true;
+  updateReminderBtnState();
+
 
 
   const cursor = dueInput.selectionStart;
@@ -1645,7 +1690,9 @@ function addTask() {
   // Reset date input and reminder state
   dueInput.value = formatDateTimeHuman(getDefaultDueDate());
   hasUserModifiedDate = false;
+  updateReminderBtnState();
   selectedReminderMinutes = null;
+
   taskReminderBtn.classList.remove('has-reminder');
   reminderDropdown.querySelectorAll('.reminder-option').forEach(btn => btn.classList.remove('active'));
 
