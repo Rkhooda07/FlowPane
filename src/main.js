@@ -15,6 +15,7 @@ let peekMode = null;
 let isHistoryOpen = false;
 let hasUserModifiedDate = false;
 let selectedReminderMinutes = null;
+let dueInputFocusFromPointer = false;
 
 function updateReminderBtnState() {
   if (!taskReminderBtn) return;
@@ -1481,18 +1482,12 @@ document.querySelectorAll('.quick-time-btn').forEach(btn => {
 taskInput.addEventListener('focus', () => {
   inputArea.classList.add('expanded');
   // Refresh the due input with current live time when user starts adding a task
-  if (!taskInput.value.trim()) {
+  if (!taskInput.value.trim() && !hasUserModifiedDate) {
     dueInput.value = formatDateTimeHuman(new Date());
     hasUserModifiedDate = false;
     updateReminderBtnState();
 
   }
-});
-
-
-dueInput.addEventListener('focus', () => {
-  // Select first block on focus
-  setTimeout(() => dueInput.setSelectionRange(0, 2), 10);
 });
 
 const DUE_BLOCKS = [
@@ -1505,6 +1500,17 @@ const DUE_BLOCKS = [
 ];
 
 let activeDueBlockEdit = null;
+
+function setDueSelection(block) {
+  if (!block) return;
+  dueInput.setSelectionRange(block.start, block.end);
+}
+
+function getDueBlockFromCursor(cursor) {
+  return DUE_BLOCKS.find(({ start, end }) => cursor >= start && cursor <= end)
+    || DUE_BLOCKS.find(({ start }) => cursor < start)
+    || DUE_BLOCKS[DUE_BLOCKS.length - 1];
+}
 
 inputArea.addEventListener('focusout', (e) => {
   setTimeout(() => {
@@ -1608,34 +1614,31 @@ dueInput.addEventListener('keydown', (e) => {
 });
 
 dueInput.addEventListener('blur', () => {
+  dueInputFocusFromPointer = false;
   commitActiveDueBlockEdit();
   dueInput.value = normalizeDueInputValue(dueInput.value, { enforceFuture: true });
 });
 
-// Simple click selection logic remains
-dueInput.addEventListener('click', () => {
+dueInput.addEventListener('pointerdown', () => {
+  dueInputFocusFromPointer = true;
   commitActiveDueBlockEdit();
-  const cursor = dueInput.selectionStart;
-  const blocks = [[0, 2], [3, 5], [6, 10], [12, 14], [15, 17], [18, 20]];
-  for (const [start, end] of blocks) {
-    if (cursor >= start && cursor <= end) {
-      dueInput.setSelectionRange(start, end);
-      break;
-    }
-  }
 });
 
-// Auto-focus the next block on click
-dueInput.addEventListener('click', () => {
-  commitActiveDueBlockEdit();
-  const cursor = dueInput.selectionStart;
-  const blocks = [[0, 2], [3, 5], [6, 10], [12, 14], [15, 17]];
-  for (const [start, end] of blocks) {
-    if (cursor >= start && cursor <= end) {
-      dueInput.setSelectionRange(start, end);
-      break;
-    }
+dueInput.addEventListener('focus', () => {
+  if (dueInputFocusFromPointer) {
+    dueInputFocusFromPointer = false;
+    return;
   }
+
+  requestAnimationFrame(() => {
+    setDueSelection(getDueBlockFromCursor(dueInput.selectionStart ?? 0));
+  });
+});
+
+dueInput.addEventListener('click', () => {
+  dueInputFocusFromPointer = false;
+  commitActiveDueBlockEdit();
+  setDueSelection(getDueBlockFromCursor(dueInput.selectionStart ?? 0));
 });
 
 function parseMaskedDate(str) {
@@ -1673,7 +1676,7 @@ function formatDueBlockForEditing(block, rawValue) {
 function selectNextDueBlock(block) {
   const nextBlock = DUE_BLOCKS.find(({ start, type }) => start > block.start && type !== 'period');
   if (!nextBlock) return;
-  dueInput.setSelectionRange(nextBlock.start, nextBlock.end);
+  setDueSelection(nextBlock);
 }
 
 function normalizeDueBlockValue(type, rawValue, fullValue) {
