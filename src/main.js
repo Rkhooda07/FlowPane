@@ -1495,6 +1495,17 @@ dueInput.addEventListener('focus', () => {
   setTimeout(() => dueInput.setSelectionRange(0, 2), 10);
 });
 
+const DUE_BLOCKS = [
+  { start: 0, end: 2, type: 'day', length: 2 },
+  { start: 3, end: 5, type: 'month', length: 2 },
+  { start: 6, end: 10, type: 'year', length: 4 },
+  { start: 12, end: 14, type: 'hour', length: 2 },
+  { start: 15, end: 17, type: 'minute', length: 2 },
+  { start: 18, end: 20, type: 'period', length: 2 }
+];
+
+let activeDueBlockEdit = null;
+
 inputArea.addEventListener('focusout', (e) => {
   setTimeout(() => {
     if (!inputArea.contains(document.activeElement) && !taskInput.value.trim()) {
@@ -1512,21 +1523,36 @@ taskInput.addEventListener('keypress', (e) => {
 });
 
 dueInput.addEventListener('keydown', (e) => {
-  // Navigation & special keys
-  if (['ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Shift'].includes(e.key)) return;
+  if (e.key === 'Shift') return;
   hasUserModifiedDate = true;
   updateReminderBtnState();
 
-
-
   const cursor = dueInput.selectionStart;
+  const selectionEnd = dueInput.selectionEnd;
   const val = dueInput.value;
+  const block = getDueBlockFromSelection(cursor, selectionEnd);
+
+  if (['ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key)) {
+    commitActiveDueBlockEdit();
+    return;
+  }
 
   // Handle Backspace
   if (e.key === 'Backspace') {
     e.preventDefault();
+
+    if (activeDueBlockEdit && block && activeDueBlockEdit.block.type === block.type) {
+      activeDueBlockEdit.raw = activeDueBlockEdit.raw.slice(0, -1);
+      dueInput.value = setDueBlockValue(
+        dueInput.value,
+        block,
+        formatDueBlockForEditing(block, activeDueBlockEdit.raw)
+      );
+      dueInput.setSelectionRange(block.start, block.end);
+      return;
+    }
+
     let pos = cursor - 1;
-    // Skip separators backwards
     while (pos >= 0 && /[^\dAPM]/.test(val[pos])) {
       pos--;
     }
@@ -1542,60 +1568,35 @@ dueInput.addEventListener('keydown', (e) => {
   // Handle Numbers
   if (/\d/.test(e.key)) {
     e.preventDefault();
-    let pos = cursor;
-    // If it's on a separator, jump to next digit
-    while (pos < 17 && /[^\d]/.test(val[pos])) {
-      pos++;
+
+    if (!block || block.type === 'period') return;
+
+    if (!activeDueBlockEdit || activeDueBlockEdit.block.type !== block.type) {
+      commitActiveDueBlockEdit();
+      activeDueBlockEdit = { block, raw: '' };
     }
-    if (pos < 17) {
-      let newVal = val.substring(0, pos) + e.key + val.substring(pos + 1);
 
-      // Validation Logic
-      const d = parseInt(newVal.substring(0, 2));
-      const m = parseInt(newVal.substring(3, 5));
-      const y = parseInt(newVal.substring(6, 10));
-      const currentYear = new Date().getFullYear();
+    activeDueBlockEdit.raw = (activeDueBlockEdit.raw + e.key).slice(0, block.length);
+    dueInput.value = setDueBlockValue(
+      dueInput.value,
+      block,
+      formatDueBlockForEditing(block, activeDueBlockEdit.raw)
+    );
 
-      // Clamp Day
-      if (d > 31) newVal = '31' + newVal.substring(2);
-      if (d === 0) newVal = '01' + newVal.substring(2);
-
-      // Clamp Month
-      if (m > 12) newVal = newVal.substring(0, 3) + '12' + newVal.substring(5);
-      if (m === 0) newVal = newVal.substring(0, 3) + '01' + newVal.substring(5);
-
-      // Clamp Year (if fully formed year < currentYear)
-      if (pos >= 6 && pos <= 9) {
-        const newY = parseInt(newVal.substring(6, 10));
-        if (newY < currentYear) {
-          newVal = newVal.substring(0, 6) + currentYear + newVal.substring(10);
-        }
-      }
-
-      // Clamp Hours (12-hour format)
-      const h = parseInt(newVal.substring(12, 14));
-      if (h > 12) newVal = newVal.substring(0, 12) + '12' + newVal.substring(14);
-      if (h === 0) newVal = newVal.substring(0, 12) + '01' + newVal.substring(14); // Hours 00 is invalid in 12h
-
-      // Clamp Minutes
-      const min = parseInt(newVal.substring(15, 17));
-      if (min > 59) newVal = newVal.substring(0, 15) + '59' + newVal.substring(17);
-
-      dueInput.value = newVal;
-
-      let nextPos = pos + 1;
-      // Skip separators for next cursor position
-      while (nextPos < 17 && /[^\d]/.test(dueInput.value[nextPos])) {
-        nextPos++;
-      }
-      dueInput.setSelectionRange(nextPos, nextPos);
+    if (activeDueBlockEdit.raw.length >= block.length) {
+      commitActiveDueBlockEdit();
+      selectNextDueBlock(block);
+    } else {
+      dueInput.setSelectionRange(block.start, block.end);
     }
+
     return;
   }
 
   // Handle AM/PM
   if (/[apAP]/.test(e.key)) {
     e.preventDefault();
+    commitActiveDueBlockEdit();
     const period = e.key.toUpperCase() === 'A' ? 'AM' : 'PM';
     dueInput.value = val.substring(0, 18) + period;
     dueInput.setSelectionRange(18, 20);
@@ -1606,8 +1607,14 @@ dueInput.addEventListener('keydown', (e) => {
   e.preventDefault();
 });
 
+dueInput.addEventListener('blur', () => {
+  commitActiveDueBlockEdit();
+  dueInput.value = normalizeDueInputValue(dueInput.value, { enforceFuture: true });
+});
+
 // Simple click selection logic remains
 dueInput.addEventListener('click', () => {
+  commitActiveDueBlockEdit();
   const cursor = dueInput.selectionStart;
   const blocks = [[0, 2], [3, 5], [6, 10], [12, 14], [15, 17], [18, 20]];
   for (const [start, end] of blocks) {
@@ -1620,6 +1627,7 @@ dueInput.addEventListener('click', () => {
 
 // Auto-focus the next block on click
 dueInput.addEventListener('click', () => {
+  commitActiveDueBlockEdit();
   const cursor = dueInput.selectionStart;
   const blocks = [[0, 2], [3, 5], [6, 10], [12, 14], [15, 17]];
   for (const [start, end] of blocks) {
@@ -1645,6 +1653,117 @@ function parseMaskedDate(str) {
   return isNaN(date.getTime()) ? null : date;
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getDueBlockFromSelection(cursor, selectionEnd = cursor) {
+  return DUE_BLOCKS.find(({ start, end }) => cursor >= start && selectionEnd <= end) || null;
+}
+
+function setDueBlockValue(value, block, nextBlockValue) {
+  return value.substring(0, block.start) + nextBlockValue + value.substring(block.end);
+}
+
+function formatDueBlockForEditing(block, rawValue) {
+  const padded = rawValue.padStart(block.length, '0');
+  return padded.slice(-block.length);
+}
+
+function selectNextDueBlock(block) {
+  const nextBlock = DUE_BLOCKS.find(({ start, type }) => start > block.start && type !== 'period');
+  if (!nextBlock) return;
+  dueInput.setSelectionRange(nextBlock.start, nextBlock.end);
+}
+
+function normalizeDueBlockValue(type, rawValue, fullValue) {
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentDay = now.getDate();
+  const currentYear = now.getFullYear();
+  const currentHour = now.getHours() % 12 || 12;
+  const currentMinute = now.getMinutes();
+  const parsedRaw = parseInt(rawValue, 10);
+
+  if (type === 'day') {
+    const fullYear = parseInt(fullValue.substring(6, 10), 10);
+    const fullMonth = parseInt(fullValue.substring(3, 5), 10);
+    const year = Math.max(Number.isNaN(fullYear) ? currentYear : fullYear, currentYear);
+    const month = clamp(Number.isNaN(fullMonth) ? currentMonth : fullMonth, 1, 12);
+    const maxDay = new Date(year, month, 0).getDate();
+    const dayValue = Number.isNaN(parsedRaw) ? currentDay : parsedRaw;
+    return String(clamp(dayValue, 1, maxDay)).padStart(2, '0');
+  }
+
+  if (type === 'month') {
+    const monthValue = Number.isNaN(parsedRaw) ? currentMonth : parsedRaw;
+    return String(clamp(monthValue, 1, 12)).padStart(2, '0');
+  }
+
+  if (type === 'year') {
+    const yearValue = Number.isNaN(parsedRaw) ? currentYear : parsedRaw;
+    return String(Math.max(yearValue, currentYear)).padStart(4, '0');
+  }
+
+  if (type === 'hour') {
+    const hourValue = Number.isNaN(parsedRaw) ? currentHour : parsedRaw;
+    return String(clamp(hourValue, 1, 12)).padStart(2, '0');
+  }
+
+  if (type === 'minute') {
+    const minuteValue = Number.isNaN(parsedRaw) ? currentMinute : parsedRaw;
+    return String(clamp(minuteValue, 0, 59)).padStart(2, '0');
+  }
+
+  return rawValue;
+}
+
+function commitActiveDueBlockEdit() {
+  if (!activeDueBlockEdit) return;
+
+  const { block, raw } = activeDueBlockEdit;
+  dueInput.value = setDueBlockValue(
+    dueInput.value,
+    block,
+    normalizeDueBlockValue(block.type, raw, dueInput.value)
+  );
+  activeDueBlockEdit = null;
+}
+
+function normalizeDueInputValue(value, { enforceFuture = false } = {}) {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const currentDay = now.getDate();
+  const currentHour = now.getHours() % 12 || 12;
+  const currentMinute = now.getMinutes();
+
+  const parsedMonth = parseInt(value.substring(3, 5), 10);
+  const parsedYear = parseInt(value.substring(6, 10), 10);
+  const parsedDay = parseInt(value.substring(0, 2), 10);
+  const parsedHour = parseInt(value.substring(12, 14), 10);
+  const parsedMinute = parseInt(value.substring(15, 17), 10);
+
+  const month = clamp(Number.isNaN(parsedMonth) ? currentMonth : parsedMonth, 1, 12);
+  const year = Math.max(Number.isNaN(parsedYear) ? currentYear : parsedYear, currentYear);
+  const maxDay = new Date(year, month, 0).getDate();
+  const day = clamp(Number.isNaN(parsedDay) ? currentDay : parsedDay, 1, maxDay);
+  const hour = clamp(Number.isNaN(parsedHour) ? currentHour : parsedHour, 1, 12);
+  const minute = clamp(Number.isNaN(parsedMinute) ? currentMinute : parsedMinute, 0, 59);
+  const period = value.substring(18, 20).toUpperCase() === 'PM' ? 'PM' : 'AM';
+
+  const normalized = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${String(year).padStart(4, '0')}, ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`;
+  if (!enforceFuture) return normalized;
+
+  const parsed = parseMaskedDate(normalized);
+  if (!parsed || parsed.getTime() <= now.getTime()) {
+    const future = new Date(now.getTime() + 60 * 1000);
+    return formatDateTimeHuman(future);
+  }
+
+  return normalized;
+}
+
 function formatDateTimeHuman(date) {
   const d = String(date.getDate()).padStart(2, '0');
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -1664,6 +1783,8 @@ function addTask() {
 
   if (!titleInput.value.trim()) return;
 
+  commitActiveDueBlockEdit();
+  dueInput.value = normalizeDueInputValue(dueInput.value, { enforceFuture: true });
   let dueDate = parseMaskedDate(dueInput.value);
   const finalDue = (hasUserModifiedDate && dueDate) ? dueDate.toISOString() : null;
 
