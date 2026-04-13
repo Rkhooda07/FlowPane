@@ -983,8 +983,8 @@ body {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  min-width: 65px;
-  height: 28px;
+  min-width: 58px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -997,10 +997,10 @@ body {
 }
 
 .unit-toggle-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
+  border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1046,10 +1046,10 @@ body {
   border: none;
   color: #ffffff;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
-  padding: 8px 12px;
-  border-radius: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
   text-align: left;
   cursor: pointer;
   width: 100%;
@@ -1092,7 +1092,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  height: 28px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;

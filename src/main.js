@@ -1051,9 +1051,18 @@ function showReminderPopup(task, minutesBefore) {
   if (!popup || !title || !timeText) return;
 
   title.textContent = task.title;
-  const timeDesc = minutesBefore >= 60 
-    ? (minutesBefore >= 1440 ? '1 day before' : '1 hour before') 
-    : `${minutesBefore} minutes before`;
+  
+  let timeDesc = '';
+  if (minutesBefore >= 1440) {
+    const days = Math.floor(minutesBefore / 1440);
+    timeDesc = `${days} day${days > 1 ? 's' : ''} before`;
+  } else if (minutesBefore >= 60) {
+    const hrs = Math.floor(minutesBefore / 60);
+    timeDesc = `${hrs} hour${hrs > 1 ? 's' : ''} before`;
+  } else {
+    timeDesc = `${minutesBefore} minute${minutesBefore > 1 ? 's' : ''} before`;
+  }
+  
   timeText.textContent = `Deadline approaching: ${timeDesc}`;
 
   popup.classList.remove('hidden');
@@ -1069,8 +1078,8 @@ function showReminderPopup(task, minutesBefore) {
 
   closeBtn.addEventListener('click', closePopup);
   
-  // Auto-close after 10 seconds if not clicked
-  setTimeout(closePopup, 10000);
+  // Auto-close after 20 seconds if not clicked (increased from 10)
+  setTimeout(closePopup, 20000);
 }
 
 function checkReminders() {
@@ -1095,8 +1104,8 @@ function checkReminders() {
   }
 }
 
-// Check reminders every 30 seconds
-setInterval(checkReminders, 30000);
+// Check reminders every 1 second (increased from 10s for maximum precision)
+setInterval(checkReminders, 1000);
 
 
 function setNotesRevealOrigin(tab) {
@@ -1832,6 +1841,9 @@ function addTask() {
   renderTasks();
 
   titleInput.value = '';
+  
+  // Immediately check for reminders in case one was set for 'now'
+  checkReminders();
 
   // Reset date input and reminder state
   dueInput.value = formatDateTimeHuman(getDefaultDueDate());
