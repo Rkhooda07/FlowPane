@@ -847,6 +847,28 @@ if (taskReminderBtn && reminderDropdown) {
   taskReminderBtn.addEventListener('click', (e) => {
     e.stopPropagation();
 
+    // Restriction: Cannot add reminder without a task name
+    const taskInputNode = document.getElementById('task-input');
+    const taskNameStr = taskInputNode ? taskInputNode.value.trim() : "";
+
+    if (!taskNameStr) {
+      taskReminderBtn.classList.add('shake');
+      const nameWarning = document.getElementById('name-warning');
+      const inputShell = document.querySelector('.task-input-shell');
+
+      if (nameWarning) {
+        nameWarning.classList.remove('hidden');
+        if (inputShell) inputShell.classList.add('warning');
+        
+        setTimeout(() => {
+          nameWarning.classList.add('hidden');
+          if (inputShell) inputShell.classList.remove('warning');
+        }, 2000);
+      }
+      setTimeout(() => taskReminderBtn.classList.remove('shake'), 400);
+      return;
+    }
+
     // Restriction: Cannot add reminder without a deadline
     if (!hasUserModifiedDate) {
       inputArea.classList.add('expanded'); // Ensure deadline area is visible

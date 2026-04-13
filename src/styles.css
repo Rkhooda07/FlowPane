@@ -1339,6 +1339,12 @@ body {
   box-shadow: 0 0 10px rgba(255, 149, 0, 0.1);
 }
 
+.task-input-shell.warning #task-input {
+  border-color: rgba(255, 149, 0, 0.5) !important;
+  background: rgba(255, 149, 0, 0.1) !important;
+  box-shadow: 0 0 10px rgba(255, 149, 0, 0.1);
+}
+
 
 #due-input {
   background: rgba(255, 255, 255, 0.08);
