@@ -69,8 +69,8 @@ appWindow.isFocused().then(focused => {
 const ALL_WINDOWS_SIZE = new LogicalSize(325, 375);
 const PEEK_SIZE_Y = new LogicalSize(325, 270);
 const PEEK_SIZE_X = new LogicalSize(270, 325);
-const COLLAPSED_SIZE_Y = new LogicalSize(325, 38); // Match CSS height for bar
-const COLLAPSED_SIZE_X = new LogicalSize(38, 375); // Match CSS dimensions
+const COLLAPSED_SIZE_Y = new LogicalSize(325, 42); // Match CSS height for bar
+const COLLAPSED_SIZE_X = new LogicalSize(42, 300); // Match CSS dimensions
 const BOTTOM_DOCK_MINIMIZE_THRESHOLD = 0;
 
 let isWindowDragGesture = false;
@@ -164,7 +164,7 @@ async function minimizeIntoDockFromBottomEdge() {
 }
 
 // Animation Helper - Animates both position and size simultaneously
-async function animateWindowTransform(startPos, endPos, startSize, endSize, duration = 450) {
+async function animateWindowTransform(startPos, endPos, startSize, endSize, duration = 350) {
   isAnimating = true;
   const startTime = performance.now();
   const { LogicalSize, PhysicalPosition, PhysicalSize } = window.__TAURI__.window;
@@ -187,8 +187,8 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
       const now = performance.now();
       const progress = Math.min((now - startTime) / duration, 1);
 
-      // Ease Out Cubic for a natural feel
-      const ease = 1 - Math.pow(1 - progress, 3);
+      // Ease In Out Cubic for smooth start and end without abruptness
+      const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 
       const currentX = startPos.x + (endPos.x - startPos.x) * ease;
       const currentY = startPos.y + (endPos.y - startPos.y) * ease;
@@ -267,7 +267,7 @@ async function toggleCollapseY(isManualDrag = false) {
             { x: newX, y: newY },
             currentSize,
             COLLAPSED_SIZE_Y,
-            450
+            350
           );
         }
       } catch (error) {
@@ -311,7 +311,7 @@ async function toggleCollapseY(isManualDrag = false) {
             endPos,
             currentSize,
             targetSize,
-            450
+            350
           );
           lastExpandTime = Date.now();
         }
@@ -376,7 +376,7 @@ async function toggleCollapseX(isManualDrag = false) {
             { x: newX, y: currentPos.y },
             currentSize,
             COLLAPSED_SIZE_X,
-            450
+            350
           );
         }
       } catch (error) {
@@ -445,7 +445,7 @@ async function toggleCollapseX(isManualDrag = false) {
             endPos,
             currentSize,
             targetSize,
-            450
+            350
           );
           lastExpandTime = Date.now();
         }
@@ -2298,10 +2298,12 @@ let sessionOriginalDuration = 0;
 function showTimesUpModal() {
   const modal = document.getElementById('times-up-modal');
   modal.classList.remove('hidden');
+  appElement.classList.add('times-up-active');
 }
 
 function hideTimesUpModal() {
   document.getElementById('times-up-modal').classList.add('hidden');
+  appElement.classList.remove('times-up-active');
 }
 
 // Time's Up Modal Handlers
@@ -2609,14 +2611,23 @@ function updateNavbarTimer(timeString) {
   const [h, m, s] = timeString.split(':');
 
   navbarTimers.forEach(timer => {
-    // Inject spans for styling control
-    timer.innerHTML = `
-      <span class="t-unit">${h}</span>
-      <span class="t-sep">:</span>
-      <span class="t-unit">${m}</span>
-      <span class="t-sep">:</span>
-      <span class="t-unit">${s}</span>
-    `;
+    if (h === '00') {
+      timer.innerHTML = `
+        <span class="t-unit">${m}</span>
+        <span class="t-sep">:</span>
+        <span class="t-unit">${s}</span>
+      `;
+      timer.classList.add('short-timer');
+    } else {
+      timer.innerHTML = `
+        <span class="t-unit">${h}</span>
+        <span class="t-sep">:</span>
+        <span class="t-unit">${m}</span>
+        <span class="t-sep">:</span>
+        <span class="t-unit">${s}</span>
+      `;
+      timer.classList.remove('short-timer');
+    }
   });
 }
 

@@ -115,19 +115,19 @@ body {
 
 
 #app.collapsed-y {
-  height: 38px !important; /* Increased from 28px for better spacing */
+  height: 42px !important; /* Increased from 38px for better layout and equal thickness */
   width: 325px !important;
 }
 
 #app.collapsed-x {
-  width: 38px !important; /* Matched to collapsed-y height */
+  width: 42px !important; /* Matched to collapsed-y height */
   height: 300px !important; /* Taller for better proportions */
 }
 
 #app.collapsed-y .title-bar {
   padding: 6px 16px; /* Better vertical padding */
-  height: 38px;
-  min-height: 38px;
+  height: 42px;
+  min-height: 42px;
   justify-content: space-between;
   align-items: center;
 }
@@ -136,7 +136,7 @@ body {
   flex-direction: column;
   height: 100%;
   padding: 12px 0; /* Add vertical padding for breathing room */
-  width: 38px;
+  width: 42px;
   justify-content: center; /* Center the group together */
   align-items: center;
   gap: 16px; /* Tighten gap between buttons and timer */
@@ -425,6 +425,17 @@ body {
   margin-top: 12px;
   gap: 2px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Short timer in collapsed modes (no hours shown) */
+#app.collapsed-y .navbar-timer.short-timer {
+  font-size: 14px; /* Distinctly bigger since it lacks hours */
+  padding: 4px 10px;
+}
+
+#app.collapsed-x .focus-header-bar .navbar-timer.short-timer {
+  font-size: 14px; 
+  padding: 8px 4px; /* Reduced side padding so it isn't too wide for the window */
 }
 
 .t-unit {
@@ -2757,5 +2768,128 @@ body {
     background: rgba(0, 0, 0, 0.05);
     color: #1a1a1a;
   }
+}
+
+/* Collapsed Time's Up Alert */
+.collapsed-times-up-msg {
+  display: none !important; /* hidden by default */
+}
+
+/* Only display when the window is collapsed, and the time's up active state is present */
+#app.times-up-active.collapsed-y .collapsed-times-up-msg,
+#app.times-up-active.collapsed-x .collapsed-times-up-msg {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 25, 45, 0.85); /* icy cool dark blue */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 10000;
+  pointer-events: none; /* Let the user hover/click the app itself to expand */
+  border-radius: inherit;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#app.times-up-active.collapsed-y .collapsed-times-up-msg {
+  flex-direction: row;
+  gap: 12px;
+}
+
+.ice-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 150%;
+  height: 150%;
+  background: radial-gradient(circle, rgba(100, 200, 255, 0.4) 0%, transparent 70%);
+  animation: icePulseAnim 2s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ice-text {
+  position: relative;
+  z-index: 2;
+  color: #aae0ff; /* Icy blue text */
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(100, 200, 255, 0.8), 0 0 20px rgba(100, 200, 255, 0.4);
+  animation: iceGlow 1.5s infinite alternate ease-in-out;
+  white-space: nowrap;
+}
+
+#app.collapsed-x .ice-text {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  letter-spacing: 2px;
+}
+
+@keyframes icePulseAnim {
+  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; }
+  50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; }
+}
+
+@keyframes iceGlow {
+  from { text-shadow: 0 0 5px rgba(100, 200, 255, 0.5), 0 0 10px rgba(100, 200, 255, 0.3); color: #aae0ff; }
+  to { text-shadow: 0 0 15px rgba(150, 220, 255, 0.9), 0 0 30px rgba(150, 220, 255, 0.6); color: #ffffff; }
+}
+
+/* Hide normal Time's Up modal in collapsed mode */
+#app.collapsed-x #times-up-modal,
+#app.collapsed-y #times-up-modal {
+  display: none !important;
+}
+
+/* Adjust sizes for peek mode so modals fit cleanly */
+#app.peeking .resume-card {
+  width: min(230px, calc(100% - 24px));
+  padding: 14px 16px;
+  border-radius: 14px;
+}
+
+#app.peeking .resume-icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+#app.peeking .resume-card h3 {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+#app.peeking .resume-card p {
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+
+#app.peeking .resume-actions {
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+#app.peeking .resume-btn {
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 10px;
+}
+
+#app.peeking .resume-time-box {
+  padding: 4px 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+}
+
+#app.peeking #resume-time-val {
+  font-size: 16px;
 }
 
