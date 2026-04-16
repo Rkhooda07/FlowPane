@@ -236,7 +236,7 @@ async function toggleCollapseY(isManualDrag = false) {
         console.error('Failed to capture position:', e);
       }
 
-      appElement.classList.remove('collapsed-x');
+      appElement.classList.remove('collapsed-x', 'collapsed-left', 'collapsed-right');
       appElement.classList.add('collapsed-y');
 
       // Update UI immediately (fade out content, show title)
@@ -277,7 +277,7 @@ async function toggleCollapseY(isManualDrag = false) {
       // EXPAND FLOW
       try {
         // 1. Reveal content immediately
-        appElement.classList.remove('collapsed-y');
+        appElement.classList.remove('collapsed-y', 'collapsed-left', 'collapsed-right');
         updateNavbarTitle(getCurrentViewTitle());
         hideNavbarTimer();
 
@@ -370,6 +370,15 @@ async function toggleCollapseX(isManualDrag = false) {
 
           let newX = (distLeft < distRight) ? offsetX : (offsetX + scrW - collapsedPhysicalWidth);
 
+          // Track which side we are collapsed to for UI adjustments (like title orientation)
+          if (distLeft < distRight) {
+            appElement.classList.add('collapsed-left');
+            appElement.classList.remove('collapsed-right');
+          } else {
+            appElement.classList.add('collapsed-right');
+            appElement.classList.remove('collapsed-left');
+          }
+
           // Animate both size and position simultaneously
           await animateWindowTransform(
             currentPos,
@@ -385,7 +394,7 @@ async function toggleCollapseX(isManualDrag = false) {
     } else {
       // EXPAND FLOW
       try {
-        appElement.classList.remove('collapsed-x');
+        appElement.classList.remove('collapsed-x', 'collapsed-left', 'collapsed-right');
         updateNavbarTitle(getCurrentViewTitle());
         hideNavbarTimer();
 

@@ -162,6 +162,14 @@ body {
   flex: 0; /* Don't grow, keep close to buttons */
 }
 
+#app.collapsed-x.collapsed-right h1 {
+  transform: rotate(0deg);
+}
+
+#app.collapsed-x.collapsed-right .focus-header-bar .navbar-timer {
+  transform: rotate(0deg);
+}
+
 #app.collapsed-y h1 {
   font-size: 14px !important; /* Unified with original size */
   transform: translate(-50%, -50%) !important;
