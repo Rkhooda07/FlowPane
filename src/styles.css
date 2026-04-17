@@ -10,6 +10,7 @@
   --glass-shadow: none;
   --input-bg: rgba(255, 255, 255, 0.08);
   --history-bg: #151515;
+  --navbar-height: 48px;
 }
 
 @media (prefers-color-scheme: light) {
@@ -146,7 +147,7 @@ body {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: rotate(180deg);
-  font-size: 13px;
+  font-size: 14px; /* Increased for consistency */
   letter-spacing: 1px;
   order: 2; /* Push title after buttons */
   margin: 0;
@@ -171,7 +172,7 @@ body {
 }
 
 #app.collapsed-y h1 {
-  font-size: 14px !important; /* Unified with original size */
+  font-size: 16px !important; /* Unified with main window */
   transform: translate(-50%, -50%) !important;
   opacity: 1 !important;
   visibility: visible !important;
@@ -329,7 +330,8 @@ body {
   user-select: none;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
-  min-height: 38px;
+  min-height: var(--navbar-height);
+  height: var(--navbar-height);
   position: relative;
   z-index: 100; /* Always on top */
 }
@@ -343,7 +345,7 @@ body {
 }
 
 .title-bar h1 {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.5px;
   color: var(--text-color);
@@ -644,42 +646,56 @@ body {
 }
 
 .btn-complete { 
-  background-color: rgba(40, 200, 64, 0.15); 
+  background-color: rgba(40, 200, 64, 0.1); 
   color: #28c840;
-  border: 1px solid rgba(40, 200, 64, 0.3);
-  font-size: 11px !important;
-  width: 20px;
-  height: 20px;
+  border: 1px solid rgba(40, 200, 64, 0.25);
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 0; /* Reset padding to ensure centering */
+}
+
+.btn-complete svg {
+  display: block;
 }
 
 .btn-exit { 
-  background-color: rgba(255, 255, 255, 0.08); 
-  color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(255, 255, 255, 0.05); 
+  color: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 12px !important;
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.btn-exit svg {
+  display: block;
 }
 
 .btn-complete:hover {
-  background-color: rgba(40, 200, 64, 0.4);
+  background-color: rgba(40, 200, 64, 0.3);
   color: #ffffff;
-  transform: scale(1.1);
+  border-color: rgba(40, 200, 64, 0.4);
+  transform: scale(1.1) translateY(-1px);
+  box-shadow: 0 0 15px rgba(40, 200, 64, 0.3);
 }
 
 .btn-exit:hover {
-  background-color: rgba(255, 59, 48, 0.2);
+  background-color: rgba(255, 59, 48, 0.15);
   color: #ff5f56;
   border-color: rgba(255, 59, 48, 0.3);
-  transform: scale(1.1);
+  transform: scale(1.1) translateY(-1px);
+  box-shadow: 0 0 15px rgba(255, 59, 48, 0.25);
 }
 
 #notes-nav-exit-btn {
@@ -1217,12 +1233,12 @@ body {
   --reveal-x: 50%;
   --reveal-y: 100%;
   position: absolute;
-  top: 38px;
+  top: var(--navbar-height);
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 35;
-  padding: 10px 0 0 0;
+  padding: 0; /* Removed top padding to sit flush with navbar */
   pointer-events: none;
   opacity: 0;
   clip-path: circle(0px at var(--reveal-x) var(--reveal-y));
@@ -2088,13 +2104,14 @@ body {
   padding: 10px 16px;
   background: rgba(255, 255, 255, 0.05); /* Slightly distinct header bg */
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-  min-height: 38px;
+  min-height: var(--navbar-height);
+  height: var(--navbar-height);
   position: relative;
   -webkit-app-region: drag; /* Make header draggable */
 }
 
 .focus-header-bar h1 {
-  font-size: 15px; /* Increased from 13px */
+  font-size: 16px; /* Increased and unified with main window */
   font-weight: 600;
   letter-spacing: 0.5px;
   color: rgba(255, 255, 255, 0.7);
@@ -2174,7 +2191,7 @@ body {
   justify-content: center;
   align-items: center;
   gap: 24px; /* Reduced gap */
-  padding-bottom: 10px; /* Reduced padding */
+  padding-bottom: 24px; /* Increased from 10px to sit higher */
 }
 
 .round-btn {
@@ -2339,7 +2356,7 @@ body {
   z-index: 50;
   display: flex;
   flex-direction: column;
-  padding: 58px 20px 20px 20px; /* 38px navbar + 20px padding */
+  padding: calc(var(--navbar-height) + 4px) 20px 20px 20px; /* Reduced from +20px for tighter layout */
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -2358,7 +2375,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  min-height: var(--navbar-height);
+  margin-bottom: 0; /* Changed to 0; padding-top on the list provides the gap now */
 }
 
 .history-title-wrap {
@@ -2450,7 +2468,7 @@ body {
 
 .history-list {
   list-style: none;
-  padding: 0;
+  padding: 8px 0 0 0; /* Provides the gap from header and room for hover uplift */
   margin: 0;
   overflow-y: auto;
   flex: 1;
@@ -2473,7 +2491,9 @@ body {
 .history-item:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1;
 }
 
 @keyframes slideIn {
@@ -2537,7 +2557,7 @@ body {
 /* Resume Modal Styles */
 .modal-overlay {
   position: fixed;
-  top: 38px; /* Start below the navbar */
+  top: var(--navbar-height); /* Start below the navbar */
   left: 0;
   right: 0;
   bottom: 0;
