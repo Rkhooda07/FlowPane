@@ -632,23 +632,50 @@ function renderTasks() {
   renderHistory(completedTasks);
 
   let renderedCount = 0;
-  activeTasks.sort((a, b) => {
-    if (a.due === null && b.due === null) return 0;
-    if (a.due === null) return 1;
-    if (b.due === null) return -1;
-    return new Date(a.due) - new Date(b.due);
-  });
 
+  // Prepare a unified list for the 'all' filter, or specific lists for others
+  let displayItems = [];
 
-  if (currentFilter === 'all' || currentFilter === 'tasks') {
-    activeTasks.forEach((task) => {
-      // Find the original index in the tasks array for event handlers
+  if (currentFilter === 'tasks') {
+    activeTasks.sort((a, b) => {
+      if (a.due === null && b.due === null) return 0;
+      if (a.due === null) return 1;
+      if (b.due === null) return -1;
+      return new Date(a.due) - new Date(b.due);
+    });
+    displayItems = activeTasks.map(t => ({ type: 'task', data: t }));
+  } else if (currentFilter === 'notes') {
+    displayItems = savedNotes.map(n => ({ 
+      type: 'note', 
+      data: n[1], 
+      id: n[0],
+      timestamp: n[1].updatedAt || 0 
+    }));
+  } else {
+    // 'all' filter: merge and sort by the most recent timestamp
+    const taskItems = activeTasks.map(t => ({ 
+      type: 'task', 
+      data: t, 
+      timestamp: t.createdAt || 0 
+    }));
+    const noteItems = savedNotes.map(n => ({ 
+      type: 'note', 
+      data: n[1], 
+      id: n[0],
+      timestamp: n[1].updatedAt || 0 
+    }));
+    
+    displayItems = [...taskItems, ...noteItems].sort((a, b) => b.timestamp - a.timestamp);
+  }
+
+  displayItems.forEach((item) => {
+    if (item.type === 'task') {
+      const task = item.data;
       const taskIndex = tasks.indexOf(task);
       const li = document.createElement('li');
       li.className = `task-item ${(task.urgent && !task.completed) ? 'urgent' : ''}`;
 
       const hasDeadline = task.due !== null;
-
       const dueDate = hasDeadline ? new Date(task.due) : null;
       const now = new Date();
 
@@ -657,8 +684,6 @@ function renderTasks() {
         dueText = 'Completed';
       } else if (!hasDeadline) {
         dueText = '<span style="font-size: 1.4em; line-height: 1; margin-right: 2px;">∞</span> Plenty of time';
-
-
       } else {
         const diffMs = dueDate - now;
         const diffMins = Math.floor(diffMs / (1000 * 60));
@@ -672,137 +697,121 @@ function renderTasks() {
         else dueText = 'Due now';
       }
 
+      li.innerHTML = `
+        <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} />
+        <div class="task-info">
+          <div class="task-title">${task.title}</div>
+          <div class="task-due">${dueText}</div>
+        </div>
+        <button class="delete-task-btn" title="Delete task">×</button>
+      `;
 
-    li.innerHTML = `
-      <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} />
-      <div class="task-info">
-        <div class="task-title">${task.title}</div>
-        <div class="task-due">${dueText}</div>
-      </div>
-      <button class="delete-task-btn" title="Delete task">×</button>
-    `;
+      const stopBubbling = (e) => e.stopPropagation();
+      li.querySelector('.task-checkbox').addEventListener('click', stopBubbling);
+      li.querySelector('.task-checkbox').addEventListener('dblclick', stopBubbling);
+      li.querySelector('.delete-task-btn').addEventListener('dblclick', stopBubbling);
 
-    // Prevent double-clicks on interactive elements from opening the task
-    const stopBubbling = (e) => e.stopPropagation();
-    li.querySelector('.task-checkbox').addEventListener('click', stopBubbling);
-    li.querySelector('.task-checkbox').addEventListener('dblclick', stopBubbling);
-    li.querySelector('.delete-task-btn').addEventListener('dblclick', stopBubbling);
-
-    li.querySelector('.task-checkbox').addEventListener('change', async (e) => {
-      if (e.target.checked) {
-        li.classList.add('task-completing');
-        
-        // Trigger completion modal much sooner for responsiveness
-        setTimeout(() => showCongrats(0), 500);
-        
-        // Wait for 2-step animation (strikethrough then slide)
-        setTimeout(async () => {
-          task.completed = true;
-          task.completedAt = Date.now();
-          await saveTasks();
-          renderTasks();
-
-          // Provide visual feedback that task went to history
-          const historyBtn = document.getElementById('history-btn');
-          if (historyBtn) {
-            setTimeout(() => {
-              historyBtn.classList.add('history-uplift');
+      li.querySelector('.task-checkbox').addEventListener('change', async (e) => {
+        if (e.target.checked) {
+          li.classList.add('task-completing');
+          setTimeout(() => showCongrats(0), 500);
+          setTimeout(async () => {
+            task.completed = true;
+            task.completedAt = Date.now();
+            await saveTasks();
+            renderTasks();
+            const historyBtn = document.getElementById('history-btn');
+            if (historyBtn) {
               setTimeout(() => {
-                historyBtn.classList.remove('history-uplift');
-              }, 600); // Wait for the uplift animation
-            }, 50); // Slight delay after DOM update
-          }
-        }, 700);
-      }
-    });
+                historyBtn.classList.add('history-uplift');
+                setTimeout(() => historyBtn.classList.remove('history-uplift'), 600);
+              }, 50);
+            }
+          }, 700);
+        }
+      });
 
-    li.querySelector('.delete-task-btn').addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const shouldDelete = await requestDeleteConfirmation('task');
-      if (!shouldDelete) return;
-      tasks.splice(taskIndex, 1);
-      saveTasks();
-      renderTasks();
-    });
+      li.querySelector('.delete-task-btn').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const shouldDelete = await requestDeleteConfirmation('task');
+        if (!shouldDelete) return;
+        tasks.splice(taskIndex, 1);
+        saveTasks();
+        renderTasks();
+      });
 
-    // Right click to delete
-    li.addEventListener('contextmenu', async (e) => {
-      e.preventDefault();
-      const shouldDelete = await requestDeleteConfirmation('task');
-      if (!shouldDelete) return;
-      tasks.splice(taskIndex, 1);
-      saveTasks();
-      renderTasks();
-    });
+      // Right click to delete
+      li.addEventListener('contextmenu', async (e) => {
+        e.preventDefault();
+        const shouldDelete = await requestDeleteConfirmation('task');
+        if (!shouldDelete) return;
+        tasks.splice(taskIndex, 1);
+        saveTasks();
+        renderTasks();
+      });
 
-    // Click to enter focus mode (disabled for completed tasks)
-    li.addEventListener('click', () => {
-      if (!task.completed) {
-        enterFocusMode(task);
-      }
-    });
-
-      taskList.appendChild(li);
-      renderedCount++;
-    });
-  }
-
-  if (currentFilter === 'all' || currentFilter === 'notes') {
-    savedNotes.forEach(([noteId, note]) => {
-    const li = document.createElement('li');
-    li.className = `task-item note-entry note-entry-${note.theme || 1}`;
-
-    const swatch = document.createElement('span');
-    swatch.className = 'note-entry-swatch';
-
-    const info = document.createElement('div');
-    info.className = 'task-info';
-
-    const title = document.createElement('div');
-    title.className = 'task-title note-entry-title';
-    title.textContent = (note.title.trim() || 'Untitled note').replace(/\s+/g, ' ').slice(0, 72);
-
-    const subtitle = document.createElement('div');
-    subtitle.className = 'task-due note-entry-subtitle';
-    const bodyPreview = (note.body || '').trim().split('\n')[0];
-    subtitle.textContent = bodyPreview || 'Click to start writing... ✍️';
-
-    const deleteNoteBtn = document.createElement('button');
-    deleteNoteBtn.className = 'delete-note-btn';
-    deleteNoteBtn.title = 'Delete note';
-    deleteNoteBtn.textContent = '×';
-
-    info.appendChild(title);
-    info.appendChild(subtitle);
-    li.appendChild(swatch);
-    li.appendChild(info);
-    li.appendChild(deleteNoteBtn);
-
-    // Prevent double-clicks on interactive elements from opening the note
-    const stopBubbling = (e) => e.stopPropagation();
-    deleteNoteBtn.addEventListener('dblclick', stopBubbling);
-
-    deleteNoteBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const shouldDelete = await requestDeleteConfirmation('note');
-      if (!shouldDelete) return;
-      delete noteDrafts[noteId];
-      await persistNotesDrafts();
-      renderTasks();
-    });
-
-    li.addEventListener('click', () => {
-      const themeId = note.theme || 1;
-      const noteTab = document.querySelector(`.task-note-tab.note-${themeId}`);
-      if (noteTab) {
-        openNote(noteTab, noteId);
-      }
-    });
+      li.addEventListener('click', () => {
+        if (!task.completed) {
+          enterFocusMode(task);
+        }
+      });
 
       taskList.appendChild(li);
-      renderedCount++;
-    });
-  }
+    } else {
+      // Note item
+      const noteId = item.id;
+      const note = item.data;
+      const li = document.createElement('li');
+      li.className = `task-item note-entry note-entry-${note.theme || 1}`;
+
+      const swatch = document.createElement('span');
+      swatch.className = 'note-entry-swatch';
+
+      const info = document.createElement('div');
+      info.className = 'task-info';
+
+      const title = document.createElement('div');
+      title.className = 'task-title note-entry-title';
+      title.textContent = (note.title.trim() || 'Untitled note').replace(/\s+/g, ' ').slice(0, 72);
+
+      const subtitle = document.createElement('div');
+      subtitle.className = 'task-due note-entry-subtitle';
+      const bodyPreview = (note.body || '').trim().split('\n')[0];
+      subtitle.textContent = bodyPreview || 'Click to start writing... ✍️';
+
+      const deleteNoteBtn = document.createElement('button');
+      deleteNoteBtn.className = 'delete-note-btn';
+      deleteNoteBtn.title = 'Delete note';
+      deleteNoteBtn.textContent = '×';
+
+      info.appendChild(title);
+      info.appendChild(subtitle);
+      li.appendChild(swatch);
+      li.appendChild(info);
+      li.appendChild(deleteNoteBtn);
+
+      const stopBubbling = (e) => e.stopPropagation();
+      deleteNoteBtn.addEventListener('dblclick', stopBubbling);
+
+      deleteNoteBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const shouldDelete = await requestDeleteConfirmation('note');
+        if (!shouldDelete) return;
+        delete noteDrafts[noteId];
+        await persistNotesDrafts();
+        renderTasks();
+      });
+
+      li.addEventListener('click', () => {
+        const themeId = note.theme || 1;
+        const noteTab = document.querySelector(`.task-note-tab.note-${themeId}`);
+        if (noteTab) openNote(noteTab, noteId);
+      });
+
+      taskList.appendChild(li);
+    }
+    renderedCount++;
+  });
 
   if (renderedCount === 0) {
     let emptyText = 'No tasks or notes yet.';
@@ -1319,13 +1328,22 @@ function updateFilterPill() {
   }
 }
 
+function updateFilterUI(filterValue) {
+  filterBtns.forEach(btn => {
+    if (btn.getAttribute('data-filter') === filterValue) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  updateFilterPill();
+}
+
 filterBtns.forEach(btn => {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     currentFilter = btn.getAttribute('data-filter');
-    filterBtns.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    updateFilterPill();
+    updateFilterUI(currentFilter);
     renderTasks();
   });
 });
@@ -1837,7 +1855,8 @@ function addTask() {
     completed: false,
     urgent: false,
     reminderMinutes: selectedReminderMinutes,
-    reminded: false
+    reminded: false,
+    createdAt: Date.now()
   };
 
   if (finalDue) {
@@ -1847,6 +1866,13 @@ function addTask() {
 
   tasks.push(newTask);
   saveTasks();
+
+  // If user is on another filter (like Notes), switch to 'All' so they see the new task
+  if (currentFilter !== 'all') {
+    currentFilter = 'all';
+    updateFilterUI('all');
+  }
+
   renderTasks();
 
   titleInput.value = '';
