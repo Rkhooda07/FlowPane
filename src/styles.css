@@ -1343,9 +1343,12 @@ body {
 }
 
 #task-input:focus {
-  background: var(--input-bg);
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(var(--theme-accent-rgb, 0, 122, 255), 0.6);
+  box-shadow: 0 0 0 1px rgba(var(--theme-accent-rgb, 0, 122, 255), 0.3), 
+              0 0 20px rgba(var(--theme-accent-rgb, 0, 122, 255), 0.15),
+              inset 0 0 10px rgba(255, 255, 255, 0.05);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .due-container {
@@ -2085,7 +2088,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 10, 5, 0.96);
+  background: rgba(15, 10, 5, 0.98);
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
   z-index: 150;
@@ -2094,7 +2097,18 @@ body {
   justify-content: space-between;
   padding: 0;
   text-align: center;
-  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1) translateY(0);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.focus-mode.hidden {
+  display: flex !important; /* Override display: none to allow transition */
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.96) translateY(10px); /* Smooth sink effect on exit */
+  pointer-events: none;
 }
 
 .focus-header-bar {
@@ -2108,6 +2122,13 @@ body {
   height: var(--navbar-height);
   position: relative;
   -webkit-app-region: drag; /* Make header draggable */
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+  transition-delay: 0.1s;
+}
+
+.focus-mode.hidden .focus-header-bar {
+  transform: translateY(-20px);
+  opacity: 0;
 }
 
 .focus-header-bar h1 {
@@ -2136,6 +2157,13 @@ body {
   flex-direction: column;
   justify-content: center;
   margin: 10px 0;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease;
+  transition-delay: 0.2s;
+}
+
+.focus-mode.hidden .focus-content {
+  transform: scale(0.95) translateY(10px);
+  opacity: 0;
 }
 
 #focus-task-name {
@@ -2192,6 +2220,13 @@ body {
   align-items: center;
   gap: 24px; /* Reduced gap */
   padding-bottom: 24px; /* Increased from 10px to sit higher */
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+  transition-delay: 0.3s;
+}
+
+.focus-mode.hidden .focus-bottom-controls {
+  transform: translateY(20px);
+  opacity: 0;
 }
 
 .round-btn {
@@ -2357,12 +2392,18 @@ body {
   display: flex;
   flex-direction: column;
   padding: calc(var(--navbar-height) + 4px) 20px 20px 20px; /* Reduced from +20px for tighter layout */
-  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+.history-workspace.hidden {
+  display: flex !important; /* Override display: none to allow transition */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px);
+  pointer-events: none;
 }
 
 .history-content-shell {
@@ -2567,9 +2608,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.modal-overlay.hidden {
+  display: flex !important; /* Override display: none to allow transition */
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s ease;
+  pointer-events: none;
 }
 
 .modal-overlay:not(.hidden) {
@@ -2603,12 +2651,14 @@ body {
   padding: 16px 20px; /* Reduced padding */
   text-align: center;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
-  transform: scale(0.9);
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform: scale(1);
+  opacity: 1;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
 }
 
-.modal-overlay:not(.hidden) .resume-card:not(.times-up-card) {
-  transform: scale(1);
+.modal-overlay.hidden .resume-card:not(.times-up-card) {
+  transform: scale(0.9) translateY(10px);
+  opacity: 0;
 }
 
 .resume-icon {
