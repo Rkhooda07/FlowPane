@@ -282,9 +282,24 @@ async function toggleCollapseY(isManualDrag = false) {
         hideNavbarTimer();
 
         if (isManualDrag) {
-          await appWindow.setSize(ALL_WINDOWS_SIZE);
-          lastExpandTime = Date.now();
-          return;
+          const monitor = await currentMonitor();
+          if (monitor) {
+            const currentPos = await appWindow.outerPosition();
+            const currentSize = await appWindow.outerSize();
+            
+            // Growing DOWNWARDS from top
+            let endY = offsetY;
+            if (lastNormalPosition && !isPeeking) {
+              endY = lastNormalPosition.y;
+            }
+
+            const endPos = { x: currentPos.x, y: Math.round(endY) };
+
+            // Use a faster animation for manual drag (150ms) instead of a jump for seamless flow
+            await animateWindowTransform(currentPos, endPos, currentSize, ALL_WINDOWS_SIZE, 150);
+            lastExpandTime = Date.now();
+            return;
+          }
         }
 
         const monitor = await currentMonitor();
@@ -399,28 +414,32 @@ async function toggleCollapseX(isManualDrag = false) {
         hideNavbarTimer();
 
         if (isManualDrag) {
-          // SMART INSTANT EXPANSION: Offset if at right to grow LEFTWARDS
           try {
             const monitor = await currentMonitor();
-            const currentPos = await appWindow.outerPosition();
-            const { width: winW } = await appWindow.outerSize();
-            const scale = monitor ? monitor.scaleFactor : 1;
-
             if (monitor) {
+              const currentPos = await appWindow.outerPosition();
+              const currentSize = await appWindow.outerSize();
               const { width: scrW } = monitor.size;
               const { x: offsetX } = monitor.position;
+              const scale = monitor.scaleFactor;
               const expandedPhysicalW = ALL_WINDOWS_SIZE.width * scale;
 
-              // If near right edge, move LEFT to accommodate new width
-              const isNearRight = Math.abs((offsetX + scrW) - (currentPos.x + winW)) < 20;
+              // Smart position: if at right, grow LEFTWARDS; if at left, grow RIGHTWARDS
+              const isNearRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width)) < 25;
+              let endX = currentPos.x;
               if (isNearRight) {
-                const newX = (offsetX + scrW) - expandedPhysicalW;
-                await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(newX), currentPos.y));
+                endX = (offsetX + scrW) - expandedPhysicalW;
+              } else if (Math.abs(currentPos.x - offsetX) < 25) {
+                endX = offsetX;
               }
-            }
-          } catch (e) { }
 
-          await appWindow.setSize(ALL_WINDOWS_SIZE);
+              const endPos = { x: Math.round(endX), y: currentPos.y };
+              // Use a faster animation for manual drag (150ms) instead of a jump for seamless flow
+              await animateWindowTransform(currentPos, endPos, currentSize, ALL_WINDOWS_SIZE, 150);
+            }
+          } catch (e) {
+            await appWindow.setSize(ALL_WINDOWS_SIZE);
+          }
           lastExpandTime = Date.now();
           return;
         }
@@ -2013,8 +2032,8 @@ async function checkInstantCollapse() {
   const { width: scrW, height: scrH } = monitor.size;
   const { x: offsetX, y: offsetY } = monitor.position;
 
-  // Sensitive trigger for instant "genie" capture
-  const TRIGGER_TOP_SIDES = 8;
+  // Optimized trigger for instant "genie" capture
+  const TRIGGER_TOP_SIDES = 6; // Reduced from 8 to prevent accidental triggers
 
   const dTop = Math.abs(winY - offsetY);
   const dLeft = Math.abs(winX - offsetX);
@@ -2041,7 +2060,7 @@ async function checkInstantExpand() {
   const { width: scrW, height: scrH } = monitor.size;
   const { x: offsetX, y: offsetY } = monitor.position;
 
-  const EXPAND_THRESHOLD = 12; // Intentional threshold for instant feel
+  const EXPAND_THRESHOLD = 30; // Increased from 12 to provide stable "buffer" and prevent flickering
   const dTop = Math.abs(winY - offsetY);
   const dLeft = Math.abs(winX - offsetX);
   const dRight = Math.abs((offsetX + scrW) - (winX + winW));
