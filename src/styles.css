@@ -32,6 +32,10 @@
   outline: none !important;
 }
 
+::-webkit-scrollbar {
+  display: none;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -40,6 +44,11 @@ html, body {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+}
+
+html:has(.bubble-active), 
+body:has(.bubble-active) {
+  overflow: visible !important;
 }
 
 body {
@@ -64,6 +73,9 @@ body {
   border: var(--glass-border);
   box-shadow: var(--glass-shadow);
   overflow: hidden;
+  &.bubble-active {
+    overflow: visible !important;
+  }
   transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
               height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
               opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
@@ -131,6 +143,7 @@ body {
   min-height: 42px;
   justify-content: space-between;
   align-items: center;
+  overflow: visible !important; /* Allow bubble to escape */
 }
 
 #app.collapsed-x .title-bar {
@@ -141,6 +154,7 @@ body {
   justify-content: center; /* Center the group together */
   align-items: center;
   gap: 16px; /* Tighten gap between buttons and timer */
+  overflow: visible !important; /* Allow bubble to escape */
 }
 
 #app.collapsed-x h1 {
@@ -486,6 +500,7 @@ body {
   gap: 8px;
   z-index: 10;
   min-width: 60px; /* Balance both sides so title remains centered */
+  overflow: visible !important;
 }
 
 .action-controls {
@@ -3100,3 +3115,141 @@ body {
   font-size: 16px;
 }
 
+/* Comic Thought Bubble v3 */
+.eye-bubble.v3 {
+  position: absolute;
+  z-index: 10001;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex !important;
+  visibility: visible !important;
+  max-width: none;
+}
+
+.thought-bubble-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 20px;
+  filter: drop-shadow(4px 4px 0px #000); /* Classic ink shadow */
+  width: 148px;
+  min-height: 92px;
+  box-sizing: border-box;
+}
+
+.thought-bubble-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  transform-origin: center;
+  overflow: visible;
+}
+
+.bubble-path, .thought-dot {
+  fill: white;
+  stroke: black;
+  stroke-width: 2.2;
+}
+
+.eye-bubble.v3 .bubble-text {
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #000;
+  text-transform: lowercase;
+  font-style: italic;
+  white-space: normal;
+  letter-spacing: -0.3px;
+  z-index: 2;
+  margin-top: -12px; /* Center within the taller puffy cloud body */
+  line-height: 1.1;
+  text-align: center;
+  max-width: 88px;
+  text-wrap: balance;
+}
+
+/* Orientation Logic */
+
+/* 1. Top Collapsed (bubble below eyes) */
+#app.collapsed-y .eye-bubble.v3 {
+  top: 44px; /* Sit clearly below the title strip / eyes */
+  left: 8px;
+  transform: translateY(-6px);
+}
+#app.collapsed-y .thought-bubble-container {
+  width: 136px;
+  min-height: 82px;
+  padding: 14px 18px;
+  justify-content: center;
+  align-items: center;
+}
+#app.collapsed-y .thought-bubble-svg {
+  transform: scaleY(-1); /* Points dots UP to eyes */
+  top: -20px; /* Trail still reaches eyes after lowering bubble */
+}
+#app.collapsed-y .bubble-text {
+  font-size: 12px;
+  max-width: 84px;
+  margin-top: -34px;
+  margin-left: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* 2. Side Collapsed (Left Edge) */
+#app.collapsed-x .eye-bubble.v3 {
+  top: 54px; /* Below eyes + padding so bubble clears vertical title */
+  left: 26px;
+  transform: translateX(-10px);
+}
+#app.collapsed-x .thought-bubble-container {
+  width: 124px;
+  min-height: 96px;
+  padding: 16px 18px;
+  justify-content: center;
+  align-items: center;
+}
+#app.collapsed-x .thought-bubble-svg {
+  transform: rotate(-90deg) scaleX(-1); /* Points dots LEFT to eyes */
+  left: -24px; /* Connect more directly to eyes */
+}
+#app.collapsed-x .bubble-text {
+  font-size: 12px;
+  max-width: 74px;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* 3. Side Collapsed (Right Edge) */
+#app.collapsed-x.collapsed-right .eye-bubble.v3 {
+  left: auto;
+  right: 26px;
+  transform: translateX(10px);
+}
+#app.collapsed-x.collapsed-right .thought-bubble-svg {
+  transform: rotate(90deg); /* Points dots RIGHT to eyes */
+  right: -24px; /* Connect more directly to eyes */
+  left: auto;
+}
+
+/* Visibility triggers */
+.eye-bubble.v3.visible {
+  opacity: 1;
+  transform: translate(0, 0) !important;
+}
+
+.eye-bubble.v3.hidden {
+  display: none !important;
+}

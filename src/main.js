@@ -12,6 +12,10 @@ let lastExpandTime = 0;
 let isPeeking = false;
 let peekTimeout = null;
 let peekMode = null;
+let eyeMessageScheduleTimer = null;
+let eyeMessageRevealTimer = null;
+let eyeMessageDismissTimer = null;
+let eyeMessageDismissFadeTimer = null;
 let isHistoryOpen = false;
 let hasUserModifiedDate = false;
 let selectedReminderMinutes = null;
@@ -71,6 +75,8 @@ const PEEK_SIZE_Y = new LogicalSize(325, 270);
 const PEEK_SIZE_X = new LogicalSize(270, 325);
 const COLLAPSED_SIZE_Y = new LogicalSize(325, 42); // Match CSS height for bar
 const COLLAPSED_SIZE_X = new LogicalSize(42, 300); // Match CSS dimensions
+const COLLAPSED_SIZE_Y_BUBBLE = new LogicalSize(325, 120); 
+const COLLAPSED_SIZE_X_BUBBLE = new LogicalSize(180, 300); 
 const BOTTOM_DOCK_MINIMIZE_THRESHOLD = 0;
 
 let isWindowDragGesture = false;
@@ -102,6 +108,7 @@ function getMonitorBounds(monitor) {
 function beginWindowDragGesture() {
   isWindowDragGesture = true;
   windowDragGestureExpiresAt = Date.now() + 5000;
+  void suppressEyeMessageBubble();
 }
 
 function endWindowDragGesture() {
@@ -269,6 +276,12 @@ async function toggleCollapseY(isManualDrag = false) {
             COLLAPSED_SIZE_Y,
             350
           );
+          
+          // Trigger the "I see you" bubble shortly after collapsing (only if still collapsed; cancelled on hover/drag/expand)
+          eyeMessageScheduleTimer = setTimeout(() => {
+            eyeMessageScheduleTimer = null;
+            showEyeMessage();
+          }, 600);
         }
       } catch (error) {
         console.error('Failed to transform window vertically:', error);
@@ -276,6 +289,7 @@ async function toggleCollapseY(isManualDrag = false) {
     } else {
       // EXPAND FLOW
       try {
+        await suppressEyeMessageBubble();
         // 1. Reveal content immediately
         appElement.classList.remove('collapsed-y', 'collapsed-left', 'collapsed-right');
         updateNavbarTitle(getCurrentViewTitle());
@@ -402,6 +416,12 @@ async function toggleCollapseX(isManualDrag = false) {
             COLLAPSED_SIZE_X,
             350
           );
+
+          // Trigger the "I see you" bubble shortly after collapsing (only if still collapsed; cancelled on hover/drag/expand)
+          eyeMessageScheduleTimer = setTimeout(() => {
+            eyeMessageScheduleTimer = null;
+            showEyeMessage();
+          }, 600);
         }
       } catch (error) {
         console.error('Failed to transform window to side:', error);
@@ -409,6 +429,7 @@ async function toggleCollapseX(isManualDrag = false) {
     } else {
       // EXPAND FLOW
       try {
+        await suppressEyeMessageBubble();
         appElement.classList.remove('collapsed-x', 'collapsed-left', 'collapsed-right');
         updateNavbarTitle(getCurrentViewTitle());
         hideNavbarTimer();
@@ -1460,8 +1481,9 @@ window.addEventListener('mouseup', endWindowDragGesture);
 window.addEventListener('blur', endWindowDragGesture);
 
 // Hover peek logic for collapsed windows - bridges from Rust polling for inactive window support
-appWindow.listen('mouse-enter', () => {
+appWindow.listen('mouse-enter', async () => {
   if (isAnimating) return;
+  await suppressEyeMessageBubble();
   const isCollapsedY = appElement.classList.contains('collapsed-y');
   const isCollapsedX = appElement.classList.contains('collapsed-x');
 
@@ -2104,7 +2126,7 @@ appWindow.onMoved(async () => {
   if (isPeeking) {
     isPeeking = false;
     appElement.classList.remove('peeking');
-    
+    await suppressEyeMessageBubble();
     // Force instant full size expansion when starting to drag a peeked window
     const monitor = await currentMonitor();
     if (monitor) {
@@ -2792,5 +2814,148 @@ async function trackCursorGlobally() {
 
 // Start tracking immediately
 trackCursorGlobally();
+
+function clearEyeMessageAnimationTimers() {
+  if (eyeMessageRevealTimer != null) {
+    clearTimeout(eyeMessageRevealTimer);
+    eyeMessageRevealTimer = null;
+  }
+  if (eyeMessageDismissTimer != null) {
+    clearTimeout(eyeMessageDismissTimer);
+    eyeMessageDismissTimer = null;
+  }
+  if (eyeMessageDismissFadeTimer != null) {
+    clearTimeout(eyeMessageDismissFadeTimer);
+    eyeMessageDismissFadeTimer = null;
+  }
+}
+
+async function suppressEyeMessageBubble() {
+  if (eyeMessageScheduleTimer != null) {
+    clearTimeout(eyeMessageScheduleTimer);
+    eyeMessageScheduleTimer = null;
+  }
+  clearEyeMessageAnimationTimers();
+
+  const wasBubbleActive = appElement.classList.contains('bubble-active');
+  document.querySelectorAll('.eye-bubble').forEach((b) => {
+    b.classList.remove('visible');
+    b.classList.add('hidden');
+  });
+  appElement.classList.remove('bubble-active');
+
+  if (!wasBubbleActive) return;
+
+  const stillCollapsedY = appElement.classList.contains('collapsed-y');
+  const stillCollapsedX = appElement.classList.contains('collapsed-x');
+  if (!stillCollapsedY && !stillCollapsedX) return;
+
+  try {
+    const monitor = await currentMonitor();
+    const currentPos = await appWindow.outerPosition();
+    const currentSize = await appWindow.outerSize();
+    if (!monitor) {
+      if (stillCollapsedY) await appWindow.setSize(COLLAPSED_SIZE_Y);
+      else await appWindow.setSize(COLLAPSED_SIZE_X);
+      return;
+    }
+    const scale = monitor.scaleFactor;
+    const { width: scrW } = monitor.size;
+    const { x: offsetX } = monitor.position;
+    const distRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width));
+
+    if (stillCollapsedY) {
+      await appWindow.setSize(COLLAPSED_SIZE_Y);
+    } else {
+      await appWindow.setSize(COLLAPSED_SIZE_X);
+      if (distRight < 10) {
+        const pRestoredW = COLLAPSED_SIZE_X.width * scale;
+        const restoredX = (offsetX + scrW) - pRestoredW;
+        await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(restoredX), currentPos.y));
+      }
+    }
+  } catch (e) {
+    console.error('Failed to suppress eye message bubble:', e);
+  }
+}
+
+async function showEyeMessage() {
+  const isCollapsedY = appElement.classList.contains('collapsed-y');
+  const isCollapsedX = appElement.classList.contains('collapsed-x');
+  if (!isCollapsedY && !isCollapsedX) return;
+  if (isPeeking || appElement.classList.contains('peeking')) return;
+
+  // Use the bubble in the active header
+  const activeHeader = isInFocusMode ? document.querySelector('.focus-header-bar') : document.querySelector('.title-bar:not(.focus-header-bar)');
+  const bubble = activeHeader ? activeHeader.querySelector('.eye-bubble') : null;
+  if (!bubble) return;
+
+  try {
+    const monitor = await currentMonitor();
+    if (monitor) {
+      const currentPos = await appWindow.outerPosition();
+      const currentSize = await appWindow.outerSize();
+      const scale = monitor.scaleFactor;
+      const { width: scrW } = monitor.size;
+      const { x: offsetX } = monitor.position;
+
+      if (!appElement.classList.contains('collapsed-y') && !appElement.classList.contains('collapsed-x')) return;
+      if (isPeeking || appElement.classList.contains('peeking')) return;
+
+      // Determine target size while bubble is active
+      const targetSize = isCollapsedY ? COLLAPSED_SIZE_Y_BUBBLE : COLLAPSED_SIZE_X_BUBBLE;
+      const pTargetW = targetSize.width * scale;
+
+      // Ensure window doesn't grow off-screen if on the right edge
+      let newX = currentPos.x;
+      const distRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width));
+      if (isCollapsedX && distRight < 10) {
+        newX = (offsetX + scrW) - pTargetW;
+      }
+
+      await appWindow.setSize(targetSize);
+      if (Math.round(newX) !== currentPos.x) {
+        await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(newX), currentPos.y));
+      }
+
+      if (!appElement.classList.contains('collapsed-y') && !appElement.classList.contains('collapsed-x')) return;
+      if (isPeeking || appElement.classList.contains('peeking')) return;
+
+      clearEyeMessageAnimationTimers();
+      appElement.classList.add('bubble-active');
+      bubble.classList.remove('hidden');
+      eyeMessageRevealTimer = setTimeout(() => {
+        eyeMessageRevealTimer = null;
+        bubble.classList.add('visible');
+      }, 50);
+
+      // Disappear after 3 seconds
+      eyeMessageDismissTimer = setTimeout(() => {
+        eyeMessageDismissTimer = null;
+        bubble.classList.remove('visible');
+        eyeMessageDismissFadeTimer = setTimeout(async () => {
+          eyeMessageDismissFadeTimer = null;
+          bubble.classList.add('hidden');
+          appElement.classList.remove('bubble-active');
+          // Important: check if we are STILL collapsed before shrinking back
+          const stillCollapsedY = appElement.classList.contains('collapsed-y');
+          const stillCollapsedX = appElement.classList.contains('collapsed-x');
+          if (stillCollapsedY || stillCollapsedX) {
+            const restoredSize = stillCollapsedY ? COLLAPSED_SIZE_Y : COLLAPSED_SIZE_X;
+            await appWindow.setSize(restoredSize);
+            // If we moved to accommodate the right edge, move back
+            if (isCollapsedX && distRight < 10) {
+               const pRestoredW = restoredSize.width * scale;
+               const restoredX = (offsetX + scrW) - pRestoredW;
+               await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(restoredX), currentPos.y));
+            }
+          }
+        }, 400);
+      }, 3000);
+    }
+  } catch (e) {
+    console.error('Failed to show eye message:', e);
+  }
+}
 
 console.log('FlowPane initialized');
