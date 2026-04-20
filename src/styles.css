@@ -3132,10 +3132,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 15px 20px;
+  padding: 8px 12px;
   filter: drop-shadow(4px 4px 0px #000); /* Classic ink shadow */
-  width: 148px;
-  min-height: 92px;
+  width: 110px;
+  min-height: 52px;
   box-sizing: border-box;
 }
 
@@ -3158,7 +3158,7 @@ body {
 
 .eye-bubble.v3 .bubble-text {
   font-family: 'Outfit', sans-serif;
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 700;
   color: #000;
   text-transform: lowercase;
@@ -3193,7 +3193,7 @@ body {
   top: -20px; /* Trail still reaches eyes after lowering bubble */
 }
 #app.collapsed-y .bubble-text {
-  font-size: 12px;
+  font-size: 14px;
   max-width: 84px;
   margin-top: -34px;
   margin-left: 15px;
@@ -3206,25 +3206,29 @@ body {
 
 /* 2. Side Collapsed (Left Edge) */
 #app.collapsed-x .eye-bubble.v3 {
-  top: 54px; /* Below eyes + padding so bubble clears vertical title */
-  left: 26px;
-  transform: translateX(-10px);
+  top: 120px; /* Positioned below eyes in the sidebar */
+  left: 30px;
+  transform: translateX(0);
 }
+
 #app.collapsed-x .thought-bubble-container {
-  width: 124px;
-  min-height: 96px;
-  padding: 16px 18px;
+  width: 136px; /* Exact same as collapsed-y */
+  min-height: 82px;
+  padding: 14px 18px;
   justify-content: center;
   align-items: center;
 }
+
 #app.collapsed-x .thought-bubble-svg {
-  transform: rotate(-90deg) scaleX(-1); /* Points dots LEFT to eyes */
-  left: -24px; /* Connect more directly to eyes */
+  transform: scaleY(-1); /* Exact same UP pointing dots */
+  top: -20px;
 }
+
 #app.collapsed-x .bubble-text {
-  font-size: 12px;
-  max-width: 74px;
-  margin-top: 0;
+  font-size: 14px; /* Use the user's preferred large font */
+  max-width: 100px;
+  margin-top: -34px; /* Maintain vertical centering logic from y-state */
+  margin-left: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
