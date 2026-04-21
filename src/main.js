@@ -2908,15 +2908,18 @@ async function showEyeMessage() {
 
       // Ensure window doesn't grow off-screen if on the right edge
       let newX = currentPos.x;
-      const distRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width));
-      if (isCollapsedX && distRight < 10) {
-        newX = (offsetX + scrW) - pTargetW;
+      const isRight = appElement.classList.contains('collapsed-right');
+      if (isCollapsedX && isRight) {
+        // Anchor to the current right edge so it doesn't "shift"
+        newX = (currentPos.x + currentSize.width) - pTargetW;
       }
 
-      await appWindow.setSize(targetSize);
+      // Update size and position simultaneously to prevent "flicker" shift
+      const actions = [appWindow.setSize(targetSize)];
       if (Math.round(newX) !== currentPos.x) {
-        await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(newX), currentPos.y));
+        actions.push(appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(newX), currentPos.y)));
       }
+      await Promise.all(actions);
 
       if (!appElement.classList.contains('collapsed-y') && !appElement.classList.contains('collapsed-x')) return;
       if (isPeeking || appElement.classList.contains('peeking')) return;
@@ -2942,13 +2945,18 @@ async function showEyeMessage() {
           const stillCollapsedX = appElement.classList.contains('collapsed-x');
           if (stillCollapsedY || stillCollapsedX) {
             const restoredSize = stillCollapsedY ? COLLAPSED_SIZE_Y : COLLAPSED_SIZE_X;
-            await appWindow.setSize(restoredSize);
+            
+            const restoreActions = [appWindow.setSize(restoredSize)];
+            
             // If we moved to accommodate the right edge, move back
-            if (isCollapsedX && distRight < 10) {
+            const isRightSnap = appElement.classList.contains('collapsed-right');
+            if (stillCollapsedX && isRightSnap) {
                const pRestoredW = restoredSize.width * scale;
-               const restoredX = (offsetX + scrW) - pRestoredW;
-               await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(restoredX), currentPos.y));
+               // Anchor to the same right edge we used at the start
+               const restoredX = (currentPos.x + currentSize.width) - pRestoredW;
+               restoreActions.push(appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(restoredX), currentPos.y)));
             }
+            await Promise.all(restoreActions);
           }
         }, 400);
       }, 3000);
