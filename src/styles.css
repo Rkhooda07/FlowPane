@@ -3121,15 +3121,44 @@ body {
 }
 
 /* Comic Thought Bubble v3 */
+/* Comic Thought Bubble v3 */
 .eye-bubble.v3 {
   position: absolute;
   z-index: 10001;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex !important;
-  visibility: visible !important;
-  max-width: none;
+  transform-origin: center center;
+}
+
+.thought-dot {
+  opacity: 0;
+  transform: scale(0);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+
+.eye-bubble.v3.visible .thought-dot {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Dots emerge first in sequence */
+.eye-bubble.v3.visible .d3 { transition-delay: 0s; }
+.eye-bubble.v3.visible .d2 { transition-delay: 0.1s; }
+.eye-bubble.v3.visible .d1 { transition-delay: 0.2s; }
+
+/* Cloud pops in after dots (faster, much less jumpy) */
+@keyframes bubbleCloudPopIn {
+  0% { opacity: 0; transform: scale(0.8) translateY(5px); }
+  65% { transform: scale(1.02) translateY(-1px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Exit animation */
+@keyframes bubblePopOut {
+  0% { opacity: 1; transform: scale(1); }
+  40% { transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(0.6); }
 }
 
 .thought-bubble-container {
@@ -3142,6 +3171,11 @@ body {
   width: 110px;
   min-height: 52px;
   box-sizing: border-box;
+  opacity: 0; /* Wait for animation */
+}
+
+.eye-bubble.v3.visible .thought-bubble-container {
+  animation: bubbleCloudPopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
 }
 
 .thought-bubble-svg {
@@ -3278,7 +3312,10 @@ body {
 /* Visibility triggers */
 .eye-bubble.v3.visible {
   opacity: 1;
-  transform: translate(0, 0) !important;
+}
+
+.eye-bubble.v3.burst-out {
+  animation: bubblePopOut 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .eye-bubble.v3.hidden {

@@ -16,6 +16,7 @@ let eyeMessageScheduleTimer = null;
 let eyeMessageRevealTimer = null;
 let eyeMessageDismissTimer = null;
 let eyeMessageDismissFadeTimer = null;
+let eyeMessageTypeTimer = null;
 let isHistoryOpen = false;
 let hasUserModifiedDate = false;
 let selectedReminderMinutes = null;
@@ -2828,6 +2829,10 @@ function clearEyeMessageAnimationTimers() {
     clearTimeout(eyeMessageDismissFadeTimer);
     eyeMessageDismissFadeTimer = null;
   }
+  if (eyeMessageTypeTimer != null) {
+    clearInterval(eyeMessageTypeTimer);
+    eyeMessageTypeTimer = null;
+  }
 }
 
 async function suppressEyeMessageBubble() {
@@ -2926,19 +2931,53 @@ async function showEyeMessage() {
 
       clearEyeMessageAnimationTimers();
       appElement.classList.add('bubble-active');
-      bubble.classList.remove('hidden');
+      bubble.classList.remove('hidden', 'burst-out');
+      
+      const bubbleText = bubble.querySelector('.bubble-text');
+      if (bubbleText) bubbleText.innerHTML = '';
+      
       eyeMessageRevealTimer = setTimeout(() => {
         eyeMessageRevealTimer = null;
         bubble.classList.add('visible');
+        
+        // Typewriter effect starts after the cloud pop-in starts
+        if (bubbleText) {
+          const fullHTML = 'i got my<br>eyes on you';
+          let typeIndex = 0;
+          
+          setTimeout(() => {
+            eyeMessageTypeTimer = setInterval(() => {
+              if (!bubble.classList.contains('visible')) {
+                clearInterval(eyeMessageTypeTimer);
+                eyeMessageTypeTimer = null;
+                return;
+              }
+              typeIndex++;
+              // Skip past <br> tag automatically
+              if (fullHTML.slice(typeIndex - 1).startsWith('<br>')) {
+                typeIndex += 3; // +3 to jump over 'br>' since 'typeIndex' already includes '<'
+              }
+              bubbleText.innerHTML = fullHTML.substring(0, typeIndex);
+              
+              if (typeIndex >= fullHTML.length) {
+                clearInterval(eyeMessageTypeTimer);
+                eyeMessageTypeTimer = null;
+              }
+            }, 30); // 30ms per character for a fast, snappy text reveal
+          }, 350); // wait for the cloud animation to settle
+        }
       }, 50);
 
       // Disappear after 3 seconds
       eyeMessageDismissTimer = setTimeout(() => {
         eyeMessageDismissTimer = null;
         bubble.classList.remove('visible');
+        bubble.classList.add('burst-out'); // High-fidelity exit flash/shrink
+        
         eyeMessageDismissFadeTimer = setTimeout(async () => {
           eyeMessageDismissFadeTimer = null;
           bubble.classList.add('hidden');
+          bubble.classList.remove('burst-out');
           appElement.classList.remove('bubble-active');
           // Important: check if we are STILL collapsed before shrinking back
           const stillCollapsedY = appElement.classList.contains('collapsed-y');
