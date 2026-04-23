@@ -248,6 +248,7 @@ body {
   order: -1; /* Keep eyes at the top in vertical layout */
   min-width: 0;
   gap: 4px;
+  overflow: visible !important; /* Ensure bubble doesn't clip */
 }
 
 #app.collapsed-x .googly-eyes {
@@ -3216,7 +3217,7 @@ body {
 
 /* 1. Top Collapsed (bubble below eyes) */
 #app.collapsed-y .eye-bubble.v3 {
-  top: 44px; /* Sit clearly below the title strip / eyes */
+  top: 56px; /* Moved further down for better gap from eyes */
   left: 8px;
   transform: translateY(-6px);
 }
@@ -3246,7 +3247,7 @@ body {
 /* 2. Side Collapsed (Left Edge) */
 #app.collapsed-x .eye-bubble.v3 {
   top: 120px; /* Positioned below eyes in the sidebar */
-  left: 30px;
+  left: 26px; /* Brought closer to eyes for a tighter connection */
   transform: translateX(0);
 }
 
@@ -3279,7 +3280,7 @@ body {
 #app.collapsed-x.collapsed-right .eye-bubble.v3 {
   top: 120px; /* Mirror of the left side */
   left: auto;
-  right: 30px;
+  right: 32px; /* Moved back closer to eyes */
   transform: translateX(0);
 }
 

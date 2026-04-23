@@ -77,7 +77,7 @@ const PEEK_SIZE_X = new LogicalSize(270, 325);
 const COLLAPSED_SIZE_Y = new LogicalSize(325, 42); // Match CSS height for bar
 const COLLAPSED_SIZE_X = new LogicalSize(42, 300); // Match CSS dimensions
 const COLLAPSED_SIZE_Y_BUBBLE = new LogicalSize(325, 120); 
-const COLLAPSED_SIZE_X_BUBBLE = new LogicalSize(180, 300); 
+const COLLAPSED_SIZE_X_BUBBLE = new LogicalSize(300, 300); 
 const BOTTOM_DOCK_MINIMIZE_THRESHOLD = 0;
 
 let isWindowDragGesture = false;
@@ -2971,33 +2971,55 @@ async function showEyeMessage() {
       // Disappear after 3 seconds
       eyeMessageDismissTimer = setTimeout(() => {
         eyeMessageDismissTimer = null;
-        bubble.classList.remove('visible');
-        bubble.classList.add('burst-out'); // High-fidelity exit flash/shrink
         
-        eyeMessageDismissFadeTimer = setTimeout(async () => {
-          eyeMessageDismissFadeTimer = null;
-          bubble.classList.add('hidden');
-          bubble.classList.remove('burst-out');
-          appElement.classList.remove('bubble-active');
-          // Important: check if we are STILL collapsed before shrinking back
-          const stillCollapsedY = appElement.classList.contains('collapsed-y');
-          const stillCollapsedX = appElement.classList.contains('collapsed-x');
-          if (stillCollapsedY || stillCollapsedX) {
-            const restoredSize = stillCollapsedY ? COLLAPSED_SIZE_Y : COLLAPSED_SIZE_X;
-            
-            const restoreActions = [appWindow.setSize(restoredSize)];
-            
-            // If we moved to accommodate the right edge, move back
-            const isRightSnap = appElement.classList.contains('collapsed-right');
-            if (stillCollapsedX && isRightSnap) {
-               const pRestoredW = restoredSize.width * scale;
-               // Anchor to the same right edge we used at the start
-               const restoredX = (currentPos.x + currentSize.width) - pRestoredW;
-               restoreActions.push(appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(restoredX), currentPos.y)));
+        // Reverse typewriter effect
+        if (bubbleText) {
+          const textArray = ['i', ' ', 'g', 'o', 't', ' ', 'm', 'y', '<br>', 'e', 'y', 'e', 's', ' ', 'o', 'n', ' ', 'y', 'o', 'u'];
+          let currentLen = textArray.length;
+          
+          if (eyeMessageTypeTimer) clearInterval(eyeMessageTypeTimer);
+          
+          eyeMessageTypeTimer = setInterval(() => {
+            currentLen--;
+            if (currentLen < 0) {
+              clearInterval(eyeMessageTypeTimer);
+              eyeMessageTypeTimer = null;
+              
+              // Now trigger the bubble burst/exit
+              bubble.classList.remove('visible');
+              bubble.classList.add('burst-out');
+              
+              eyeMessageDismissFadeTimer = setTimeout(async () => {
+                eyeMessageDismissFadeTimer = null;
+                bubble.classList.add('hidden');
+                bubble.classList.remove('burst-out');
+                appElement.classList.remove('bubble-active');
+                
+                const stillCollapsedY = appElement.classList.contains('collapsed-y');
+                const stillCollapsedX = appElement.classList.contains('collapsed-x');
+                if (stillCollapsedY || stillCollapsedX) {
+                  const restoredSize = stillCollapsedY ? COLLAPSED_SIZE_Y : COLLAPSED_SIZE_X;
+                  const scale = (await currentMonitor()).scaleFactor;
+                  const restoreActions = [appWindow.setSize(restoredSize)];
+                  
+                  const isRightSnap = appElement.classList.contains('collapsed-right');
+                  if (stillCollapsedX && isRightSnap) {
+                    const pRestoredW = restoredSize.width * scale;
+                    const restoredX = (currentPos.x + currentSize.width) - pRestoredW;
+                    restoreActions.push(appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(restoredX), currentPos.y)));
+                  }
+                  await Promise.all(restoreActions);
+                }
+              }, 400);
+              return;
             }
-            await Promise.all(restoreActions);
-          }
-        }, 400);
+            bubbleText.innerHTML = textArray.slice(0, currentLen).join('');
+          }, 30); // Matched with forward typewriter speed (30ms)
+        } else {
+          bubble.classList.remove('visible');
+          bubble.classList.add('burst-out');
+          // ... fallback cleanup ...
+        }
       }, 3000);
     }
   } catch (e) {
