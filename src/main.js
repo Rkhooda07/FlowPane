@@ -76,7 +76,7 @@ const PEEK_SIZE_Y = new LogicalSize(325, 270);
 const PEEK_SIZE_X = new LogicalSize(270, 325);
 const COLLAPSED_SIZE_Y = new LogicalSize(325, 42); // Match CSS height for bar
 const COLLAPSED_SIZE_X = new LogicalSize(42, 300); // Match CSS dimensions
-const COLLAPSED_SIZE_Y_BUBBLE = new LogicalSize(325, 120); 
+const COLLAPSED_SIZE_Y_BUBBLE = new LogicalSize(325, 180); 
 const COLLAPSED_SIZE_X_BUBBLE = new LogicalSize(300, 300); 
 const BOTTOM_DOCK_MINIMIZE_THRESHOLD = 0;
 

@@ -3222,11 +3222,14 @@ body {
   transform: translateY(-6px);
 }
 #app.collapsed-y .thought-bubble-container {
-  width: 136px;
-  min-height: 82px;
+  width: 196px; /* 136px original + 60px border */
+  min-height: 142px; /* 82px original + 60px border */
   padding: 14px 18px;
+  border: 30px solid transparent; /* Expands filter bounding box to prevent clipping */
+  margin: -30px; /* Negates layout shift caused by border */
   justify-content: center;
   align-items: center;
+  overflow: visible !important;
 }
 #app.collapsed-y .thought-bubble-svg {
   transform: scaleY(-1); /* Points dots UP to eyes */
@@ -3252,11 +3255,14 @@ body {
 }
 
 #app.collapsed-x .thought-bubble-container {
-  width: 136px; /* Exact same as collapsed-y */
-  min-height: 82px;
+  width: 196px; /* 136px original + 60px border */
+  min-height: 142px; /* 82px original + 60px border */
   padding: 14px 18px;
+  border: 30px solid transparent; /* Expands filter bounding box to prevent clipping */
+  margin: -30px; /* Negates layout shift caused by border */
   justify-content: center;
   align-items: center;
+  overflow: visible !important;
 }
 
 #app.collapsed-x .thought-bubble-svg {
@@ -3280,28 +3286,33 @@ body {
 #app.collapsed-x.collapsed-right .eye-bubble.v3 {
   top: 120px; /* Mirror of the left side */
   left: auto;
-  right: 32px; /* Moved back closer to eyes */
+  right: 24px; /* Brought closer to eyes as requested */
   transform: translateX(0);
 }
 
 #app.collapsed-x.collapsed-right .thought-bubble-container {
-  width: 136px;
-  min-height: 82px;
-  padding: 14px 18px;
+  width: 210px; /* 150px original + 60px border */
+  min-height: 142px; /* 82px original + 60px border */
+  padding: 14px 25px 14px 10px;
+  border: 30px solid transparent; /* Expands filter bounding box to prevent clipping */
+  margin: -30px; /* Negates layout shift caused by border */
   justify-content: center;
   align-items: center;
+  overflow: visible !important;
 }
 
 #app.collapsed-x.collapsed-right .thought-bubble-svg {
   transform: scale(-1, -1); /* Mirror horizontally AND point UP to right-side eyes */
   top: -20px;
+  left: 0;
+  width: 100%;
 }
 
 #app.collapsed-x.collapsed-right .bubble-text {
   font-size: 14px;
   max-width: 100px;
   margin-top: -34px;
-  margin-right: 15px; /* Mirrored margin to match text position in flipped cloud */
+  margin-right: 15px; /* Subtle offset to match cloud center */
   margin-left: 0;
   display: flex;
   flex-direction: column;
