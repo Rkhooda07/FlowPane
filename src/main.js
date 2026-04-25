@@ -21,6 +21,7 @@ let isHistoryOpen = false;
 let hasUserModifiedDate = false;
 let selectedReminderMinutes = null;
 let dueInputFocusFromPointer = false;
+let collapseTimer = null;
 
 function updateReminderBtnState() {
   if (!taskReminderBtn) return;
@@ -2042,13 +2043,25 @@ async function clampToScreen() {
 }
 
 async function checkInstantCollapse() {
-  if (isAnimating || isDockMinimizing) return;
-  if (Date.now() - lastExpandTime < 800) return; // Prevent flip-flop right after expansion
+  if (isAnimating || isDockMinimizing) {
+    clearTimeout(collapseTimer);
+    return;
+  }
+  if (Date.now() - lastExpandTime < 800) {
+    clearTimeout(collapseTimer);
+    return; // Prevent flip-flop right after expansion
+  }
   const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
-  if (isCollapsed) return;
+  if (isCollapsed) {
+    clearTimeout(collapseTimer);
+    return;
+  }
 
   const monitor = await currentMonitor();
-  if (!monitor) return;
+  if (!monitor) {
+    clearTimeout(collapseTimer);
+    return;
+  }
 
   const { x: winX, y: winY } = await appWindow.outerPosition();
   const { width: winW, height: winH } = await appWindow.outerSize();
@@ -2063,9 +2076,17 @@ async function checkInstantCollapse() {
   const dRight = Math.abs((offsetX + scrW) - (winX + winW));
 
   if (dTop < TRIGGER_TOP_SIDES) {
-    toggleCollapseY();
+    clearTimeout(collapseTimer);
+    collapseTimer = setTimeout(() => {
+      toggleCollapseY();
+    }, 150);
   } else if (dLeft < TRIGGER_TOP_SIDES || dRight < TRIGGER_TOP_SIDES) {
-    toggleCollapseX();
+    clearTimeout(collapseTimer);
+    collapseTimer = setTimeout(() => {
+      toggleCollapseX();
+    }, 150);
+  } else {
+    clearTimeout(collapseTimer);
   }
 }
 
