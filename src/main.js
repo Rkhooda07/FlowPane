@@ -192,31 +192,56 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
   };
 
   return new Promise(resolve => {
-    async function step() {
+    let lastW = Math.round(pStartSize.width);
+    let lastH = Math.round(pStartSize.height);
+    let lastX = Math.round(startPos.x);
+    let lastY = Math.round(startPos.y);
+    let isApplying = false;
+
+    function step() {
       const now = performance.now();
       const progress = Math.min((now - startTime) / duration, 1);
 
-      // Ease In Out Cubic for smooth start and end without abruptness
-      const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-      const currentX = startPos.x + (endPos.x - startPos.x) * ease;
-      const currentY = startPos.y + (endPos.y - startPos.y) * ease;
-      const currentW = pStartSize.width + (pEndSize.width - pStartSize.width) * ease;
-      const currentH = pStartSize.height + (pEndSize.height - pStartSize.height) * ease;
-
-      try {
-        // Set both size and position in the same frame for sync
-        await appWindow.setSize(new PhysicalSize(Math.round(currentW), Math.round(currentH)));
-        await appWindow.setPosition(new PhysicalPosition(Math.round(currentX), Math.round(currentY)));
-      } catch (e) {
-        // Ignore potential errors during rapid movement
-      }
-
       if (progress < 1) {
         requestAnimationFrame(step);
+        
+        if (isApplying) return; // Drop frame to prevent IPC stuttering
+
+        // Quartic ease out for a much smoother, snappier feel
+        const ease = 1 - Math.pow(1 - progress, 4);
+
+        const targetW = Math.round(pStartSize.width + (pEndSize.width - pStartSize.width) * ease);
+        const targetH = Math.round(pStartSize.height + (pEndSize.height - pStartSize.height) * ease);
+        const targetX = Math.round(startPos.x + (endPos.x - startPos.x) * ease);
+        const targetY = Math.round(startPos.y + (endPos.y - startPos.y) * ease);
+
+        const promises = [];
+        if (targetW !== lastW || targetH !== lastH) {
+          promises.push(appWindow.setSize(new PhysicalSize(targetW, targetH)));
+          lastW = targetW;
+          lastH = targetH;
+        }
+        if (targetX !== lastX || targetY !== lastY) {
+          promises.push(appWindow.setPosition(new PhysicalPosition(targetX, targetY)));
+          lastX = targetX;
+          lastY = targetY;
+        }
+
+        if (promises.length > 0) {
+          isApplying = true;
+          Promise.all(promises).finally(() => {
+            isApplying = false;
+          });
+        }
       } else {
-        isAnimating = false;
-        resolve();
+        // Final frame guarantee
+        Promise.all([
+          appWindow.setSize(new PhysicalSize(Math.round(pEndSize.width), Math.round(pEndSize.height))),
+          appWindow.setPosition(new PhysicalPosition(Math.round(endPos.x), Math.round(endPos.y)))
+        ]).finally(() => {
+          isAnimating = false;
+          resolve();
+        });
       }
     }
     requestAnimationFrame(step);
@@ -2140,6 +2165,9 @@ async function checkBottomEdgeMinimize() {
   return minimizeIntoDockFromBottomEdge();
 }
 
+let isMovedProcessing = false;
+let moveProcessingPending = false;
+
 appWindow.onMoved(async () => {
   if (isAnimating || isDockMinimizing) return;
 
@@ -2156,17 +2184,87 @@ appWindow.onMoved(async () => {
     }
   }
 
-  if (await checkBottomEdgeMinimize()) {
-    return;
-  }
-
-  // Instant reaction logic
-  clampToScreen();
-  checkInstantExpand();
-  checkInstantCollapse();
-
   clearTimeout(moveTimeout);
   moveTimeout = setTimeout(snapToEdges, 200);
+
+  if (isMovedProcessing) {
+    moveProcessingPending = true;
+    return;
+  }
+  isMovedProcessing = true;
+
+  const processMoves = async () => {
+    try {
+      if (isAnimating || isDockMinimizing) return;
+      const monitor = await currentMonitor();
+      if (!monitor) return;
+      const winPos = await appWindow.outerPosition();
+      const winSize = await appWindow.outerSize();
+
+      if (isWindowDragGesture && Date.now() <= windowDragGestureExpiresAt) {
+        const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
+        if (!isCollapsed) {
+          const { work } = getMonitorBounds(monitor);
+          if (winPos.y + winSize.height >= work.y + work.height - BOTTOM_DOCK_MINIMIZE_THRESHOLD) {
+            minimizeIntoDockFromBottomEdge();
+            return;
+          }
+        }
+      }
+
+      const { full } = getMonitorBounds(monitor);
+      const { x: offsetX, y: offsetY, width: scrW } = full;
+      let newX = winPos.x;
+      let newY = winPos.y;
+
+      if (winPos.y < offsetY) newY = offsetY;
+      if (winPos.x < offsetX) newX = offsetX;
+      else if (winPos.x + winSize.width > offsetX + scrW) newX = offsetX + scrW - winSize.width;
+
+      if (newX !== winPos.x || newY !== winPos.y) {
+        await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(newX, newY));
+        winPos.x = newX;
+        winPos.y = newY;
+      }
+
+      const isCollapsedY = appElement.classList.contains('collapsed-y');
+      const isCollapsedX = appElement.classList.contains('collapsed-x');
+      const dTop = Math.abs(winPos.y - offsetY);
+      const dLeft = Math.abs(winPos.x - offsetX);
+      const dRight = Math.abs((offsetX + scrW) - (winPos.x + winSize.width));
+
+      if (isCollapsedY || isCollapsedX) {
+        const EXPAND_THRESHOLD = 30;
+        if (isCollapsedY && dTop > EXPAND_THRESHOLD) {
+          toggleCollapseY(true);
+        } else if (isCollapsedX && dLeft > EXPAND_THRESHOLD && dRight > EXPAND_THRESHOLD) {
+          toggleCollapseX(true);
+        }
+      } else {
+        if (Date.now() - lastExpandTime >= 800) {
+          const TRIGGER_TOP_SIDES = 6;
+          if (dTop < TRIGGER_TOP_SIDES) {
+            clearTimeout(collapseTimer);
+            collapseTimer = setTimeout(() => { toggleCollapseY(); }, 150);
+          } else if (dLeft < TRIGGER_TOP_SIDES || dRight < TRIGGER_TOP_SIDES) {
+            clearTimeout(collapseTimer);
+            collapseTimer = setTimeout(() => { toggleCollapseX(); }, 150);
+          } else {
+            clearTimeout(collapseTimer);
+          }
+        }
+      }
+    } finally {
+      if (moveProcessingPending) {
+        moveProcessingPending = false;
+        requestAnimationFrame(() => processMoves());
+      } else {
+        isMovedProcessing = false;
+      }
+    }
+  };
+
+  processMoves();
 });
 
 // Focus Mode Logic
@@ -2893,12 +2991,18 @@ async function suppressEyeMessageBubble() {
     if (stillCollapsedY) {
       await appWindow.setSize(COLLAPSED_SIZE_Y);
     } else {
-      await appWindow.setSize(COLLAPSED_SIZE_X);
+      let endX = currentPos.x;
       if (distRight < 10) {
         const pRestoredW = COLLAPSED_SIZE_X.width * scale;
-        const restoredX = (offsetX + scrW) - pRestoredW;
-        await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(restoredX), currentPos.y));
+        endX = (offsetX + scrW) - pRestoredW;
       }
+      await animateWindowTransform(
+        currentPos,
+        { x: Math.round(endX), y: currentPos.y },
+        currentSize,
+        COLLAPSED_SIZE_X,
+        100
+      );
     }
   } catch (e) {
     console.error('Failed to suppress eye message bubble:', e);
@@ -2940,19 +3044,26 @@ async function showEyeMessage() {
         newX = (currentPos.x + currentSize.width) - pTargetW;
       }
 
-      // Update size and position simultaneously to prevent "flicker" shift
-      const actions = [appWindow.setSize(targetSize)];
-      if (Math.round(newX) !== currentPos.x) {
-        actions.push(appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(newX), currentPos.y)));
+      // Update UI state first so the collapsed bar is hidden, preventing ghosting at the old edge
+      appElement.classList.add('bubble-active');
+      clearEyeMessageAnimationTimers();
+      bubble.classList.remove('hidden', 'burst-out');
+
+      // Use the butter-smooth transform to perfectly anchor the right edge
+      if (Math.round(newX) !== currentPos.x || currentSize.width !== pTargetW) {
+        await animateWindowTransform(
+          currentPos,
+          { x: Math.round(newX), y: currentPos.y },
+          currentSize,
+          targetSize,
+          100
+        );
+      } else {
+        await appWindow.setSize(targetSize);
       }
-      await Promise.all(actions);
 
       if (!appElement.classList.contains('collapsed-y') && !appElement.classList.contains('collapsed-x')) return;
       if (isPeeking || appElement.classList.contains('peeking')) return;
-
-      clearEyeMessageAnimationTimers();
-      appElement.classList.add('bubble-active');
-      bubble.classList.remove('hidden', 'burst-out');
       
       const bubbleText = bubble.querySelector('.bubble-text');
       if (bubbleText) bubbleText.innerHTML = '';
@@ -3021,15 +3132,28 @@ async function showEyeMessage() {
                 if (stillCollapsedY || stillCollapsedX) {
                   const restoredSize = stillCollapsedY ? COLLAPSED_SIZE_Y : COLLAPSED_SIZE_X;
                   const scale = (await currentMonitor()).scaleFactor;
-                  const restoreActions = [appWindow.setSize(restoredSize)];
+                  
+                  const actualPos = await appWindow.outerPosition();
+                  const actualSize = await appWindow.outerSize();
+                  let endX = actualPos.x;
                   
                   const isRightSnap = appElement.classList.contains('collapsed-right');
                   if (stillCollapsedX && isRightSnap) {
                     const pRestoredW = restoredSize.width * scale;
-                    const restoredX = (currentPos.x + currentSize.width) - pRestoredW;
-                    restoreActions.push(appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(restoredX), currentPos.y)));
+                    endX = (actualPos.x + actualSize.width) - pRestoredW;
                   }
-                  await Promise.all(restoreActions);
+                  
+                  if (stillCollapsedY) {
+                    await appWindow.setSize(restoredSize);
+                  } else {
+                    await animateWindowTransform(
+                      actualPos,
+                      { x: Math.round(endX), y: actualPos.y },
+                      actualSize,
+                      restoredSize,
+                      100
+                    );
+                  }
                 }
               }, 400);
               return;
