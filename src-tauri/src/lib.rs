@@ -1,7 +1,7 @@
-use tauri::{Manager, Emitter};
+use std::time::Duration;
+use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 #[allow(unused_imports)]
 use window_vibrancy::{apply_acrylic, apply_vibrancy, NSVisualEffectMaterial};
-use std::time::Duration;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -16,6 +16,38 @@ fn get_cursor_position(app: tauri::AppHandle) -> Result<(f64, f64), String> {
     }
 }
 
+#[tauri::command]
+fn show_eye_bubble_overlay(app: tauri::AppHandle, x: i32, y: i32) -> Result<(), String> {
+    let window = app
+        .get_webview_window("eye-bubble")
+        .ok_or_else(|| "Eye bubble overlay window not found".to_string())?;
+
+    window
+        .set_position(tauri::PhysicalPosition::new(x, y))
+        .map_err(|e| e.to_string())?;
+    let _ = window.set_ignore_cursor_events(true);
+    let _ = window.set_focusable(false);
+    let _ = window.set_always_on_top(true);
+    window.show().map_err(|e| e.to_string())?;
+    window
+        .emit("eye-bubble:show", ())
+        .map_err(|e| e.to_string())?;
+    let _ = window.eval("window.showEyeBubbleFromHost && window.showEyeBubbleFromHost()");
+
+    Ok(())
+}
+
+#[tauri::command]
+fn hide_eye_bubble_overlay(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("eye-bubble") {
+        let _ = window.emit("eye-bubble:hide", ());
+        let _ = window.eval("window.hideEyeBubbleFromHost && window.hideEyeBubbleFromHost()");
+        window.hide().map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -23,6 +55,26 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
+
+            let bubble_window = WebviewWindowBuilder::new(
+                app,
+                "eye-bubble",
+                WebviewUrl::App("bubble.html".into()),
+            )
+            .title("FlowPane Bubble")
+            .inner_size(300.0, 300.0)
+            .min_inner_size(300.0, 300.0)
+            .max_inner_size(300.0, 300.0)
+            .resizable(false)
+            .decorations(false)
+            .transparent(true)
+            .shadow(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .focusable(false)
+            .visible(false)
+            .build()?;
+            let _ = bubble_window.set_ignore_cursor_events(true);
 
             // Background task to track mouse hover for inactive window
             let window_clone = window.clone();
@@ -92,7 +144,12 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, get_cursor_position])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            get_cursor_position,
+            show_eye_bubble_overlay,
+            hide_eye_bubble_overlay
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

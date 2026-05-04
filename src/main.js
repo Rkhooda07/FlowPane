@@ -2954,12 +2954,51 @@ function clearEyeMessageAnimationTimers() {
   }
 }
 
+async function hideEyeMessageOverlay() {
+  try {
+    await window.__TAURI__.core.invoke('hide_eye_bubble_overlay');
+  } catch (e) {
+    console.error('Failed to hide eye message overlay:', e);
+  }
+}
+
+async function showRightEyeMessageOverlay() {
+  clearEyeMessageAnimationTimers();
+
+  try {
+    const monitor = await currentMonitor();
+    if (!monitor) return;
+
+    const currentPos = await appWindow.outerPosition();
+    const currentSize = await appWindow.outerSize();
+    const scale = monitor.scaleFactor;
+    const overlayWidth = COLLAPSED_SIZE_X_BUBBLE.width * scale;
+    const overlayX = (currentPos.x + currentSize.width) - overlayWidth;
+
+    if (!appElement.classList.contains('collapsed-x') || !appElement.classList.contains('collapsed-right')) return;
+    if (isPeeking || appElement.classList.contains('peeking')) return;
+
+    await window.__TAURI__.core.invoke('show_eye_bubble_overlay', {
+      x: Math.round(overlayX),
+      y: Math.round(currentPos.y)
+    });
+
+    eyeMessageDismissFadeTimer = setTimeout(() => {
+      eyeMessageDismissFadeTimer = null;
+      hideEyeMessageOverlay();
+    }, 4300);
+  } catch (e) {
+    console.error('Failed to show right-side eye message overlay:', e);
+  }
+}
+
 async function suppressEyeMessageBubble() {
   if (eyeMessageScheduleTimer != null) {
     clearTimeout(eyeMessageScheduleTimer);
     eyeMessageScheduleTimer = null;
   }
   clearEyeMessageAnimationTimers();
+  await hideEyeMessageOverlay();
 
   const wasBubbleActive = appElement.classList.contains('bubble-active');
   document.querySelectorAll('.eye-bubble').forEach((b) => {
@@ -2996,13 +3035,21 @@ async function suppressEyeMessageBubble() {
         const pRestoredW = COLLAPSED_SIZE_X.width * scale;
         endX = (offsetX + scrW) - pRestoredW;
       }
-      await animateWindowTransform(
-        currentPos,
-        { x: Math.round(endX), y: currentPos.y },
-        currentSize,
-        COLLAPSED_SIZE_X,
-        100
-      );
+
+      const isRight = appElement.classList.contains('collapsed-right');
+      if (isRight) {
+        // Instant snap for right side to avoid IPC wobble
+        await appWindow.setSize(COLLAPSED_SIZE_X);
+        await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(endX), currentPos.y));
+      } else {
+        await animateWindowTransform(
+          currentPos,
+          { x: Math.round(endX), y: currentPos.y },
+          currentSize,
+          COLLAPSED_SIZE_X,
+          100
+        );
+      }
     }
   } catch (e) {
     console.error('Failed to suppress eye message bubble:', e);
@@ -3014,6 +3061,11 @@ async function showEyeMessage() {
   const isCollapsedX = appElement.classList.contains('collapsed-x');
   if (!isCollapsedY && !isCollapsedX) return;
   if (isPeeking || appElement.classList.contains('peeking')) return;
+
+  if (isCollapsedX && appElement.classList.contains('collapsed-right')) {
+    await showRightEyeMessageOverlay();
+    return;
+  }
 
   // Use the bubble in the active header
   const activeHeader = isInFocusMode ? document.querySelector('.focus-header-bar') : document.querySelector('.title-bar:not(.focus-header-bar)');
@@ -3051,13 +3103,19 @@ async function showEyeMessage() {
 
       // Use the butter-smooth transform to perfectly anchor the right edge
       if (Math.round(newX) !== currentPos.x || currentSize.width !== pTargetW) {
-        await animateWindowTransform(
-          currentPos,
-          { x: Math.round(newX), y: currentPos.y },
-          currentSize,
-          targetSize,
-          100
-        );
+        if (isRight) {
+          // Instant resize for right edge prevents IPC coordinate tearing (wobbling right edge)
+          await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(newX), currentPos.y));
+          await appWindow.setSize(targetSize);
+        } else {
+          await animateWindowTransform(
+            currentPos,
+            { x: Math.round(newX), y: currentPos.y },
+            currentSize,
+            targetSize,
+            100
+          );
+        }
       } else {
         await appWindow.setSize(targetSize);
       }
@@ -3146,13 +3204,18 @@ async function showEyeMessage() {
                   if (stillCollapsedY) {
                     await appWindow.setSize(restoredSize);
                   } else {
-                    await animateWindowTransform(
-                      actualPos,
-                      { x: Math.round(endX), y: actualPos.y },
-                      actualSize,
-                      restoredSize,
-                      100
-                    );
+                    if (isRightSnap) {
+                      await appWindow.setSize(restoredSize);
+                      await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(endX), actualPos.y));
+                    } else {
+                      await animateWindowTransform(
+                        actualPos,
+                        { x: Math.round(endX), y: actualPos.y },
+                        actualSize,
+                        restoredSize,
+                        100
+                      );
+                    }
                   }
                 }
               }, 400);
