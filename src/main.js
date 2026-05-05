@@ -66,6 +66,17 @@ appWindow.listen('mouse-leave', () => {
   updateFocusState();
 });
 
+// Added DOM listeners for more reliable tracking when unfocused
+appElement.addEventListener('mouseenter', () => {
+  isMouseInside = true;
+  updateFocusState();
+});
+
+appElement.addEventListener('mouseleave', () => {
+  isMouseInside = false;
+  updateFocusState();
+});
+
 // Initial check
 appWindow.isFocused().then(focused => {
   isWindowFocused = focused;
@@ -2184,8 +2195,9 @@ appWindow.onMoved(async () => {
     }
   }
 
-  clearTimeout(moveTimeout);
-  moveTimeout = setTimeout(snapToEdges, 200);
+  // Snap to edges disabled to allow free movement off-screen
+  // clearTimeout(moveTimeout);
+  // moveTimeout = setTimeout(snapToEdges, 200);
 
   if (isMovedProcessing) {
     moveProcessingPending = true;
@@ -2204,24 +2216,12 @@ appWindow.onMoved(async () => {
 
       const { full, work } = getMonitorBounds(monitor);
       const { x: offsetX, y: offsetY, width: scrW } = full;
-      let newX = winPos.x;
-      let newY = winPos.y;
-
-      if (winPos.y < offsetY) newY = offsetY;
-      if (winPos.x < offsetX) newX = offsetX;
-      else if (winPos.x + winSize.width > offsetX + scrW) newX = offsetX + scrW - winSize.width;
-
-      if (newX !== winPos.x || newY !== winPos.y) {
-        await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(newX, newY));
-        winPos.x = newX;
-        winPos.y = newY;
-      }
 
       const isCollapsedY = appElement.classList.contains('collapsed-y');
       const isCollapsedX = appElement.classList.contains('collapsed-x');
-      const dTop = Math.abs(winPos.y - offsetY);
-      const dLeft = Math.abs(winPos.x - offsetX);
-      const dRight = Math.abs((offsetX + scrW) - (winPos.x + winSize.width));
+      const dTop = winPos.y - offsetY;
+      const dLeft = winPos.x - offsetX;
+      const dRight = (offsetX + scrW) - (winPos.x + winSize.width);
       const windowBottom = winPos.y + winSize.height;
       const workBottom = work.y + work.height;
 
@@ -2898,6 +2898,29 @@ async function trackCursorGlobally() {
     // Convert to logical (CSS) coordinates relative to the webview
     const logicalX = (pos[0] - winPos.x) / scale;
     const logicalY = (pos[1] - winPos.y) / scale;
+
+    // Pseudo-hover detection for unfocused states
+    const hoveredEl = document.elementFromPoint(logicalX, logicalY);
+    const prevHovers = document.querySelectorAll('.pseudo-hover');
+    prevHovers.forEach(el => {
+      if (!hoveredEl || !el.contains(hoveredEl)) {
+        el.classList.remove('pseudo-hover');
+      }
+    });
+
+    if (hoveredEl) {
+      let curr = hoveredEl;
+      while (curr && curr !== document.body) {
+        if (curr.classList.contains('task-note-tab') || 
+            curr.classList.contains('task-item') || 
+            curr.classList.contains('control-btn') ||
+            curr.classList.contains('filter-btn') ||
+            curr.classList.contains('task-reminder-btn')) {
+          curr.classList.add('pseudo-hover');
+        }
+        curr = curr.parentElement;
+      }
+    }
 
     const eyes = document.querySelectorAll('.eye');
     eyes.forEach(eye => {
