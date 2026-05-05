@@ -740,11 +740,11 @@ function renderTasks() {
       const task = item.data;
       const taskIndex = tasks.indexOf(task);
       const li = document.createElement('li');
-      li.className = `task-item ${(task.urgent && !task.completed) ? 'urgent' : ''}`;
-
       const hasDeadline = task.due !== null;
       const dueDate = hasDeadline ? new Date(task.due) : null;
       const now = new Date();
+      const isUrgent = !task.completed && hasDeadline && (dueDate - now < 10 * 60 * 1000);
+      li.className = `task-item ${isUrgent ? 'urgent' : ''}`;
 
       let dueText = '';
       if (task.completed) {
@@ -1929,7 +1929,7 @@ function addTask() {
 
   if (finalDue) {
     const diffHrs = (new Date(finalDue) - new Date()) / (1000 * 60 * 60);
-    if (diffHrs < 0.25) newTask.urgent = true; // 15 minutes = 0.25 hours
+    if (diffHrs < 0.1667) newTask.urgent = true; // 10 minutes ≈ 0.1667 hours
   }
 
   tasks.push(newTask);
@@ -2201,18 +2201,8 @@ appWindow.onMoved(async () => {
       const winPos = await appWindow.outerPosition();
       const winSize = await appWindow.outerSize();
 
-      if (isWindowDragGesture && Date.now() <= windowDragGestureExpiresAt) {
-        const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
-        if (!isCollapsed) {
-          const { work } = getMonitorBounds(monitor);
-          if (winPos.y + winSize.height >= work.y + work.height - BOTTOM_DOCK_MINIMIZE_THRESHOLD) {
-            minimizeIntoDockFromBottomEdge();
-            return;
-          }
-        }
-      }
 
-      const { full } = getMonitorBounds(monitor);
+      const { full, work } = getMonitorBounds(monitor);
       const { x: offsetX, y: offsetY, width: scrW } = full;
       let newX = winPos.x;
       let newY = winPos.y;
@@ -2232,6 +2222,8 @@ appWindow.onMoved(async () => {
       const dTop = Math.abs(winPos.y - offsetY);
       const dLeft = Math.abs(winPos.x - offsetX);
       const dRight = Math.abs((offsetX + scrW) - (winPos.x + winSize.width));
+      const windowBottom = winPos.y + winSize.height;
+      const workBottom = work.y + work.height;
 
       if (isCollapsedY || isCollapsedX) {
         const EXPAND_THRESHOLD = 30;
@@ -2243,12 +2235,16 @@ appWindow.onMoved(async () => {
       } else {
         if (Date.now() - lastExpandTime >= 800) {
           const TRIGGER_TOP_SIDES = 6;
+          const TRIGGER_BOTTOM = 8;
           if (dTop < TRIGGER_TOP_SIDES) {
             clearTimeout(collapseTimer);
             collapseTimer = setTimeout(() => { toggleCollapseY(); }, 150);
           } else if (dLeft < TRIGGER_TOP_SIDES || dRight < TRIGGER_TOP_SIDES) {
             clearTimeout(collapseTimer);
             collapseTimer = setTimeout(() => { toggleCollapseX(); }, 150);
+          } else if (isWindowDragGesture && Date.now() <= windowDragGestureExpiresAt && windowBottom >= workBottom - TRIGGER_BOTTOM) {
+            clearTimeout(collapseTimer);
+            collapseTimer = setTimeout(() => { minimizeIntoDockFromBottomEdge(); }, 150);
           } else {
             clearTimeout(collapseTimer);
           }
