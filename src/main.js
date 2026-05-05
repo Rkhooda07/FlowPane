@@ -2242,7 +2242,7 @@ appWindow.onMoved(async () => {
           } else if (dLeft < TRIGGER_TOP_SIDES || dRight < TRIGGER_TOP_SIDES) {
             clearTimeout(collapseTimer);
             collapseTimer = setTimeout(() => { toggleCollapseX(); }, 150);
-          } else if (isWindowDragGesture && Date.now() <= windowDragGestureExpiresAt && windowBottom >= workBottom - TRIGGER_BOTTOM) {
+          } else if (isWindowDragGesture && Date.now() <= windowDragGestureExpiresAt && windowBottom > workBottom) {
             clearTimeout(collapseTimer);
             collapseTimer = setTimeout(() => { minimizeIntoDockFromBottomEdge(); }, 150);
           } else {
