@@ -180,6 +180,7 @@ body {
   justify-content: center; /* Center the content */
   gap: 8px;
   flex: 0; /* Don't grow, keep close to buttons */
+  max-height: 140px; /* Limit height to prevent shifting eyes/timer out */
 }
 
 #app.collapsed-x.collapsed-right h1 {
@@ -403,6 +404,8 @@ body {
   white-space: nowrap;
   flex: 1;
   text-align: center;
+  min-width: 0; /* Allow shrinking for ellipsis in horizontal flex */
+  min-height: 0; /* Allow shrinking for ellipsis in vertical flex */
 }
 
 /* Slide and fade title when guide is hovered to prevent overlap */
@@ -2123,6 +2126,7 @@ body {
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
   z-index: 150;
+  border-radius: var(--border-radius);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -2155,6 +2159,8 @@ body {
   -webkit-app-region: drag; /* Make header draggable */
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
   transition-delay: 0.1s;
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
 }
 
 .focus-mode.hidden .focus-header-bar {
@@ -2683,11 +2689,13 @@ body {
 }
 
 .resume-card {
-  width: min(260px, calc(100% - 32px)); /* Slightly narrower */
+  width: 65%; /* Dynamic width relative to app */
+  max-width: 280px;
+  min-width: 180px;
   background: rgba(30, 30, 45, 0.98);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 18px;
-  padding: 16px 20px; /* Reduced padding */
+  border-radius: clamp(12px, 4vw, 18px);
+  padding: clamp(10px, 5%, 20px);
   text-align: center;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
   transform: scale(1);
@@ -2701,27 +2709,27 @@ body {
 }
 
 .resume-icon {
-  font-size: 32px;
-  margin-bottom: 8px;
+  font-size: clamp(20px, 8vw, 32px);
+  margin-bottom: clamp(4px, 2vw, 8px);
 }
 
 .resume-card h3 {
-  margin: 0 0 2px 0;
-  font-size: 16px;
+  margin: 0 0 1px 0;
+  font-size: clamp(13px, 4.5vw, 18px);
   color: #fff;
 }
 
 .resume-card p {
-  font-size: 13px;
+  font-size: clamp(10px, 3.6vw, 14px);
   color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 20px;
+  margin-bottom: clamp(10px, 4vw, 18px);
 }
 
 .resume-time-box {
   background: rgba(0, 0, 0, 0.3);
-  padding: 6px 14px;
-  border-radius: 10px;
-  margin-bottom: 16px; /* Reduced from 24px */
+  padding: clamp(3px, 1.5vw, 6px) clamp(8px, 3vw, 14px);
+  border-radius: 8px;
+  margin-bottom: clamp(10px, 4vw, 16px);
   display: inline-block;
 }
 
@@ -2730,7 +2738,7 @@ body {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: #ffcc66;
-  font-size: 20px;
+  font-size: clamp(15px, 5.5vw, 22px);
 }
 
 .resume-actions {
@@ -2742,9 +2750,9 @@ body {
 
 .resume-btn {
   border: none;
-  border-radius: 12px;
-  padding: 12px;
-  font-size: 14px;
+  border-radius: clamp(8px, 3vw, 12px);
+  padding: clamp(7px, 2.8vw, 11px);
+  font-size: clamp(11.5px, 3.8vw, 15px);
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -2779,7 +2787,7 @@ body {
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.4);
-  font-size: 12px;
+  font-size: clamp(10px, 3.2vw, 12px);
   cursor: pointer;
   padding: 4px;
 }
