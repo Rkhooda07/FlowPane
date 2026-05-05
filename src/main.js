@@ -312,7 +312,7 @@ async function toggleCollapseY(isManualDrag = false) {
             { x: newX, y: newY },
             currentSize,
             COLLAPSED_SIZE_Y,
-            350
+            500
           );
           
           // Trigger the "I see you" bubble shortly after collapsing (only if still collapsed; cancelled on hover/drag/expand)
@@ -348,7 +348,7 @@ async function toggleCollapseY(isManualDrag = false) {
             const endPos = { x: currentPos.x, y: Math.round(endY) };
 
             // Use a faster animation for manual drag (150ms) instead of a jump for seamless flow
-            await animateWindowTransform(currentPos, endPos, currentSize, ALL_WINDOWS_SIZE, 150);
+            await animateWindowTransform(currentPos, endPos, currentSize, ALL_WINDOWS_SIZE, 250);
             lastExpandTime = Date.now();
             return;
           }
@@ -378,7 +378,7 @@ async function toggleCollapseY(isManualDrag = false) {
             endPos,
             currentSize,
             targetSize,
-            350
+            500
           );
           lastExpandTime = Date.now();
         }
@@ -452,7 +452,7 @@ async function toggleCollapseX(isManualDrag = false) {
             { x: newX, y: currentPos.y },
             currentSize,
             COLLAPSED_SIZE_X,
-            350
+            500
           );
 
           // Trigger the "I see you" bubble shortly after collapsing (only if still collapsed; cancelled on hover/drag/expand)
@@ -494,7 +494,7 @@ async function toggleCollapseX(isManualDrag = false) {
 
               const endPos = { x: Math.round(endX), y: currentPos.y };
               // Use a faster animation for manual drag (150ms) instead of a jump for seamless flow
-              await animateWindowTransform(currentPos, endPos, currentSize, ALL_WINDOWS_SIZE, 150);
+              await animateWindowTransform(currentPos, endPos, currentSize, ALL_WINDOWS_SIZE, 250);
             }
           } catch (e) {
             await appWindow.setSize(ALL_WINDOWS_SIZE);
@@ -532,7 +532,7 @@ async function toggleCollapseX(isManualDrag = false) {
             endPos,
             currentSize,
             targetSize,
-            350
+            500
           );
           lastExpandTime = Date.now();
         }
