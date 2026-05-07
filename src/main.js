@@ -93,6 +93,7 @@ const COLLAPSED_SIZE_X_BUBBLE = new LogicalSize(300, 300);
 const BOTTOM_DOCK_MINIMIZE_THRESHOLD = 0;
 const HOVER_PEEK_DELAY_MS = 150;
 const HOVER_PEEK_RETRY_MS = 80;
+const MANUAL_DRAG_EXPAND_DURATION_MS = 420;
 
 let isWindowDragGesture = false;
 let isDockMinimizing = false;
@@ -257,6 +258,57 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
         });
       }
     }
+    requestAnimationFrame(step);
+  });
+}
+
+async function animateWindowSize(startSize, endSize, duration = 350) {
+  isAnimating = true;
+  const startTime = performance.now();
+  const { LogicalSize, PhysicalSize } = window.__TAURI__.window;
+
+  const monitor = await currentMonitor();
+  const scale = monitor ? monitor.scaleFactor : 1;
+
+  const pStartSize = {
+    width: startSize.width * (startSize instanceof LogicalSize ? scale : 1),
+    height: startSize.height * (startSize instanceof LogicalSize ? scale : 1)
+  };
+  const pEndSize = {
+    width: endSize.width * (endSize instanceof LogicalSize ? scale : 1),
+    height: endSize.height * (endSize instanceof LogicalSize ? scale : 1)
+  };
+
+  return new Promise(resolve => {
+    let lastW = Math.round(pStartSize.width);
+    let lastH = Math.round(pStartSize.height);
+    let isApplying = false;
+
+    function step() {
+      const now = performance.now();
+      const progress = Math.min((now - startTime) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 4);
+      const targetW = Math.round(pStartSize.width + (pEndSize.width - pStartSize.width) * ease);
+      const targetH = Math.round(pStartSize.height + (pEndSize.height - pStartSize.height) * ease);
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+        if (isApplying || (targetW === lastW && targetH === lastH)) return;
+
+        isApplying = true;
+        lastW = targetW;
+        lastH = targetH;
+        appWindow.setSize(new PhysicalSize(targetW, targetH)).finally(() => {
+          isApplying = false;
+        });
+      } else {
+        appWindow.setSize(new PhysicalSize(Math.round(pEndSize.width), Math.round(pEndSize.height))).finally(() => {
+          isAnimating = false;
+          resolve();
+        });
+      }
+    }
+
     requestAnimationFrame(step);
   });
 }
@@ -2206,10 +2258,14 @@ appWindow.onMoved(async () => {
     isPeeking = false;
     appElement.classList.remove('peeking');
     await suppressEyeMessageBubble();
-    // Force instant full size expansion when starting to drag a peeked window
     const monitor = await currentMonitor();
     if (monitor) {
-      await appWindow.setSize(ALL_WINDOWS_SIZE);
+      const currentSize = await appWindow.outerSize();
+      await animateWindowSize(
+        currentSize,
+        ALL_WINDOWS_SIZE,
+        MANUAL_DRAG_EXPAND_DURATION_MS
+      );
     }
   }
 
