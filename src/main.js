@@ -91,6 +91,8 @@ const COLLAPSED_SIZE_X = new LogicalSize(42, 300); // Match CSS dimensions
 const COLLAPSED_SIZE_Y_BUBBLE = new LogicalSize(325, 180); 
 const COLLAPSED_SIZE_X_BUBBLE = new LogicalSize(300, 300); 
 const BOTTOM_DOCK_MINIMIZE_THRESHOLD = 0;
+const HOVER_PEEK_DELAY_MS = 150;
+const HOVER_PEEK_RETRY_MS = 80;
 
 let isWindowDragGesture = false;
 let isDockMinimizing = false;
@@ -1518,28 +1520,44 @@ document.querySelectorAll('.title-bar').forEach(titleBar => {
 window.addEventListener('mouseup', endWindowDragGesture);
 window.addEventListener('blur', endWindowDragGesture);
 
+function scheduleHoverPeek(delay = HOVER_PEEK_DELAY_MS) {
+  clearTimeout(peekTimeout);
+  peekTimeout = setTimeout(async () => {
+    if (isAnimating) {
+      scheduleHoverPeek(HOVER_PEEK_RETRY_MS);
+      return;
+    }
+
+    const isCollapsedY = appElement.classList.contains('collapsed-y');
+    const isCollapsedX = appElement.classList.contains('collapsed-x');
+    if ((!isCollapsedY && !isCollapsedX) || isPeeking) return;
+
+    await suppressEyeMessageBubble();
+
+    if (isAnimating) {
+      scheduleHoverPeek(HOVER_PEEK_RETRY_MS);
+      return;
+    }
+
+    const stillCollapsedY = appElement.classList.contains('collapsed-y');
+    const stillCollapsedX = appElement.classList.contains('collapsed-x');
+    if (!stillCollapsedY && !stillCollapsedX) return;
+
+    isPeeking = true;
+    peekMode = stillCollapsedY ? 'y' : 'x';
+    appElement.classList.add('peeking');
+    if (peekMode === 'y') toggleCollapseY();
+    else toggleCollapseX();
+  }, delay);
+}
+
 // Hover peek logic for collapsed windows - bridges from Rust polling for inactive window support
-appWindow.listen('mouse-enter', async () => {
-  if (isAnimating) return;
-  await suppressEyeMessageBubble();
+appWindow.listen('mouse-enter', () => {
   const isCollapsedY = appElement.classList.contains('collapsed-y');
   const isCollapsedX = appElement.classList.contains('collapsed-x');
 
   if ((isCollapsedY || isCollapsedX) && !isPeeking) {
-    peekTimeout = setTimeout(() => {
-      // Re-verify after timeout
-      if (isAnimating) return;
-      const stillCollapsedY = appElement.classList.contains('collapsed-y');
-      const stillCollapsedX = appElement.classList.contains('collapsed-x');
-
-      if (stillCollapsedY || stillCollapsedX) {
-        isPeeking = true;
-        peekMode = stillCollapsedY ? 'y' : 'x';
-        appElement.classList.add('peeking');
-        if (peekMode === 'y') toggleCollapseY();
-        else toggleCollapseX();
-      }
-    }, 150); // Slight delay for intentional hover
+    scheduleHoverPeek();
   }
 });
 
