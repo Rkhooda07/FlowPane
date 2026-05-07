@@ -128,13 +128,21 @@ body {
 
 
 #app.collapsed-y {
+  --collapsed-title-timer-gap: 10px;
   height: 42px !important; /* Increased from 38px for better layout and equal thickness */
   width: 325px !important;
 }
 
 #app.collapsed-x {
+  --collapsed-side-stack-gap: 16px;
+  --collapsed-title-timer-gap: 10px;
+  --collapsed-side-bubble-top: 120px;
   width: 42px !important; /* Matched to collapsed-y height */
   height: 300px !important; /* Taller for better proportions */
+}
+
+#app.focus-mode-active.collapsed-x {
+  --collapsed-side-bubble-top: 58px;
 }
 
 #app.collapsed-right {
@@ -158,7 +166,7 @@ body {
   width: 42px;
   justify-content: center; /* Center the group together */
   align-items: center;
-  gap: 16px; /* Tighten gap between buttons and timer */
+  gap: var(--collapsed-side-stack-gap);
   overflow: visible !important; /* Allow bubble to escape */
 }
 
@@ -178,7 +186,7 @@ body {
   flex-direction: row; /* Horizontal in rotated context */
   align-items: center;
   justify-content: center; /* Center the content */
-  gap: 8px;
+  gap: var(--collapsed-title-timer-gap);
   flex: 0; /* Don't grow, keep close to buttons */
   max-height: 140px; /* Limit height to prevent shifting eyes/timer out */
 }
@@ -202,6 +210,7 @@ body {
   display: flex !important;
   align-items: center;
   justify-content: center;
+  gap: var(--collapsed-title-timer-gap);
   white-space: nowrap;
   pointer-events: auto;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); /* Better readability on bright themes */
@@ -430,7 +439,7 @@ body {
 
 #app.collapsed-y .navbar-timer {
   font-size: 12px; /* Increased from 11px */
-  margin-left: 8px;
+  margin-left: 0;
   background: rgba(255, 255, 255, 0.08); /* Distinct container block */
   padding: 2px 6px;
   border-radius: 6px;
@@ -443,7 +452,7 @@ body {
 #app.collapsed-x .navbar-timer {
   font-size: 11px; /* Increased from 10px */
   margin-left: 0;
-  margin-top: 8px; /* Space between name and timer in vertical layout */
+  margin-top: 0;
 }
 
 /* Focus mode collapsed-x - larger font */
@@ -456,7 +465,7 @@ body {
   background: rgba(255, 255, 255, 0.08); /* Distinct container */
   padding: 6px 4px;
   border-radius: 8px;
-  margin-top: 12px;
+  margin-top: 0;
   gap: 2px;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -3285,7 +3294,7 @@ body {
 
 /* 2. Side Collapsed (Left Edge) */
 #app.collapsed-x .eye-bubble.v3 {
-  top: 120px; /* Positioned below eyes in the sidebar */
+  top: var(--collapsed-side-bubble-top);
   left: 26px; /* Brought closer to eyes for a tighter connection */
   transform: translateX(0);
 }
@@ -3320,7 +3329,7 @@ body {
 
 /* 3. Side Collapsed (Right Edge) */
 #app.collapsed-x.collapsed-right .eye-bubble.v3 {
-  top: 120px; /* Mirror of the left side */
+  top: var(--collapsed-side-bubble-top);
   left: auto;
   right: 24px; /* Brought closer to eyes as requested */
   transform: translateX(0);
