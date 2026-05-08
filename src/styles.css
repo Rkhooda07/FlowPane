@@ -133,6 +133,11 @@ body {
   width: 325px !important;
 }
 
+#app.collapsed-y.collapsed-reminder-active {
+  height: 112px !important;
+  border-radius: 22px;
+}
+
 #app.collapsed-x {
   --collapsed-side-stack-gap: 16px;
   --collapsed-title-timer-gap: 10px;
@@ -2849,6 +2854,49 @@ body {
   display: none !important;
 }
 
+#app.collapsed-y.collapsed-reminder-active .reminder-popup {
+  top: 50px;
+  left: 10px;
+  right: 10px;
+}
+
+#app.collapsed-y.collapsed-reminder-active .reminder-popup.hidden {
+  transform: translateY(-14px) scale(0.96);
+}
+
+#app.collapsed-y.collapsed-reminder-active .reminder-popup-card {
+  padding: 8px 10px;
+  gap: 9px;
+  border-radius: 14px;
+  background: rgba(28, 28, 30, 0.78);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32), 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+#app.collapsed-y.collapsed-reminder-active .reminder-popup-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  font-size: 14px;
+}
+
+#app.collapsed-y.collapsed-reminder-active .reminder-popup-label {
+  font-size: 8px;
+  margin-bottom: 0;
+}
+
+#app.collapsed-y.collapsed-reminder-active #reminder-task-title {
+  font-size: 12px;
+}
+
+#app.collapsed-y.collapsed-reminder-active #reminder-task-time {
+  font-size: 10px;
+}
+
+#app.collapsed-y.collapsed-reminder-active .reminder-popup-close {
+  padding: 6px 9px;
+  font-size: 10px;
+}
+
 .reminder-popup-card {
   background: rgba(28, 28, 30, 0.85);
   backdrop-filter: blur(25px) saturate(180%);
@@ -2936,6 +2984,9 @@ body {
     background: rgba(255, 255, 255, 0.8);
     border: 1px solid rgba(0, 0, 0, 0.05);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  }
+  #app.collapsed-y.collapsed-reminder-active .reminder-popup-card {
+    background: rgba(255, 255, 255, 0.78);
   }
   #reminder-task-title { color: #1a1a1a; }
   #reminder-task-time { color: #666666; }

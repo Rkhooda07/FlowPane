@@ -87,6 +87,7 @@ const ALL_WINDOWS_SIZE = new LogicalSize(325, 375);
 const PEEK_SIZE_Y = new LogicalSize(325, 270);
 const PEEK_SIZE_X = new LogicalSize(270, 325);
 const COLLAPSED_SIZE_Y = new LogicalSize(325, 42); // Match CSS height for bar
+const COLLAPSED_REMINDER_SIZE_Y = new LogicalSize(325, 112);
 const COLLAPSED_SIZE_X = new LogicalSize(42, 300); // Match CSS dimensions
 const COLLAPSED_SIZE_Y_BUBBLE = new LogicalSize(325, 180); 
 const COLLAPSED_SIZE_X_BUBBLE = new LogicalSize(300, 300); 
@@ -327,6 +328,8 @@ async function toggleCollapseY(isManualDrag = false) {
 
     if (isCollapsing) {
       // COLLAPSE FLOW
+      appElement.classList.remove('collapsed-reminder-active');
+
       try {
         if (!isCurrentlyCollapsed) {
           lastNormalPosition = await appWindow.outerPosition();
@@ -1191,12 +1194,71 @@ if (taskReminderBtn && reminderDropdown) {
 
 let reminderPopupAutoCloseTimer = null;
 let reminderPopupCloseHandler = null;
+let topCollapsedReminderAnimation = Promise.resolve();
 const reminderTone = new Audio('assets/due_reminder_tone.mp3');
 reminderTone.preload = 'auto';
 
 function playReminderTone() {
   reminderTone.currentTime = 0;
   reminderTone.play().catch(() => {});
+}
+
+function isTopCollapsedReminderMode() {
+  return appElement.classList.contains('collapsed-y')
+    && !appElement.classList.contains('peeking');
+}
+
+function queueTopCollapsedReminderAnimation(action) {
+  topCollapsedReminderAnimation = topCollapsedReminderAnimation
+    .catch(() => {})
+    .then(action);
+
+  return topCollapsedReminderAnimation;
+}
+
+async function expandTopCollapsedReminder() {
+  if (!isTopCollapsedReminderMode()) return;
+
+  clearTimeout(peekTimeout);
+  appElement.classList.add('collapsed-reminder-active');
+  void suppressEyeMessageBubble();
+
+  return queueTopCollapsedReminderAnimation(async () => {
+    if (!isTopCollapsedReminderMode()) {
+      appElement.classList.remove('collapsed-reminder-active');
+      return;
+    }
+
+    try {
+      const currentSize = await appWindow.outerSize();
+      await animateWindowSize(currentSize, COLLAPSED_REMINDER_SIZE_Y, 420);
+    } catch (error) {
+      console.error('Failed to expand collapsed reminder:', error);
+      await appWindow.setSize(COLLAPSED_REMINDER_SIZE_Y);
+    }
+  });
+}
+
+async function restoreTopCollapsedReminder() {
+  if (!appElement.classList.contains('collapsed-reminder-active')) return;
+
+  return queueTopCollapsedReminderAnimation(async () => {
+    appElement.classList.remove('collapsed-reminder-active');
+
+    try {
+      const currentSize = await appWindow.outerSize();
+      await animateWindowSize(currentSize, COLLAPSED_SIZE_Y, 360);
+      await appWindow.setSize(COLLAPSED_SIZE_Y);
+      const monitor = await currentMonitor();
+      if (monitor && appElement.classList.contains('collapsed-y')) {
+        const currentPos = await appWindow.outerPosition();
+        await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(currentPos.x, monitor.position.y));
+      }
+    } catch (error) {
+      console.error('Failed to collapse reminder notification:', error);
+      await appWindow.setSize(COLLAPSED_SIZE_Y);
+    }
+  });
 }
 
 function showReminderPopup(task, minutesBefore) {
@@ -1222,6 +1284,11 @@ function showReminderPopup(task, minutesBefore) {
   
   timeText.textContent = `Only ${timeDesc} left`;
 
+  const shouldUseTopCollapsedReminder = isTopCollapsedReminderMode();
+  if (shouldUseTopCollapsedReminder) {
+    void expandTopCollapsedReminder();
+  }
+
   popup.classList.remove('hidden');
   popup.setAttribute('aria-hidden', 'false');
   playReminderTone();
@@ -1239,6 +1306,9 @@ function showReminderPopup(task, minutesBefore) {
     popup.setAttribute('aria-hidden', 'true');
     closeBtn.removeEventListener('click', closePopup);
     reminderPopupCloseHandler = null;
+    if (shouldUseTopCollapsedReminder) {
+      void restoreTopCollapsedReminder();
+    }
     if (reminderPopupAutoCloseTimer != null) {
       clearTimeout(reminderPopupAutoCloseTimer);
       reminderPopupAutoCloseTimer = null;
@@ -1593,8 +1663,11 @@ window.addEventListener('mouseup', endWindowDragGesture);
 window.addEventListener('blur', endWindowDragGesture);
 
 function scheduleHoverPeek(delay = HOVER_PEEK_DELAY_MS) {
+  if (appElement.classList.contains('collapsed-reminder-active')) return;
+
   clearTimeout(peekTimeout);
   peekTimeout = setTimeout(async () => {
+    if (appElement.classList.contains('collapsed-reminder-active')) return;
     if (isAnimating) {
       scheduleHoverPeek(HOVER_PEEK_RETRY_MS);
       return;
@@ -1625,6 +1698,8 @@ function scheduleHoverPeek(delay = HOVER_PEEK_DELAY_MS) {
 
 // Hover peek logic for collapsed windows - bridges from Rust polling for inactive window support
 appWindow.listen('mouse-enter', () => {
+  if (appElement.classList.contains('collapsed-reminder-active')) return;
+
   const isCollapsedY = appElement.classList.contains('collapsed-y');
   const isCollapsedX = appElement.classList.contains('collapsed-x');
 
