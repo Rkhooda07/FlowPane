@@ -1135,28 +1135,25 @@ if (taskReminderBtn && reminderDropdown) {
         selectedReminderMinutes = minutes;
 
         taskReminderBtn.classList.add('has-reminder');
-        
-        setTimeout(() => {
-          reminderDropdown.classList.add('hidden');
-          taskReminderBtn.classList.remove('active');
-          // Reset UI for next time
-          customTrigger.classList.remove('hidden');
-          customInputWrap.classList.add('hidden');
-          input.value = '';
-          const unitToggle = document.getElementById('reminder-unit-toggle');
-          if (unitToggle) {
-            unitToggle.dataset.unit = 'm';
-            const textSpan = unitToggle.querySelector('.unit-toggle-text');
-            if (textSpan) textSpan.textContent = 'min';
-          }
-          const unitMenu = document.getElementById('reminder-unit-menu');
-          if (unitMenu) {
-            unitMenu.querySelectorAll('.unit-opt').forEach(btn => btn.classList.remove('active'));
-            const defaultOpt = unitMenu.querySelector('[data-unit="m"]');
-            if (defaultOpt) defaultOpt.classList.add('active');
-          }
 
-        }, 300);
+        reminderDropdown.classList.add('hidden');
+        taskReminderBtn.classList.remove('active');
+        // Reset UI for next time
+        customTrigger.classList.remove('hidden');
+        customInputWrap.classList.add('hidden');
+        input.value = '';
+        const unitToggle = document.getElementById('reminder-unit-toggle');
+        if (unitToggle) {
+          unitToggle.dataset.unit = 'm';
+          const textSpan = unitToggle.querySelector('.unit-toggle-text');
+          if (textSpan) textSpan.textContent = 'min';
+        }
+        const unitMenu = document.getElementById('reminder-unit-menu');
+        if (unitMenu) {
+          unitMenu.querySelectorAll('.unit-opt').forEach(btn => btn.classList.remove('active'));
+          const defaultOpt = unitMenu.querySelector('[data-unit="m"]');
+          if (defaultOpt) defaultOpt.classList.add('active');
+        }
       }
     });
   }
@@ -1193,6 +1190,13 @@ if (taskReminderBtn && reminderDropdown) {
 
 let reminderPopupAutoCloseTimer = null;
 let reminderPopupCloseHandler = null;
+const reminderTone = new Audio('assets/due_reminder_tone.mp3');
+reminderTone.preload = 'auto';
+
+function playReminderTone() {
+  reminderTone.currentTime = 0;
+  reminderTone.play().catch(() => {});
+}
 
 function showReminderPopup(task, minutesBefore) {
   const popup = document.getElementById('reminder-popup');
@@ -1219,8 +1223,7 @@ function showReminderPopup(task, minutesBefore) {
 
   popup.classList.remove('hidden');
   popup.setAttribute('aria-hidden', 'false');
-
-  // Multi-platform sound/vibration could be added here if needed
+  playReminderTone();
 
   if (reminderPopupCloseHandler) {
     closeBtn.removeEventListener('click', reminderPopupCloseHandler);
