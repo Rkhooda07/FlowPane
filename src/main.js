@@ -1154,6 +1154,7 @@ if (taskReminderBtn && reminderDropdown) {
           const defaultOpt = unitMenu.querySelector('[data-unit="m"]');
           if (defaultOpt) defaultOpt.classList.add('active');
         }
+        taskInput.focus();
       }
     });
   }
@@ -1211,15 +1212,15 @@ function showReminderPopup(task, minutesBefore) {
   let timeDesc = '';
   if (minutesBefore >= 1440) {
     const days = Math.floor(minutesBefore / 1440);
-    timeDesc = `${days} day${days > 1 ? 's' : ''} before`;
+    timeDesc = `${days} day${days > 1 ? 's' : ''}`;
   } else if (minutesBefore >= 60) {
     const hrs = Math.floor(minutesBefore / 60);
-    timeDesc = `${hrs} hour${hrs > 1 ? 's' : ''} before`;
+    timeDesc = `${hrs} hour${hrs > 1 ? 's' : ''}`;
   } else {
-    timeDesc = `${minutesBefore} minute${minutesBefore > 1 ? 's' : ''} before`;
+    timeDesc = `${minutesBefore} minute${minutesBefore > 1 ? 's' : ''}`;
   }
   
-  timeText.textContent = `Deadline approaching: ${timeDesc}`;
+  timeText.textContent = `Only ${timeDesc} left`;
 
   popup.classList.remove('hidden');
   popup.setAttribute('aria-hidden', 'false');
@@ -1247,8 +1248,8 @@ function showReminderPopup(task, minutesBefore) {
   reminderPopupCloseHandler = closePopup;
   closeBtn.addEventListener('click', closePopup);
   
-  // Auto-close after 20 seconds if not clicked (increased from 10)
-  reminderPopupAutoCloseTimer = setTimeout(closePopup, 20000);
+  // Auto-close after 5 minutes if not clicked.
+  reminderPopupAutoCloseTimer = setTimeout(closePopup, 300000);
 }
 
 function checkReminders() {

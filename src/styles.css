@@ -2845,6 +2845,10 @@ body {
     visibility 0s linear 0.28s;
 }
 
+#app.collapsed-x .reminder-popup {
+  display: none !important;
+}
+
 .reminder-popup-card {
   background: rgba(28, 28, 30, 0.85);
   backdrop-filter: blur(25px) saturate(180%);
