@@ -846,7 +846,7 @@ function renderTasks() {
       li.querySelector('.task-checkbox').addEventListener('change', async (e) => {
         if (e.target.checked) {
           li.classList.add('task-completing');
-          setTimeout(() => showCongrats(0), 500);
+          setTimeout(() => showCongrats(task.totalWorkTime || 0), 500);
           setTimeout(async () => {
             task.completed = true;
             task.completedAt = Date.now();
@@ -2005,7 +2005,10 @@ function addTask() {
     urgent: false,
     reminderMinutes: selectedReminderMinutes,
     reminded: false,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    totalWorkTime: 0,
+    elapsedSeconds: 0,
+    isCountdownSession: false
   };
 
   if (finalDue) {
@@ -2490,6 +2493,7 @@ function startFocusSession(task, resume = false) {
   // If starting over, clear the saved time
   if (!resume) {
     task.elapsedSeconds = 0;
+    task.totalWorkTime = 0;
     saveTasks();
   }
 
@@ -2587,6 +2591,11 @@ function toggleTimer() {
         focusSeconds++;
         updateTimerDisplay();
       }
+
+      // Track total work time across sessions
+      if (currentFocusTask) {
+        currentFocusTask.totalWorkTime = (currentFocusTask.totalWorkTime || 0) + 1;
+      }
     }, 1000);
     playIcon.classList.add('hidden');
     pauseIcon.classList.remove('hidden');
@@ -2617,8 +2626,8 @@ document.getElementById('times-up-complete-btn').addEventListener('click', async
     renderTasks();
     
     hideTimesUpModal();
-    // Show congrats with the duration they actually spent (the original timer)
-    showCongrats(sessionOriginalDuration || 0);
+    // Show congrats with the total duration they spent across all timers
+    showCongrats(currentFocusTask.totalWorkTime || 0);
   }
 });
 
@@ -2849,7 +2858,7 @@ document.getElementById('focus-nav-complete-btn').addEventListener('click', () =
     renderTasks();
     
     // Stop the timer and show congrats before exiting
-    const finalSeconds = focusSeconds;
+    const finalSeconds = currentFocusTask.totalWorkTime || 0;
     stopTimer();
     showCongrats(finalSeconds);
   }
