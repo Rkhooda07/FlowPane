@@ -1124,6 +1124,16 @@ if (taskReminderBtn && reminderDropdown) {
   // Handle Custom Set
   const customSetBtn = document.getElementById('reminder-custom-set');
   if (customSetBtn) {
+    const customInput = document.getElementById('reminder-custom-input');
+
+    if (customInput) {
+      customInput.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        customSetBtn.click();
+      });
+    }
+
     customSetBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const input = document.getElementById('reminder-custom-input');
@@ -1220,6 +1230,7 @@ async function expandTopCollapsedReminder() {
   if (!isTopCollapsedReminderMode()) return;
 
   clearTimeout(peekTimeout);
+  appElement.classList.remove('collapsed-reminder-revealed');
   appElement.classList.add('collapsed-reminder-active');
   void suppressEyeMessageBubble();
 
@@ -1231,7 +1242,7 @@ async function expandTopCollapsedReminder() {
 
     try {
       const currentSize = await appWindow.outerSize();
-      await animateWindowSize(currentSize, COLLAPSED_REMINDER_SIZE_Y, 420);
+      await animateWindowSize(currentSize, COLLAPSED_REMINDER_SIZE_Y, 620);
     } catch (error) {
       console.error('Failed to expand collapsed reminder:', error);
       await appWindow.setSize(COLLAPSED_REMINDER_SIZE_Y);
@@ -1243,11 +1254,12 @@ async function restoreTopCollapsedReminder() {
   if (!appElement.classList.contains('collapsed-reminder-active')) return;
 
   return queueTopCollapsedReminderAnimation(async () => {
+    appElement.classList.remove('collapsed-reminder-revealed');
     appElement.classList.remove('collapsed-reminder-active');
 
     try {
       const currentSize = await appWindow.outerSize();
-      await animateWindowSize(currentSize, COLLAPSED_SIZE_Y, 360);
+      await animateWindowSize(currentSize, COLLAPSED_SIZE_Y, 520);
       await appWindow.setSize(COLLAPSED_SIZE_Y);
       const monitor = await currentMonitor();
       if (monitor && appElement.classList.contains('collapsed-y')) {
@@ -1286,7 +1298,11 @@ function showReminderPopup(task, minutesBefore) {
 
   const shouldUseTopCollapsedReminder = isTopCollapsedReminderMode();
   if (shouldUseTopCollapsedReminder) {
-    void expandTopCollapsedReminder();
+    void expandTopCollapsedReminder().then(() => {
+      if (!popup.classList.contains('hidden') && appElement.classList.contains('collapsed-reminder-active')) {
+        appElement.classList.add('collapsed-reminder-revealed');
+      }
+    });
   }
 
   popup.classList.remove('hidden');
@@ -1307,7 +1323,10 @@ function showReminderPopup(task, minutesBefore) {
     closeBtn.removeEventListener('click', closePopup);
     reminderPopupCloseHandler = null;
     if (shouldUseTopCollapsedReminder) {
-      void restoreTopCollapsedReminder();
+      appElement.classList.remove('collapsed-reminder-revealed');
+      setTimeout(() => {
+        void restoreTopCollapsedReminder();
+      }, 240);
     }
     if (reminderPopupAutoCloseTimer != null) {
       clearTimeout(reminderPopupAutoCloseTimer);
