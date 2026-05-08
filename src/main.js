@@ -1191,6 +1191,8 @@ if (taskReminderBtn && reminderDropdown) {
   }
 }
 
+let reminderPopupAutoCloseTimer = null;
+let reminderPopupCloseHandler = null;
 
 function showReminderPopup(task, minutesBefore) {
   const popup = document.getElementById('reminder-popup');
@@ -1198,7 +1200,7 @@ function showReminderPopup(task, minutesBefore) {
   const timeText = document.getElementById('reminder-task-time');
   const closeBtn = document.getElementById('reminder-close-btn');
 
-  if (!popup || !title || !timeText) return;
+  if (!popup || !title || !timeText || !closeBtn) return;
 
   title.textContent = task.title;
   
@@ -1220,16 +1222,30 @@ function showReminderPopup(task, minutesBefore) {
 
   // Multi-platform sound/vibration could be added here if needed
 
+  if (reminderPopupCloseHandler) {
+    closeBtn.removeEventListener('click', reminderPopupCloseHandler);
+  }
+  if (reminderPopupAutoCloseTimer != null) {
+    clearTimeout(reminderPopupAutoCloseTimer);
+    reminderPopupAutoCloseTimer = null;
+  }
+
   const closePopup = () => {
     popup.classList.add('hidden');
     popup.setAttribute('aria-hidden', 'true');
     closeBtn.removeEventListener('click', closePopup);
+    reminderPopupCloseHandler = null;
+    if (reminderPopupAutoCloseTimer != null) {
+      clearTimeout(reminderPopupAutoCloseTimer);
+      reminderPopupAutoCloseTimer = null;
+    }
   };
 
+  reminderPopupCloseHandler = closePopup;
   closeBtn.addEventListener('click', closePopup);
   
   // Auto-close after 20 seconds if not clicked (increased from 10)
-  setTimeout(closePopup, 20000);
+  reminderPopupAutoCloseTimer = setTimeout(closePopup, 20000);
 }
 
 function checkReminders() {

@@ -2813,20 +2813,36 @@ body {
 /* Reminder Popup Styles */
 .reminder-popup {
   position: absolute;
-  top: 48px;
+  top: 64px;
   left: 12px;
   right: 12px;
   z-index: 1000;
   pointer-events: none;
   display: flex;
   justify-content: center;
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+  transition:
+    opacity 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0s;
 }
 
 .reminder-popup.hidden {
+  display: flex !important;
   opacity: 0;
-  transform: translateY(-20px) scale(0.95);
+  visibility: hidden;
+  transform: translateY(-26px) scale(0.96);
+  filter: blur(8px);
   pointer-events: none;
+  transition:
+    opacity 0.28s cubic-bezier(0.45, 0, 0.55, 1),
+    transform 0.28s cubic-bezier(0.45, 0, 0.55, 1),
+    filter 0.28s cubic-bezier(0.45, 0, 0.55, 1),
+    visibility 0s linear 0.28s;
 }
 
 .reminder-popup-card {
@@ -2834,31 +2850,25 @@ body {
   backdrop-filter: blur(25px) saturate(180%);
   -webkit-backdrop-filter: blur(25px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
-  padding: 14px 18px;
+  border-radius: 999px;
+  padding: 9px 12px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.2);
+  gap: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.34), 0 0 1px rgba(255, 255, 255, 0.2);
   width: 100%;
   pointer-events: auto;
-  animation: reminderSlideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes reminderSlideDown {
-  from { transform: translateY(-40px); opacity: 0; filter: blur(10px); }
-  to { transform: translateY(0); opacity: 1; filter: blur(0); }
 }
 
 .reminder-popup-icon {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   background: linear-gradient(135deg, #FF9500, #FF5E00);
-  border-radius: 12px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 16px;
   box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3);
   flex-shrink: 0;
 }
@@ -2869,16 +2879,16 @@ body {
 }
 
 .reminder-popup-label {
-  font-size: 10px;
+  font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: #FF9500;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 #reminder-task-title {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
   color: #ffffff;
   margin: 0;
@@ -2888,7 +2898,7 @@ body {
 }
 
 #reminder-task-time {
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.6);
   margin: 0;
 }
@@ -2898,10 +2908,10 @@ body {
   border: none;
   color: #ffffff;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 8px 14px;
-  border-radius: 10px;
+  padding: 7px 11px;
+  border-radius: 999px;
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
