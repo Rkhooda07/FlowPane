@@ -2742,15 +2742,52 @@ function showTimesUpModal() {
   const modal = document.getElementById('times-up-modal');
   modal.classList.remove('hidden');
   appElement.classList.add('times-up-active');
+
+  const shouldUseTopCollapsedReminder = isTopCollapsedReminderMode();
+  if (shouldUseTopCollapsedReminder) {
+    const popup = document.getElementById('collapsed-times-up-popup');
+    const title = document.getElementById('collapsed-times-up-title');
+    if (popup && title) {
+      title.textContent = currentFocusTask ? currentFocusTask.title : 'Task';
+      popup.classList.remove('hidden');
+      popup.setAttribute('aria-hidden', 'false');
+      
+      void expandTopCollapsedReminder().then(() => {
+        if (!popup.classList.contains('hidden') && appElement.classList.contains('collapsed-reminder-active')) {
+          appElement.classList.add('collapsed-reminder-revealed');
+        }
+      });
+    }
+  }
 }
 
 function hideTimesUpModal() {
   document.getElementById('times-up-modal').classList.add('hidden');
   appElement.classList.remove('times-up-active');
+
+  const popup = document.getElementById('collapsed-times-up-popup');
+  if (popup && !popup.classList.contains('hidden')) {
+    popup.classList.add('hidden');
+    popup.setAttribute('aria-hidden', 'true');
+    appElement.classList.remove('collapsed-reminder-revealed');
+    setTimeout(() => {
+      void restoreTopCollapsedReminder();
+    }, 240);
+  }
 }
 
 // Time's Up Modal Handlers
-document.getElementById('times-up-complete-btn').addEventListener('click', async () => {
+document.getElementById('times-up-complete-btn').addEventListener('click', handleTimesUpComplete);
+document.getElementById('times-up-not-done-btn').addEventListener('click', handleTimesUpNotDone);
+
+// Dynamic Island Style Time's Up Buttons
+const islandCompleteBtn = document.getElementById('collapsed-times-up-complete-btn-island');
+if (islandCompleteBtn) islandCompleteBtn.addEventListener('click', handleTimesUpComplete);
+
+const islandNotDoneBtn = document.getElementById('collapsed-times-up-not-done-btn-island');
+if (islandNotDoneBtn) islandNotDoneBtn.addEventListener('click', handleTimesUpNotDone);
+
+async function handleTimesUpComplete() {
   if (currentFocusTask) {
     currentFocusTask.completed = true;
     currentFocusTask.completedAt = Date.now();
@@ -2763,13 +2800,13 @@ document.getElementById('times-up-complete-btn').addEventListener('click', async
     // Show congrats with the total duration they spent across all timers
     showCongrats(currentFocusTask.totalWorkTime || 0);
   }
-});
+}
 
-document.getElementById('times-up-not-done-btn').addEventListener('click', () => {
+function handleTimesUpNotDone() {
   hideTimesUpModal();
   // Optionally reset to 0 or leave at 0 so they can start a new timer/stopwatch
   resetTimer();
-});
+}
 
 function resetTimer() {
   stopTimer();

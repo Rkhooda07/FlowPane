@@ -301,6 +301,25 @@
       </div>
     </div>
 
+    <!-- Collapsed Time's Up Dynamic Island Popup -->
+    <div id="collapsed-times-up-popup" class="reminder-popup hidden" aria-hidden="true" style="top: 48px; left: 0; right: 0; bottom: 0; padding: 0 12px; align-items: center;">
+      <div class="reminder-popup-card" style="box-shadow: none; border: none; height: 100%; background: transparent; padding: 0; gap: 12px;">
+        <div class="reminder-popup-icon" style="width: 42px; height: 42px; background: transparent; box-shadow: none; overflow: hidden; border-radius: 50%;">
+          <img src="assets/times_up_rabbit.png" style="width: 100%; height: 100%; object-fit: cover;" />
+        </div>
+        <div class="reminder-popup-info" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <div style="display: flex; flex-direction: column;">
+            <div class="reminder-popup-label" style="color: #FF3B30; font-size: 11px;">Time's Up!</div>
+            <h3 id="collapsed-times-up-title" style="font-size: 16px; font-weight: 600; color: #ffffff; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">Task Name</h3>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button id="collapsed-times-up-complete-btn-island" class="reminder-popup-close" style="background: #34C759; color: white; padding: 8px 14px; font-size: 13px;">Finished</button>
+            <button id="collapsed-times-up-not-done-btn-island" class="reminder-popup-close" style="background: rgba(255, 255, 255, 0.15); color: white; padding: 8px 14px; font-size: 13px;">Still left</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
     <div id="focus-mode" class="focus-mode hidden">
       <header class="title-bar focus-header-bar" data-tauri-drag-region>

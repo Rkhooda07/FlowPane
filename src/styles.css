@@ -398,7 +398,7 @@ body {
   will-change: transform, opacity;
   z-index: 5;
   white-space: nowrap; /* Prevent wrapping in narrow states */
-  line-height: 1; /* Ensure centering in thin bars */
+  line-height: 1.3; /* Ensure descenders are not cropped */
 }
 
 .navbar-home-link {
@@ -3026,8 +3026,11 @@ body {
   display: none !important; /* hidden by default */
 }
 
+#app:not(.collapsed-y) #collapsed-times-up-popup {
+  display: none !important;
+}
+
 /* Only display when the window is collapsed, and the time's up active state is present */
-#app.times-up-active.collapsed-y .collapsed-times-up-msg,
 #app.times-up-active.collapsed-x .collapsed-times-up-msg {
   display: flex !important;
   align-items: center;
