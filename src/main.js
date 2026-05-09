@@ -99,6 +99,34 @@ const MANUAL_DRAG_EXPAND_DURATION_MS = 420;
 let isWindowDragGesture = false;
 let isDockMinimizing = false;
 let windowDragGestureExpiresAt = 0;
+let isRestoringFromDock = false;
+
+// Listen for window becoming visible or focused to handle "safe" restoration
+appWindow.onFocusChanged(async ({ payload: focused }) => {
+  if (focused && !isDockMinimizing && !isAnimating) {
+    // If the window was just restored, move it to a safe position if it's too close to the bottom
+    const monitor = await currentMonitor();
+    if (!monitor) return;
+    
+    const winPos = await appWindow.outerPosition();
+    const winSize = await appWindow.outerSize();
+    const { work } = getMonitorBounds(monitor);
+    const workBottom = work.y + work.height;
+    const windowBottom = winPos.y + winSize.height;
+
+    // If resting on the bottom edge (common after restoration), move it up slightly
+    if (windowBottom >= workBottom - 2) {
+      isRestoringFromDock = true;
+      const safeY = workBottom - winSize.height - 20; // 20px "safety" gap above dock
+      await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(winPos.x, Math.round(safeY)));
+      
+      // Briefly ignore move events to avoid immediate re-minimization
+      setTimeout(() => {
+        isRestoringFromDock = false;
+      }, 500);
+    }
+  }
+});
 
 function getMonitorBounds(monitor) {
   const workArea = monitor.workArea ?? {
@@ -122,24 +150,36 @@ function getMonitorBounds(monitor) {
   };
 }
 
-function beginWindowDragGesture() {
+let dragStartMonitor = null;
+let dragStartSize = null;
+
+async function beginWindowDragGesture() {
   isWindowDragGesture = true;
   windowDragGestureExpiresAt = Date.now() + 5000;
   void suppressEyeMessageBubble();
+  
+  try {
+    dragStartMonitor = await currentMonitor();
+    dragStartSize = await appWindow.outerSize();
+  } catch (e) {
+    console.error('Failed to cache drag state:', e);
+  }
 }
 
 function endWindowDragGesture() {
   isWindowDragGesture = false;
   windowDragGestureExpiresAt = 0;
+  dragStartMonitor = null;
+  dragStartSize = null;
 }
 
-async function moveWindowIntoVisibleWorkArea() {
-  const monitor = await currentMonitor();
+async function moveWindowIntoVisibleWorkArea(providedMonitor, providedPos, providedSize) {
+  const monitor = providedMonitor || await currentMonitor();
   if (!monitor) return null;
 
   const { work } = getMonitorBounds(monitor);
-  const currentPos = await appWindow.outerPosition();
-  const currentSize = await appWindow.outerSize();
+  const currentPos = providedPos || await appWindow.outerPosition();
+  const currentSize = providedSize || await appWindow.outerSize();
 
   const maxX = work.x + Math.max(0, work.width - currentSize.width);
   const maxY = work.y + Math.max(0, work.height - currentSize.height);
@@ -162,7 +202,7 @@ async function moveWindowIntoVisibleWorkArea() {
   };
 }
 
-async function minimizeIntoDockFromBottomEdge() {
+async function minimizeIntoDockFromBottomEdge(providedMonitor, providedPos, providedSize) {
   if (isDockMinimizing || isAnimating) return false;
   if (await appWindow.isMinimized()) return true;
 
@@ -174,7 +214,8 @@ async function minimizeIntoDockFromBottomEdge() {
     appElement.classList.remove('peeking');
     clearTimeout(peekTimeout);
 
-    await moveWindowIntoVisibleWorkArea();
+    // Removed moveWindowIntoVisibleWorkArea to allow native macOS genie effect to trigger correctly
+    // from the window's actual position towards the dock.
     await appWindow.minimize();
     return true;
   } catch (error) {
@@ -2339,35 +2380,12 @@ async function checkInstantExpand() {
   }
 }
 
-async function checkBottomEdgeMinimize() {
-  if (isAnimating || isDockMinimizing || !isWindowDragGesture) return false;
-  if (Date.now() > windowDragGestureExpiresAt) {
-    endWindowDragGesture();
-    return false;
-  }
-
-  const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
-  if (isCollapsed) return false;
-
-  const monitor = await currentMonitor();
-  if (!monitor) return false;
-
-  const { work } = getMonitorBounds(monitor);
-  const { y: winY } = await appWindow.outerPosition();
-  const { height: winH } = await appWindow.outerSize();
-  const workBottom = work.y + work.height;
-  const windowBottom = winY + winH;
-
-  if (windowBottom < workBottom - BOTTOM_DOCK_MINIMIZE_THRESHOLD) return false;
-
-  return minimizeIntoDockFromBottomEdge();
-}
-
 let isMovedProcessing = false;
 let moveProcessingPending = false;
+let moveProcessingLastPos = null;
 
-appWindow.onMoved(async () => {
-  if (isAnimating || isDockMinimizing) return;
+appWindow.onMoved(async (event) => {
+  if (isAnimating || isDockMinimizing || isRestoringFromDock) return;
 
   // If the window is moved manually while peeking (expanding via hover),
   // end the peek state and force it to full size.
@@ -2386,9 +2404,7 @@ appWindow.onMoved(async () => {
     }
   }
 
-  // Snap to edges disabled to allow free movement off-screen
-  // clearTimeout(moveTimeout);
-  // moveTimeout = setTimeout(snapToEdges, 200);
+  moveProcessingLastPos = event.payload;
 
   if (isMovedProcessing) {
     moveProcessingPending = true;
@@ -2399,11 +2415,12 @@ appWindow.onMoved(async () => {
   const processMoves = async () => {
     try {
       if (isAnimating || isDockMinimizing) return;
-      const monitor = await currentMonitor();
+      
+      const monitor = dragStartMonitor || await currentMonitor();
       if (!monitor) return;
-      const winPos = await appWindow.outerPosition();
-      const winSize = await appWindow.outerSize();
-
+      
+      const winPos = moveProcessingLastPos || await appWindow.outerPosition();
+      const winSize = dragStartSize || await appWindow.outerSize();
 
       const { full, work } = getMonitorBounds(monitor);
       const { x: offsetX, y: offsetY, width: scrW } = full;
@@ -2426,7 +2443,7 @@ appWindow.onMoved(async () => {
       } else {
         if (Date.now() - lastExpandTime >= 800) {
           const TRIGGER_TOP_SIDES = 6;
-          const TRIGGER_BOTTOM = 8;
+          
           if (dTop < TRIGGER_TOP_SIDES) {
             clearTimeout(collapseTimer);
             collapseTimer = setTimeout(() => { toggleCollapseY(); }, 150);
@@ -2435,7 +2452,10 @@ appWindow.onMoved(async () => {
             collapseTimer = setTimeout(() => { toggleCollapseX(); }, 150);
           } else if (isWindowDragGesture && Date.now() <= windowDragGestureExpiresAt && windowBottom > workBottom) {
             clearTimeout(collapseTimer);
-            collapseTimer = setTimeout(() => { minimizeIntoDockFromBottomEdge(); }, 150);
+            // Increased delay to 150ms to prevent accidental triggers during fast movement
+            collapseTimer = setTimeout(() => {
+              minimizeIntoDockFromBottomEdge(monitor, winPos, winSize);
+            }, 150);
           } else {
             clearTimeout(collapseTimer);
           }
