@@ -211,7 +211,7 @@ async function minimizeIntoDockFromBottomEdge(providedMonitor, providedPos, prov
 
   try {
     isPeeking = false;
-    appElement.classList.remove('peeking');
+    appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
     clearTimeout(peekTimeout);
 
     // Removed moveWindowIntoVisibleWorkArea to allow native macOS genie effect to trigger correctly
@@ -364,7 +364,7 @@ async function toggleCollapseY(isManualDrag = false) {
 
     if (isManualDrag) {
       isPeeking = false;
-      appElement.classList.remove('peeking');
+      appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
     }
 
     if (isCollapsing) {
@@ -499,7 +499,7 @@ async function toggleCollapseX(isManualDrag = false) {
 
     if (isManualDrag) {
       isPeeking = false;
-      appElement.classList.remove('peeking');
+      appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
     }
 
     if (isCollapsing) {
@@ -1750,7 +1750,7 @@ function scheduleHoverPeek(delay = HOVER_PEEK_DELAY_MS) {
 
     isPeeking = true;
     peekMode = stillCollapsedY ? 'y' : 'x';
-    appElement.classList.add('peeking');
+    appElement.classList.add('peeking', peekMode === 'y' ? 'peeking-y' : 'peeking-x');
     if (peekMode === 'y') toggleCollapseY();
     else toggleCollapseX();
   }, delay);
@@ -1773,7 +1773,7 @@ appWindow.listen('mouse-leave', () => {
   if (isPeeking) {
     if (!isAnimating) {
       isPeeking = false;
-      appElement.classList.remove('peeking');
+      appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
       if (peekMode === 'y') toggleCollapseY();
       else toggleCollapseX();
     }
@@ -2391,7 +2391,7 @@ appWindow.onMoved(async (event) => {
   // end the peek state and force it to full size.
   if (isPeeking) {
     isPeeking = false;
-    appElement.classList.remove('peeking');
+    appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
     await suppressEyeMessageBubble();
     const monitor = await currentMonitor();
     if (monitor) {

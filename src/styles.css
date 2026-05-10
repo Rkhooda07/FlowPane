@@ -340,8 +340,9 @@ body {
 #app:not(.collapsed-x):not(.collapsed-y) .focus-content,
 #app:not(.collapsed-x):not(.collapsed-y) .focus-bottom-controls,
 #app:not(.collapsed-x):not(.collapsed-y) .focus-secondary-actions,
-#app:not(.collapsed-x):not(.collapsed-y) .notes-editor-shell {
-  transition: opacity 0.4s ease-out 0.1s, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.1s; /* Delay entry slightly */
+#app:not(.collapsed-x):not(.collapsed-y) .notes-editor-shell,
+#app:not(.collapsed-x):not(.collapsed-y) .history-content-shell {
+  transition: opacity 0.4s ease-out 0.1s, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); /* Delay opacity entry slightly, transform is immediate for seamless un-peeking */
   opacity: 1;
   transform: translate(0, 0) scale(1);
 }
@@ -351,9 +352,12 @@ body {
 #app.peeking .task-container,
 #app.peeking .focus-content,
 #app.peeking .focus-bottom-controls,
-#app.peeking .notes-editor-shell {
+#app.peeking .focus-secondary-actions,
+#app.peeking .notes-editor-shell,
+#app.peeking .history-content-shell {
   transition-delay: 0s !important;
   transition-duration: 0.3s !important;
+  transform: scale(0.95) !important;
 }
 
 .title-bar {
@@ -946,6 +950,19 @@ body {
   transform: translateY(-15px) scale(0.95);
   pointer-events: none;
   display: flex !important;
+}
+
+/* Allow scrolling in peek mode (vertical only) so custom button is reachable */
+#app.peeking-y .reminder-dropdown {
+  max-height: 138px; /* Carefully tuned to show exactly 2.5 options (118px to start of 3rd option + 20px) */
+  overflow-y: auto;
+  padding-right: 4px; /* Space for hidden scrollbar */
+}
+
+/* Hide pseudo elements in peek mode so they don't get clipped weirdly by overflow-y */
+#app.peeking-y .reminder-dropdown::before,
+#app.peeking-y .reminder-dropdown::after {
+  display: none !important;
 }
 
 .reminder-dropdown-header {
