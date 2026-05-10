@@ -851,6 +851,19 @@ body {
   visibility: hidden;
 }
 
+.history-warning {
+  left: auto;
+  right: -8px;
+  top: 100%;
+  margin-top: 8px;
+}
+
+.history-warning::after {
+  left: auto;
+  right: 12px;
+  transform: none;
+}
+
 
 @keyframes bellShake {
   10%, 90% { transform: translateY(-50%) translateX(-1px) rotate(-3deg); }
@@ -2553,6 +2566,18 @@ body {
 .trash-bin-svg {
   pointer-events: none;
   overflow: visible !important;
+}
+
+.clear-history-btn.shake {
+  animation: binShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+  color: #ff5252 !important;
+}
+
+@keyframes binShake {
+  10%, 90% { transform: translateX(-1px) rotate(-3deg); }
+  20%, 80% { transform: translateX(2px) rotate(3deg); }
+  30%, 50%, 70% { transform: translateX(-2px) rotate(-3deg); }
+  40%, 60% { transform: translateX(2px) rotate(3deg); }
 }
 
 #trash-lid {
