@@ -972,6 +972,23 @@ body {
   padding-right: 4px; /* Space for hidden scrollbar */
 }
 
+/* Adjust position in side-peeking mode to prevent cutoff on narrow 270px width */
+#app.peeking-x .reminder-dropdown {
+  right: 12px;
+}
+
+#app.peeking-x .reminder-dropdown::before {
+  right: 81px; /* Center it relative to task-reminder-btn at right: 85px */
+}
+
+#app.peeking-x .reminder-dropdown::after {
+  right: 76px;
+}
+
+#app.peeking-x #reminder-custom-input {
+  width: 65px; /* Slightly narrower to fit better */
+}
+
 /* Hide pseudo elements in peek mode so they don't get clipped weirdly by overflow-y */
 #app.peeking-y .reminder-dropdown::before,
 #app.peeking-y .reminder-dropdown::after {
