@@ -12,22 +12,6 @@ let lastExpandTime = 0;
 let isPeeking = false;
 let peekTimeout = null;
 let peekMode = null;
-let isNotificationActive = false; // Track if ANY notification is currently active
-
-function showSideNotification() {
-  isNotificationActive = true; // Mark as active regardless of current mode
-  
-  // We only apply the visual class if we are in collapsed-x mode.
-  // If we are expanded, the class will be applied later when toggleCollapseX runs.
-  if (appElement.classList.contains('collapsed-x')) {
-    appElement.classList.add('side-notification-active');
-  }
-}
-
-function clearSideNotification() {
-  isNotificationActive = false;
-  appElement.classList.remove('side-notification-active');
-}
 let eyeMessageScheduleTimer = null;
 let eyeMessageRevealTimer = null;
 let eyeMessageDismissTimer = null;
@@ -574,10 +558,6 @@ async function toggleCollapseX(isManualDrag = false) {
             eyeMessageScheduleTimer = null;
             showEyeMessage();
           }, 600);
-
-          if (isNotificationActive) {
-            showSideNotification();
-          }
         }
       } catch (error) {
         console.error('Failed to transform window to side:', error);
@@ -1334,7 +1314,6 @@ function showReminderPopup(task, minutesBefore) {
   }
   
   timeText.textContent = `Only ${timeDesc} left`;
-  suppressEyeMessageBubble(); // Hide any active eye guide bubble
 
   const shouldUseTopCollapsedReminder = isTopCollapsedReminderMode();
   if (shouldUseTopCollapsedReminder) {
@@ -1343,8 +1322,6 @@ function showReminderPopup(task, minutesBefore) {
         appElement.classList.add('collapsed-reminder-revealed');
       }
     });
-  } else if (appElement.classList.contains('collapsed-x')) {
-    showSideNotification();
   }
 
   popup.classList.remove('hidden');
@@ -1364,7 +1341,6 @@ function showReminderPopup(task, minutesBefore) {
     popup.setAttribute('aria-hidden', 'true');
     closeBtn.removeEventListener('click', closePopup);
     reminderPopupCloseHandler = null;
-    clearSideNotification(); // Clear bell and glow when dismissed
     if (shouldUseTopCollapsedReminder) {
       appElement.classList.remove('collapsed-reminder-revealed');
       setTimeout(() => {
@@ -2768,7 +2744,6 @@ function showTimesUpModal() {
   const modal = document.getElementById('times-up-modal');
   modal.classList.remove('hidden');
   appElement.classList.add('times-up-active');
-  suppressEyeMessageBubble(); // Hide any active eye guide bubble
 
   const shouldUseTopCollapsedReminder = isTopCollapsedReminderMode();
   if (shouldUseTopCollapsedReminder) {
@@ -2785,15 +2760,12 @@ function showTimesUpModal() {
         }
       });
     }
-  } else if (appElement.classList.contains('collapsed-x')) {
-    showSideNotification();
   }
 }
 
 function hideTimesUpModal() {
   document.getElementById('times-up-modal').classList.add('hidden');
   appElement.classList.remove('times-up-active');
-  clearSideNotification(); // Clear bell and glow when dismissed
 
   const popup = document.getElementById('collapsed-times-up-popup');
   if (popup && !popup.classList.contains('hidden')) {
@@ -3382,7 +3354,6 @@ async function showEyeMessage() {
   const isCollapsedX = appElement.classList.contains('collapsed-x');
   if (!isCollapsedY && !isCollapsedX) return;
   if (isPeeking || appElement.classList.contains('peeking')) return;
-  if (isNotificationActive) return; // Don't show eye guide if a notification is active
 
   if (isCollapsedX && appElement.classList.contains('collapsed-right')) {
     await showRightEyeMessageOverlay();
