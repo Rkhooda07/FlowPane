@@ -186,8 +186,24 @@
       bubbleText.innerHTML = '';
     }
 
-    function typeTextForward() {
-      const fullHTML = 'i got my<br>eyes on you';
+    function tokenizeBubbleHTML(fullHTML) {
+      const tokens = [];
+      for (let i = 0; i < fullHTML.length; i++) {
+        if (fullHTML.startsWith('<br>', i)) {
+          tokens.push('<br>');
+          i += 3;
+        } else {
+          tokens.push(fullHTML[i]);
+        }
+      }
+      return tokens;
+    }
+
+    function renderBubbleTokens(tokens, count) {
+      return tokens.slice(0, count).join('');
+    }
+
+    function typeTextForward(tokens) {
       let typeIndex = 0;
 
       const timer = setInterval(() => {
@@ -198,13 +214,9 @@
         }
 
         typeIndex++;
-        if (fullHTML.slice(typeIndex - 1).startsWith('<br>')) {
-          typeIndex += 3;
-        }
+        bubbleText.innerHTML = renderBubbleTokens(tokens, typeIndex);
 
-        bubbleText.innerHTML = fullHTML.substring(0, typeIndex);
-
-        if (typeIndex >= fullHTML.length) {
+        if (typeIndex >= tokens.length) {
           clearInterval(timer);
           timers.delete(timer);
         }
@@ -213,9 +225,8 @@
       timers.add(timer);
     }
 
-    function typeTextAway() {
-      const textArray = ['i', ' ', 'g', 'o', 't', ' ', 'm', 'y', '<br>', 'e', 'y', 'e', 's', ' ', 'o', 'n', ' ', 'y', 'o', 'u'];
-      let currentLen = textArray.length;
+    function typeTextAway(tokens) {
+      let currentLen = tokens.length;
 
       const timer = setInterval(() => {
         currentLen--;
@@ -228,26 +239,29 @@
           return;
         }
 
-        bubbleText.innerHTML = textArray.slice(0, currentLen).join('');
+        bubbleText.innerHTML = renderBubbleTokens(tokens, currentLen);
       }, 30);
 
       timers.add(timer);
     }
 
-    function showBubble() {
+    function showBubble(payload = {}) {
       const now = performance.now();
       if (now - lastShowAt < 100) return;
       lastShowAt = now;
+      const fullHTML = payload.html || 'i got my<br>eyes on you';
+      const durationMs = payload.durationMs || 3000;
+      const tokens = tokenizeBubbleHTML(fullHTML);
 
       resetBubble();
       bubble.classList.remove('hidden', 'burst-out');
 
       schedule(() => {
         bubble.classList.add('visible');
-        schedule(typeTextForward, 350);
+        schedule(() => typeTextForward(tokens), 350);
       }, 50);
 
-      schedule(typeTextAway, 3000);
+      schedule(() => typeTextAway(tokens), durationMs);
     }
 
     window.showEyeBubbleFromHost = showBubble;

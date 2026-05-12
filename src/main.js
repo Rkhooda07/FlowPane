@@ -107,6 +107,7 @@ const COLLAPSED_REMINDER_SIZE_Y = new LogicalSize(325, 112);
 const COLLAPSED_SIZE_X = new LogicalSize(42, 300); // Match CSS dimensions
 const COLLAPSED_SIZE_Y_BUBBLE = new LogicalSize(325, 180); 
 const COLLAPSED_SIZE_X_BUBBLE = new LogicalSize(300, 300); 
+const SIDE_NOTIFICATION_BUBBLE_DURATION_MS = 12000;
 const BOTTOM_DOCK_MINIMIZE_THRESHOLD = 0;
 const HOVER_PEEK_DELAY_MS = 150;
 const HOVER_PEEK_RETRY_MS = 80;
@@ -1345,6 +1346,7 @@ function showReminderPopup(task, minutesBefore) {
     });
   } else if (appElement.classList.contains('collapsed-x')) {
     showSideNotification();
+    showSideNotificationBubble('task due<br>soon');
   }
 
   popup.classList.remove('hidden');
@@ -2787,6 +2789,7 @@ function showTimesUpModal() {
     }
   } else if (appElement.classList.contains('collapsed-x')) {
     showSideNotification();
+    showSideNotificationBubble("time's<br>up");
   }
 }
 
@@ -3284,6 +3287,27 @@ async function hideEyeMessageOverlay() {
 }
 
 async function showRightEyeMessageOverlay() {
+  return showRightBubbleMessage('i got my<br>eyes on you', 3000);
+}
+
+function tokenizeBubbleHTML(fullHTML) {
+  const tokens = [];
+  for (let i = 0; i < fullHTML.length; i++) {
+    if (fullHTML.startsWith('<br>', i)) {
+      tokens.push('<br>');
+      i += 3;
+    } else {
+      tokens.push(fullHTML[i]);
+    }
+  }
+  return tokens;
+}
+
+function renderBubbleTokens(tokens, count) {
+  return tokens.slice(0, count).join('');
+}
+
+async function showRightBubbleMessage(fullHTML, durationMs = 3000) {
   clearEyeMessageAnimationTimers();
 
   try {
@@ -3303,14 +3327,181 @@ async function showRightEyeMessageOverlay() {
       x: Math.round(overlayX),
       y: Math.round(currentPos.y)
     });
+    const payload = JSON.stringify({ html: fullHTML, durationMs });
+    await appWindow.eval(`window.showEyeBubbleFromHost && window.showEyeBubbleFromHost(${payload})`);
 
     eyeMessageDismissFadeTimer = setTimeout(() => {
       eyeMessageDismissFadeTimer = null;
       hideEyeMessageOverlay();
-    }, 4300);
+    }, durationMs + 1300);
   } catch (e) {
     console.error('Failed to show right-side eye message overlay:', e);
   }
+}
+
+async function showCollapsedBubbleMessage(fullHTML, durationMs = 3000) {
+  const isCollapsedY = appElement.classList.contains('collapsed-y');
+  const isCollapsedX = appElement.classList.contains('collapsed-x');
+  if (!isCollapsedY && !isCollapsedX) return;
+  if (isPeeking || appElement.classList.contains('peeking')) return;
+
+  if (isCollapsedX && appElement.classList.contains('collapsed-right')) {
+    await showRightBubbleMessage(fullHTML, durationMs);
+    return;
+  }
+
+  const activeHeader = isInFocusMode ? document.querySelector('.focus-header-bar') : document.querySelector('.title-bar:not(.focus-header-bar)');
+  const bubble = activeHeader ? activeHeader.querySelector('.eye-bubble') : null;
+  if (!bubble) return;
+
+  try {
+    const monitor = await currentMonitor();
+    if (!monitor) return;
+
+    const currentPos = await appWindow.outerPosition();
+    const currentSize = await appWindow.outerSize();
+    const scale = monitor.scaleFactor;
+    const { width: scrW } = monitor.size;
+    const { x: offsetX } = monitor.position;
+
+    if (!appElement.classList.contains('collapsed-y') && !appElement.classList.contains('collapsed-x')) return;
+    if (isPeeking || appElement.classList.contains('peeking')) return;
+
+    const targetSize = isCollapsedY ? COLLAPSED_SIZE_Y_BUBBLE : COLLAPSED_SIZE_X_BUBBLE;
+    const pTargetW = targetSize.width * scale;
+
+    let newX = currentPos.x;
+    const isRight = appElement.classList.contains('collapsed-right');
+    if (isCollapsedX && isRight) {
+      newX = (currentPos.x + currentSize.width) - pTargetW;
+    }
+
+    appElement.classList.add('bubble-active');
+    clearEyeMessageAnimationTimers();
+    bubble.classList.remove('hidden', 'burst-out');
+
+    if (Math.round(newX) !== currentPos.x || currentSize.width !== pTargetW) {
+      if (isRight) {
+        await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(newX), currentPos.y));
+        await appWindow.setSize(targetSize);
+      } else {
+        await animateWindowTransform(
+          currentPos,
+          { x: Math.round(newX), y: currentPos.y },
+          currentSize,
+          targetSize,
+          100
+        );
+      }
+    } else {
+      await appWindow.setSize(targetSize);
+    }
+
+    if (!appElement.classList.contains('collapsed-y') && !appElement.classList.contains('collapsed-x')) return;
+    if (isPeeking || appElement.classList.contains('peeking')) return;
+
+    const bubbleText = bubble.querySelector('.bubble-text');
+    const tokens = tokenizeBubbleHTML(fullHTML);
+    if (bubbleText) bubbleText.innerHTML = '';
+
+    eyeMessageRevealTimer = setTimeout(() => {
+      eyeMessageRevealTimer = null;
+      bubble.classList.add('visible');
+
+      if (bubbleText) {
+        let typeIndex = 0;
+
+        setTimeout(() => {
+          eyeMessageTypeTimer = setInterval(() => {
+            if (!bubble.classList.contains('visible')) {
+              clearInterval(eyeMessageTypeTimer);
+              eyeMessageTypeTimer = null;
+              return;
+            }
+
+            typeIndex++;
+            bubbleText.innerHTML = renderBubbleTokens(tokens, typeIndex);
+
+            if (typeIndex >= tokens.length) {
+              clearInterval(eyeMessageTypeTimer);
+              eyeMessageTypeTimer = null;
+            }
+          }, 30);
+        }, 350);
+      }
+    }, 50);
+
+    eyeMessageDismissTimer = setTimeout(() => {
+      eyeMessageDismissTimer = null;
+
+      if (bubbleText) {
+        let currentLen = tokens.length;
+
+        if (eyeMessageTypeTimer) clearInterval(eyeMessageTypeTimer);
+
+        eyeMessageTypeTimer = setInterval(() => {
+          currentLen--;
+          if (currentLen < 0) {
+            clearInterval(eyeMessageTypeTimer);
+            eyeMessageTypeTimer = null;
+
+            bubble.classList.remove('visible');
+            bubble.classList.add('burst-out');
+
+            eyeMessageDismissFadeTimer = setTimeout(async () => {
+              eyeMessageDismissFadeTimer = null;
+              bubble.classList.add('hidden');
+              bubble.classList.remove('burst-out');
+              appElement.classList.remove('bubble-active');
+
+              const stillCollapsedY = appElement.classList.contains('collapsed-y');
+              const stillCollapsedX = appElement.classList.contains('collapsed-x');
+              if (stillCollapsedY || stillCollapsedX) {
+                const restoredSize = stillCollapsedY ? COLLAPSED_SIZE_Y : COLLAPSED_SIZE_X;
+                const restoreMonitor = await currentMonitor();
+                const restoreScale = restoreMonitor ? restoreMonitor.scaleFactor : 1;
+
+                const actualPos = await appWindow.outerPosition();
+                const actualSize = await appWindow.outerSize();
+                let endX = actualPos.x;
+
+                if (stillCollapsedX) {
+                  const isRightSnap = appElement.classList.contains('collapsed-right');
+                  if (isRightSnap && restoreMonitor) {
+                    const pRestoredW = restoredSize.width * restoreScale;
+                    endX = (offsetX + scrW) - pRestoredW;
+                  }
+                }
+
+                if (stillCollapsedX && appElement.classList.contains('collapsed-right')) {
+                  await appWindow.setSize(restoredSize);
+                  await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(endX), actualPos.y));
+                } else {
+                  await animateWindowTransform(
+                    actualPos,
+                    { x: Math.round(endX), y: actualPos.y },
+                    actualSize,
+                    restoredSize,
+                    100
+                  );
+                }
+              }
+            }, 400);
+            return;
+          }
+
+          bubbleText.innerHTML = renderBubbleTokens(tokens, currentLen);
+        }, 30);
+      }
+    }, durationMs);
+  } catch (e) {
+    console.error('Failed to show collapsed bubble message:', e);
+  }
+}
+
+function showSideNotificationBubble(fullHTML) {
+  if (!appElement.classList.contains('collapsed-x')) return;
+  void showCollapsedBubbleMessage(fullHTML, SIDE_NOTIFICATION_BUBBLE_DURATION_MS);
 }
 
 async function suppressEyeMessageBubble() {
@@ -3378,183 +3569,8 @@ async function suppressEyeMessageBubble() {
 }
 
 async function showEyeMessage() {
-  const isCollapsedY = appElement.classList.contains('collapsed-y');
-  const isCollapsedX = appElement.classList.contains('collapsed-x');
-  if (!isCollapsedY && !isCollapsedX) return;
-  if (isPeeking || appElement.classList.contains('peeking')) return;
-  if (isNotificationActive) return; // Don't show eye guide if a notification is active
-
-  if (isCollapsedX && appElement.classList.contains('collapsed-right')) {
-    await showRightEyeMessageOverlay();
-    return;
-  }
-
-  // Use the bubble in the active header
-  const activeHeader = isInFocusMode ? document.querySelector('.focus-header-bar') : document.querySelector('.title-bar:not(.focus-header-bar)');
-  const bubble = activeHeader ? activeHeader.querySelector('.eye-bubble') : null;
-  if (!bubble) return;
-
-  try {
-    const monitor = await currentMonitor();
-    if (monitor) {
-      const currentPos = await appWindow.outerPosition();
-      const currentSize = await appWindow.outerSize();
-      const scale = monitor.scaleFactor;
-      const { width: scrW } = monitor.size;
-      const { x: offsetX } = monitor.position;
-
-      if (!appElement.classList.contains('collapsed-y') && !appElement.classList.contains('collapsed-x')) return;
-      if (isPeeking || appElement.classList.contains('peeking')) return;
-
-      // Determine target size while bubble is active
-      const targetSize = isCollapsedY ? COLLAPSED_SIZE_Y_BUBBLE : COLLAPSED_SIZE_X_BUBBLE;
-      const pTargetW = targetSize.width * scale;
-
-      // Ensure window doesn't grow off-screen if on the right edge
-      let newX = currentPos.x;
-      const isRight = appElement.classList.contains('collapsed-right');
-      if (isCollapsedX && isRight) {
-        // Anchor to the current right edge so it doesn't "shift"
-        newX = (currentPos.x + currentSize.width) - pTargetW;
-      }
-
-      // Update UI state first so the collapsed bar is hidden, preventing ghosting at the old edge
-      appElement.classList.add('bubble-active');
-      clearEyeMessageAnimationTimers();
-      bubble.classList.remove('hidden', 'burst-out');
-
-      // Use the butter-smooth transform to perfectly anchor the right edge
-      if (Math.round(newX) !== currentPos.x || currentSize.width !== pTargetW) {
-        if (isRight) {
-          // Instant resize for right edge prevents IPC coordinate tearing (wobbling right edge)
-          await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(newX), currentPos.y));
-          await appWindow.setSize(targetSize);
-        } else {
-          await animateWindowTransform(
-            currentPos,
-            { x: Math.round(newX), y: currentPos.y },
-            currentSize,
-            targetSize,
-            100
-          );
-        }
-      } else {
-        await appWindow.setSize(targetSize);
-      }
-
-      if (!appElement.classList.contains('collapsed-y') && !appElement.classList.contains('collapsed-x')) return;
-      if (isPeeking || appElement.classList.contains('peeking')) return;
-      
-      const bubbleText = bubble.querySelector('.bubble-text');
-      if (bubbleText) bubbleText.innerHTML = '';
-      
-      eyeMessageRevealTimer = setTimeout(() => {
-        eyeMessageRevealTimer = null;
-        bubble.classList.add('visible');
-        
-        // Typewriter effect starts after the cloud pop-in starts
-        if (bubbleText) {
-          const fullHTML = 'i got my<br>eyes on you';
-          let typeIndex = 0;
-          
-          setTimeout(() => {
-            eyeMessageTypeTimer = setInterval(() => {
-              if (!bubble.classList.contains('visible')) {
-                clearInterval(eyeMessageTypeTimer);
-                eyeMessageTypeTimer = null;
-                return;
-              }
-              typeIndex++;
-              // Skip past <br> tag automatically
-              if (fullHTML.slice(typeIndex - 1).startsWith('<br>')) {
-                typeIndex += 3; // +3 to jump over 'br>' since 'typeIndex' already includes '<'
-              }
-              bubbleText.innerHTML = fullHTML.substring(0, typeIndex);
-              
-              if (typeIndex >= fullHTML.length) {
-                clearInterval(eyeMessageTypeTimer);
-                eyeMessageTypeTimer = null;
-              }
-            }, 30); // 30ms per character for a fast, snappy text reveal
-          }, 350); // wait for the cloud animation to settle
-        }
-      }, 50);
-
-      // Disappear after 3 seconds
-      eyeMessageDismissTimer = setTimeout(() => {
-        eyeMessageDismissTimer = null;
-        
-        // Reverse typewriter effect
-        if (bubbleText) {
-          const textArray = ['i', ' ', 'g', 'o', 't', ' ', 'm', 'y', '<br>', 'e', 'y', 'e', 's', ' ', 'o', 'n', ' ', 'y', 'o', 'u'];
-          let currentLen = textArray.length;
-          
-          if (eyeMessageTypeTimer) clearInterval(eyeMessageTypeTimer);
-          
-          eyeMessageTypeTimer = setInterval(() => {
-            currentLen--;
-            if (currentLen < 0) {
-              clearInterval(eyeMessageTypeTimer);
-              eyeMessageTypeTimer = null;
-              
-              // Now trigger the bubble burst/exit
-              bubble.classList.remove('visible');
-              bubble.classList.add('burst-out');
-              
-              eyeMessageDismissFadeTimer = setTimeout(async () => {
-                eyeMessageDismissFadeTimer = null;
-                bubble.classList.add('hidden');
-                bubble.classList.remove('burst-out');
-                appElement.classList.remove('bubble-active');
-                
-                const stillCollapsedY = appElement.classList.contains('collapsed-y');
-                const stillCollapsedX = appElement.classList.contains('collapsed-x');
-                if (stillCollapsedY || stillCollapsedX) {
-                  const restoredSize = stillCollapsedY ? COLLAPSED_SIZE_Y : COLLAPSED_SIZE_X;
-                  const scale = (await currentMonitor()).scaleFactor;
-                  
-                  const actualPos = await appWindow.outerPosition();
-                  const actualSize = await appWindow.outerSize();
-                  let endX = actualPos.x;
-                  
-                  const isRightSnap = appElement.classList.contains('collapsed-right');
-                  if (stillCollapsedX && isRightSnap) {
-                    const pRestoredW = restoredSize.width * scale;
-                    endX = (actualPos.x + actualSize.width) - pRestoredW;
-                  }
-                  
-                  if (stillCollapsedY) {
-                    await appWindow.setSize(restoredSize);
-                  } else {
-                    if (isRightSnap) {
-                      await appWindow.setSize(restoredSize);
-                      await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(endX), actualPos.y));
-                    } else {
-                      await animateWindowTransform(
-                        actualPos,
-                        { x: Math.round(endX), y: actualPos.y },
-                        actualSize,
-                        restoredSize,
-                        100
-                      );
-                    }
-                  }
-                }
-              }, 400);
-              return;
-            }
-            bubbleText.innerHTML = textArray.slice(0, currentLen).join('');
-          }, 30); // Matched with forward typewriter speed (30ms)
-        } else {
-          bubble.classList.remove('visible');
-          bubble.classList.add('burst-out');
-          // ... fallback cleanup ...
-        }
-      }, 3000);
-    }
-  } catch (e) {
-    console.error('Failed to show eye message:', e);
-  }
+  if (isNotificationActive) return;
+  await showCollapsedBubbleMessage('i got my<br>eyes on you', 3000);
 }
 
 console.log('FlowPane initialized');
