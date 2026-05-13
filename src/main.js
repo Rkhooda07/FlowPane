@@ -116,11 +116,13 @@ const NATIVE_EDGE_SNAP_THRESHOLD = 14;
 const NATIVE_SIDE_SNAP_MIN_WIDTH_RATIO = 0.42;
 const NATIVE_TOP_SNAP_MIN_WIDTH_RATIO = 0.9;
 const NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO = 0.72;
+const DRAG_GESTURE_IDLE_END_MS = 120;
 
 let isWindowDragGesture = false;
 let isDockMinimizing = false;
 let windowDragGestureExpiresAt = 0;
 let isRestoringFromDock = false;
+let dragGestureIdleTimer = null;
 
 // Listen for window becoming visible or focused to handle "safe" restoration
 appWindow.onFocusChanged(async ({ payload: focused }) => {
@@ -176,7 +178,11 @@ let dragStartSize = null;
 
 async function beginWindowDragGesture() {
   isWindowDragGesture = true;
-  windowDragGestureExpiresAt = Date.now() + 5000;
+  windowDragGestureExpiresAt = Date.now() + DRAG_GESTURE_IDLE_END_MS;
+  if (dragGestureIdleTimer != null) {
+    clearTimeout(dragGestureIdleTimer);
+    dragGestureIdleTimer = null;
+  }
   void suppressEyeMessageBubble();
   
   try {
@@ -188,10 +194,26 @@ async function beginWindowDragGesture() {
 }
 
 function endWindowDragGesture() {
+  if (dragGestureIdleTimer != null) {
+    clearTimeout(dragGestureIdleTimer);
+    dragGestureIdleTimer = null;
+  }
   isWindowDragGesture = false;
   windowDragGestureExpiresAt = 0;
   dragStartMonitor = null;
   dragStartSize = null;
+}
+
+function refreshWindowDragGesture() {
+  if (!isWindowDragGesture) return;
+  windowDragGestureExpiresAt = Date.now() + DRAG_GESTURE_IDLE_END_MS;
+  if (dragGestureIdleTimer != null) {
+    clearTimeout(dragGestureIdleTimer);
+  }
+  dragGestureIdleTimer = setTimeout(() => {
+    dragGestureIdleTimer = null;
+    endWindowDragGesture();
+  }, DRAG_GESTURE_IDLE_END_MS);
 }
 
 function isNativeEdgeSnapActive(monitor, winPos, winSize) {
@@ -2473,6 +2495,8 @@ let moveProcessingLastPos = null;
 appWindow.onMoved(async (event) => {
   if (isAnimating || isDockMinimizing || isRestoringFromDock) return;
 
+  refreshWindowDragGesture();
+
   // If the window is moved manually while peeking (expanding via hover),
   // end the peek state and force it to full size.
   if (isPeeking) {
@@ -3137,16 +3161,21 @@ document.getElementById('clear-history-btn').addEventListener('click', async (e)
 // Redundant main-home-link listener removed; it is now handled by homeNavLinks.forEach
 
 // Update focus mode complete to handle animation/delay if needed
-document.getElementById('focus-nav-complete-btn').addEventListener('click', () => {
+document.getElementById('focus-nav-complete-btn').addEventListener('click', async () => {
   if (currentFocusTask) {
     currentFocusTask.completed = true;
     currentFocusTask.completedAt = Date.now();
-    saveTasks();
+    currentFocusTask.elapsedSeconds = 0;
+    await saveTasks();
     renderTasks();
-    
+
+    stopTimer();
+    if (appElement.classList.contains('times-up-active')) {
+      hideTimesUpModal();
+    }
+
     // Stop the timer and show congrats before exiting
     const finalSeconds = currentFocusTask.totalWorkTime || 0;
-    stopTimer();
     showCongrats(finalSeconds);
   }
 });

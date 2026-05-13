@@ -142,8 +142,8 @@ body {
   background: radial-gradient(circle at center, rgba(80, 20, 30, 0.92) 0%, rgba(15, 10, 20, 0.98) 100%);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: inset 0 0 60px rgba(255, 50, 50, 0.15), 0 0 30px rgba(0, 0, 0, 0.6);
-  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 60px rgba(255, 50, 50, 0.15);
+  border-color: transparent;
 }
 
 #app.times-up-active.collapsed-y.collapsed-reminder-active .title-bar,
@@ -3159,7 +3159,12 @@ body {
   border-radius: inherit;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: inset 0 0 60px rgba(255, 50, 50, 0.15), 0 0 30px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 0 60px rgba(255, 50, 50, 0.15);
+}
+
+#app.times-up-active.collapsed-x,
+#app.times-up-active.collapsed-y.collapsed-reminder-active {
+  border-color: transparent !important;
 }
 
 #app.times-up-active.collapsed-y .collapsed-times-up-msg {
