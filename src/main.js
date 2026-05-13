@@ -112,6 +112,10 @@ const BOTTOM_DOCK_MINIMIZE_THRESHOLD = 0;
 const HOVER_PEEK_DELAY_MS = 150;
 const HOVER_PEEK_RETRY_MS = 80;
 const MANUAL_DRAG_EXPAND_DURATION_MS = 420;
+const NATIVE_EDGE_SNAP_THRESHOLD = 14;
+const NATIVE_SIDE_SNAP_MIN_WIDTH_RATIO = 0.42;
+const NATIVE_TOP_SNAP_MIN_WIDTH_RATIO = 0.9;
+const NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO = 0.72;
 
 let isWindowDragGesture = false;
 let isDockMinimizing = false;
@@ -188,6 +192,55 @@ function endWindowDragGesture() {
   windowDragGestureExpiresAt = 0;
   dragStartMonitor = null;
   dragStartSize = null;
+}
+
+function isNativeEdgeSnapActive(monitor, winPos, winSize) {
+  if (!monitor || !winPos || !winSize) return false;
+
+  const { full, work } = getMonitorBounds(monitor);
+  const topGap = Math.abs(winPos.y - full.y);
+  const leftGap = Math.abs(winPos.x - full.x);
+  const rightGap = Math.abs((full.x + full.width) - (winPos.x + winSize.width));
+  const widthRatio = work.width > 0 ? winSize.width / work.width : 0;
+  const heightRatio = work.height > 0 ? winSize.height / work.height : 0;
+
+  const isTopSnap =
+    topGap <= NATIVE_EDGE_SNAP_THRESHOLD &&
+    widthRatio >= NATIVE_TOP_SNAP_MIN_WIDTH_RATIO &&
+    heightRatio >= NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO;
+
+  const isSideSnap =
+    (leftGap <= NATIVE_EDGE_SNAP_THRESHOLD || rightGap <= NATIVE_EDGE_SNAP_THRESHOLD) &&
+    widthRatio >= NATIVE_SIDE_SNAP_MIN_WIDTH_RATIO &&
+    heightRatio >= NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO;
+
+  return isTopSnap || isSideSnap;
+}
+
+async function restoreExpandedStateFromNativeEdgeSnap() {
+  clearTimeout(collapseTimer);
+
+  const wasCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
+  if (!wasCollapsed) return;
+
+  isPeeking = false;
+  appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
+  clearTimeout(peekTimeout);
+
+  clearEyeMessageAnimationTimers();
+  await hideEyeMessageOverlay();
+
+  document.querySelectorAll('.eye-bubble').forEach((bubble) => {
+    bubble.classList.remove('visible', 'burst-out');
+    bubble.classList.add('hidden');
+  });
+
+  appElement.classList.remove('bubble-active', 'collapsed-y', 'collapsed-x', 'collapsed-left', 'collapsed-right');
+  updateNavbarTitle(getCurrentViewTitle());
+  if (isInFocusMode) showNavbarTimer();
+  else hideNavbarTimer();
+
+  lastExpandTime = Date.now();
 }
 
 async function moveWindowIntoVisibleWorkArea(providedMonitor, providedPos, providedSize) {
@@ -2367,6 +2420,11 @@ async function checkInstantCollapse() {
   const dLeft = Math.abs(winX - offsetX);
   const dRight = Math.abs((offsetX + scrW) - (winX + winW));
 
+  if (isNativeEdgeSnapActive(monitor, { x: winX, y: winY }, { width: winW, height: winH })) {
+    clearTimeout(collapseTimer);
+    return;
+  }
+
   if (dTop < TRIGGER_TOP_SIDES) {
     clearTimeout(collapseTimer);
     collapseTimer = setTimeout(() => {
@@ -2448,7 +2506,7 @@ appWindow.onMoved(async (event) => {
       if (!monitor) return;
       
       const winPos = moveProcessingLastPos || await appWindow.outerPosition();
-      const winSize = dragStartSize || await appWindow.outerSize();
+      const winSize = await appWindow.outerSize();
 
       const { full, work } = getMonitorBounds(monitor);
       const { x: offsetX, y: offsetY, width: scrW } = full;
@@ -2460,6 +2518,13 @@ appWindow.onMoved(async (event) => {
       const dRight = (offsetX + scrW) - (winPos.x + winSize.width);
       const windowBottom = winPos.y + winSize.height;
       const workBottom = work.y + work.height;
+      const nativeEdgeSnapActive = isNativeEdgeSnapActive(monitor, winPos, winSize);
+
+      if (nativeEdgeSnapActive) {
+        await restoreExpandedStateFromNativeEdgeSnap();
+        clearTimeout(collapseTimer);
+        return;
+      }
 
       if (isCollapsedY || isCollapsedX) {
         const EXPAND_THRESHOLD = 30;
