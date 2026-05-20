@@ -400,7 +400,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
   cursor: grab;
   user-select: none;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -409,10 +409,16 @@ body {
   height: var(--navbar-height);
   position: relative;
   z-index: 100; /* Always on top */
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+#app.collapsed-y .title-bar,
+#app.collapsed-x .title-bar {
+  border-radius: inherit;
 }
 
 .title-bar:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .title-bar:active {
@@ -3586,4 +3592,168 @@ body {
 
 .eye-bubble.v3.hidden {
   display: none !important;
+}
+
+/* --- Minimal Shooting Stars Background Effect for Navbar --- */
+:root {
+  --star-color: rgba(255, 255, 255, 0.7);
+  --star-color-fade: rgba(255, 255, 255, 0);
+  --star-glow: rgba(255, 255, 255, 0.35);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --star-color: rgba(0, 90, 200, 0.45);
+    --star-color-fade: rgba(0, 90, 200, 0);
+    --star-glow: rgba(0, 90, 200, 0.18);
+  }
+}
+
+.navbar-stars-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1; /* Behind text/controls but in front of background */
+  background: linear-gradient(to bottom, rgba(25, 25, 45, 0.35) 0%, rgba(15, 15, 30, 0.45) 100%);
+  border-radius: inherit; /* Sit flush in collapsed rounded states */
+}
+
+@media (prefers-color-scheme: light) {
+  .navbar-stars-container {
+    background: linear-gradient(to bottom, rgba(245, 247, 250, 0.2) 0%, rgba(235, 238, 242, 0.3) 100%);
+  }
+}
+
+/* Tiny static/twinkling background stars to look like a realistic sky */
+.navbar-stars-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(1px 1px at 15% 30%, rgba(255, 255, 255, 0.8), rgba(255,255,255,0)),
+    radial-gradient(1.2px 1.2px at 45% 70%, rgba(255, 255, 255, 0.95), rgba(255,255,255,0)),
+    radial-gradient(1px 1px at 75% 25%, rgba(255, 255, 255, 0.75), rgba(255,255,255,0)),
+    radial-gradient(1px 1px at 30% 60%, rgba(255, 255, 255, 0.6), rgba(255,255,255,0)),
+    radial-gradient(1.2px 1.2px at 60% 40%, rgba(255, 255, 255, 0.85), rgba(255,255,255,0)),
+    radial-gradient(1px 1px at 90% 80%, rgba(255, 255, 255, 0.7), rgba(255,255,255,0));
+  opacity: 0.5;
+  pointer-events: none;
+  animation: pulse-sky 6s ease-in-out infinite alternate;
+}
+
+@media (prefers-color-scheme: light) {
+  .navbar-stars-container::before {
+    background-image: 
+      radial-gradient(1px 1px at 15% 30%, rgba(0, 90, 200, 0.5), rgba(0,90,200,0)),
+      radial-gradient(1.2px 1.2px at 45% 70%, rgba(0, 90, 200, 0.65), rgba(0,90,200,0)),
+      radial-gradient(1px 1px at 75% 25%, rgba(0, 90, 200, 0.45), rgba(0,90,200,0)),
+      radial-gradient(1px 1px at 30% 60%, rgba(0, 90, 200, 0.3), rgba(0,90,200,0)),
+      radial-gradient(1.2px 1.2px at 60% 40%, rgba(0, 90, 200, 0.55), rgba(0,90,200,0)),
+      radial-gradient(1px 1px at 90% 80%, rgba(0, 90, 200, 0.4), rgba(0,90,200,0));
+  }
+}
+
+@keyframes pulse-sky {
+  0% { opacity: 0.35; }
+  100% { opacity: 0.65; }
+}
+
+/* Ensure title remains elevated above stars while fully maintaining its absolute positioning */
+.title-bar h1 {
+  z-index: 10 !important;
+}
+
+.star {
+  position: absolute;
+  top: -15px; /* Start slightly higher for more diagonal range */
+  height: 1.2px;
+  background: linear-gradient(90deg, var(--star-color-fade) 0%, var(--star-color) 70%, var(--star-color) 100%);
+  filter: drop-shadow(0 0 5px var(--star-glow));
+  opacity: 0;
+  will-change: transform, opacity;
+  transform-origin: left center;
+}
+
+/* 6 Staggered Stars for highly frequent, natural, non-repetitive organic timing */
+.star-1 {
+  left: 10%;
+  width: 80px;
+  animation: shoot-diag-a 5s cubic-bezier(0.15, 1, 0.4, 1) infinite;
+  animation-delay: 0.2s;
+}
+
+.star-2 {
+  left: 35%;
+  width: 100px;
+  animation: shoot-diag-b 6.5s cubic-bezier(0.15, 1, 0.4, 1) infinite;
+  animation-delay: 1.5s;
+}
+
+.star-3 {
+  left: 55%;
+  width: 70px;
+  animation: shoot-diag-a 4.5s cubic-bezier(0.15, 1, 0.4, 1) infinite;
+  animation-delay: 0.8s;
+}
+
+.star-4 {
+  left: 75%;
+  width: 110px;
+  animation: shoot-diag-b 7s cubic-bezier(0.15, 1, 0.4, 1) infinite;
+  animation-delay: 3.0s;
+}
+
+.star-5 {
+  left: 20%;
+  width: 85px;
+  animation: shoot-diag-a 5.8s cubic-bezier(0.15, 1, 0.4, 1) infinite;
+  animation-delay: 2.2s;
+}
+
+.star-6 {
+  left: 88%;
+  width: 90px;
+  animation: shoot-diag-b 5.5s cubic-bezier(0.15, 1, 0.4, 1) infinite;
+  animation-delay: 3.8s;
+}
+
+/* Animations that translate precisely along their own rotated angle (down and to the right) */
+@keyframes shoot-diag-a {
+  0% {
+    transform: rotate(35deg) translate3d(-120px, 0, 0);
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  18% {
+    transform: rotate(35deg) translate3d(220px, 0, 0);
+    opacity: 0;
+  }
+  100% {
+    transform: rotate(35deg) translate3d(220px, 0, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes shoot-diag-b {
+  0% {
+    transform: rotate(30deg) translate3d(-140px, 0, 0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  22% {
+    transform: rotate(30deg) translate3d(280px, 0, 0);
+    opacity: 0;
+  }
+  100% {
+    transform: rotate(30deg) translate3d(280px, 0, 0);
+    opacity: 0;
+  }
 }
