@@ -245,6 +245,8 @@ async function restoreExpandedStateFromNativeEdgeSnap() {
   const wasCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
   if (!wasCollapsed) return;
 
+  playCollapseExpandSound();
+
   isPeeking = false;
   appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
   clearTimeout(peekTimeout);
@@ -449,6 +451,7 @@ async function animateWindowSize(startSize, endSize, duration = 350) {
 
 async function toggleCollapseY(isManualDrag = false) {
   if (isAnimating) return;
+  playCollapseExpandSound();
   isAnimating = true;
   try {
     const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
@@ -584,6 +587,7 @@ async function toggleCollapseY(isManualDrag = false) {
 
 async function toggleCollapseX(isManualDrag = false) {
   if (isAnimating) return;
+  playCollapseExpandSound();
   isAnimating = true;
   try {
     const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
@@ -1323,9 +1327,58 @@ let topCollapsedReminderAnimation = Promise.resolve();
 const reminderTone = new Audio('assets/due_reminder_tone.mp3');
 reminderTone.preload = 'auto';
 
+const collapseExpandTone = new Audio('assets/collapse:expand_tone.mp3');
+collapseExpandTone.preload = 'auto';
+
+const taskCreateTone = new Audio('assets/task_create_tone.mp3');
+taskCreateTone.preload = 'auto';
+
+const taskActivationTone = new Audio('assets/task_activation.mp3');
+taskActivationTone.preload = 'auto';
+taskActivationTone.volume = 1.0; // Ensure full volume
+
+const taskDeleteTone = new Audio('assets/task_delete_tone.mp3');
+taskDeleteTone.preload = 'auto';
+
+const fallbackDeleteTone = new Audio('assets/fallback_delete_tone.mp3');
+fallbackDeleteTone.preload = 'auto';
+
+const timesUpTone = new Audio('assets/times_up_tone.mp3');
+timesUpTone.preload = 'auto';
+
 function playReminderTone() {
   reminderTone.currentTime = 0;
   reminderTone.play().catch(() => {});
+}
+
+function playCollapseExpandSound() {
+  collapseExpandTone.currentTime = 0;
+  collapseExpandTone.play().catch(() => {});
+}
+
+function playTaskCreateSound() {
+  taskCreateTone.currentTime = 0;
+  taskCreateTone.play().catch(() => {});
+}
+
+function playTaskActivationSound() {
+  taskActivationTone.currentTime = 0;
+  taskActivationTone.play().catch(() => {});
+}
+
+function playTaskDeleteSound() {
+  taskDeleteTone.currentTime = 0;
+  taskDeleteTone.play().catch(() => {});
+}
+
+function playFallbackDeleteSound() {
+  fallbackDeleteTone.currentTime = 0;
+  fallbackDeleteTone.play().catch(() => {});
+}
+
+function playTimesUpSound() {
+  timesUpTone.currentTime = 0;
+  timesUpTone.play().catch(() => {});
 }
 
 function isTopCollapsedReminderMode() {
@@ -2251,6 +2304,8 @@ function addTask() {
 
   if (!titleInput.value.trim()) return;
 
+  playTaskCreateSound();
+
   commitActiveDueBlockEdit();
   dueInput.value = normalizeDueInputValue(dueInput.value, { enforceFuture: true });
   let dueDate = parseMaskedDate(dueInput.value);
@@ -2748,8 +2803,13 @@ function startFocusSession(task, resume = false) {
     saveTasks();
   }
 
-  // Auto-start
-  toggleTimer();
+  // Play sound immediately upon entering focus mode
+  playTaskActivationSound();
+
+  // Start timer after a short delay for better transition
+  setTimeout(() => {
+    toggleTimer();
+  }, 1000);
 }
 
 let taskToResume = null;
@@ -2856,6 +2916,7 @@ function toggleTimer() {
 let sessionOriginalDuration = 0;
 
 function showTimesUpModal() {
+  playTimesUpSound();
   const modal = document.getElementById('times-up-modal');
   modal.classList.remove('hidden');
   appElement.classList.add('times-up-active');
@@ -3125,6 +3186,7 @@ document.getElementById('clear-history-btn').addEventListener('click', async (e)
 
   const completedTasksCount = tasks.filter(t => t.completed).length;
   if (completedTasksCount === 0) {
+    playFallbackDeleteSound();
     const btn = document.getElementById('clear-history-btn');
     btn.classList.add('shake');
     
@@ -3139,6 +3201,8 @@ document.getElementById('clear-history-btn').addEventListener('click', async (e)
     setTimeout(() => btn.classList.remove('shake'), 400);
     return;
   }
+
+  playTaskDeleteSound();
 
   const shouldClear = await requestDeleteConfirmation('entire history');
   if (shouldClear) {
