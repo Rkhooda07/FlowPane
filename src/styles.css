@@ -2241,7 +2241,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 10, 5, 0.98);
+  background: transparent;
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
   z-index: 150;
@@ -3596,16 +3596,16 @@ body {
 
 /* --- Minimal Shooting Stars Background Effect for Navbar --- */
 :root {
-  --star-color: rgba(255, 255, 255, 0.7);
+  --star-color: rgba(255, 255, 255, 0.45);
   --star-color-fade: rgba(255, 255, 255, 0);
-  --star-glow: rgba(255, 255, 255, 0.35);
+  --star-glow: rgba(255, 255, 255, 0.2);
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --star-color: rgba(0, 90, 200, 0.45);
+    --star-color: rgba(0, 90, 200, 0.3);
     --star-color-fade: rgba(0, 90, 200, 0);
-    --star-glow: rgba(0, 90, 200, 0.18);
+    --star-glow: rgba(0, 90, 200, 0.12);
   }
 }
 
@@ -3618,13 +3618,19 @@ body {
   overflow: hidden;
   pointer-events: none;
   z-index: 1; /* Behind text/controls but in front of background */
-  background: linear-gradient(to bottom, rgba(25, 25, 45, 0.35) 0%, rgba(15, 15, 30, 0.45) 100%);
+  background: linear-gradient(to bottom, rgba(25, 25, 45, 0.08) 0%, rgba(15, 15, 30, 0.12) 100%);
   border-radius: inherit; /* Sit flush in collapsed rounded states */
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+#app.notes-active .navbar-stars-container {
+  opacity: 0;
+  visibility: hidden;
 }
 
 @media (prefers-color-scheme: light) {
   .navbar-stars-container {
-    background: linear-gradient(to bottom, rgba(245, 247, 250, 0.2) 0%, rgba(235, 238, 242, 0.3) 100%);
+    background: linear-gradient(to bottom, rgba(245, 247, 250, 0.05) 0%, rgba(235, 238, 242, 0.08) 100%);
   }
 }
 
@@ -3640,26 +3646,26 @@ body {
     radial-gradient(1px 1px at 30% 60%, rgba(255, 255, 255, 0.6), rgba(255,255,255,0)),
     radial-gradient(1.2px 1.2px at 60% 40%, rgba(255, 255, 255, 0.85), rgba(255,255,255,0)),
     radial-gradient(1px 1px at 90% 80%, rgba(255, 255, 255, 0.7), rgba(255,255,255,0));
-  opacity: 0.5;
+  opacity: 0.4;
   pointer-events: none;
-  animation: pulse-sky 6s ease-in-out infinite alternate;
+  animation: pulse-sky 8s ease-in-out infinite alternate;
 }
 
 @media (prefers-color-scheme: light) {
   .navbar-stars-container::before {
     background-image: 
-      radial-gradient(1px 1px at 15% 30%, rgba(0, 90, 200, 0.5), rgba(0,90,200,0)),
-      radial-gradient(1.2px 1.2px at 45% 70%, rgba(0, 90, 200, 0.65), rgba(0,90,200,0)),
-      radial-gradient(1px 1px at 75% 25%, rgba(0, 90, 200, 0.45), rgba(0,90,200,0)),
-      radial-gradient(1px 1px at 30% 60%, rgba(0, 90, 200, 0.3), rgba(0,90,200,0)),
-      radial-gradient(1.2px 1.2px at 60% 40%, rgba(0, 90, 200, 0.55), rgba(0,90,200,0)),
-      radial-gradient(1px 1px at 90% 80%, rgba(0, 90, 200, 0.4), rgba(0,90,200,0));
+      radial-gradient(1px 1px at 15% 30%, rgba(0, 90, 200, 0.4), rgba(0,90,200,0)),
+      radial-gradient(1.2px 1.2px at 45% 70%, rgba(0, 90, 200, 0.55), rgba(0,90,200,0)),
+      radial-gradient(1px 1px at 75% 25%, rgba(0, 90, 200, 0.35), rgba(0,90,200,0)),
+      radial-gradient(1px 1px at 30% 60%, rgba(0, 90, 200, 0.2), rgba(0,90,200,0)),
+      radial-gradient(1.2px 1.2px at 60% 40%, rgba(0, 90, 200, 0.45), rgba(0,90,200,0)),
+      radial-gradient(1px 1px at 90% 80%, rgba(0, 90, 200, 0.3), rgba(0,90,200,0));
   }
 }
 
 @keyframes pulse-sky {
-  0% { opacity: 0.35; }
-  100% { opacity: 0.65; }
+  0% { opacity: 0.25; }
+  100% { opacity: 0.55; }
 }
 
 /* Ensure title remains elevated above stars while fully maintaining its absolute positioning */
@@ -3669,7 +3675,6 @@ body {
 
 .star {
   position: absolute;
-  top: -15px; /* Start slightly higher for more diagonal range */
   height: 1.2px;
   background: linear-gradient(90deg, var(--star-color-fade) 0%, var(--star-color) 70%, var(--star-color) 100%);
   filter: drop-shadow(0 0 5px var(--star-glow));
@@ -3678,82 +3683,59 @@ body {
   transform-origin: left center;
 }
 
-/* 6 Staggered Stars for highly frequent, natural, non-repetitive organic timing */
-.star-1 {
-  left: 10%;
-  width: 80px;
-  animation: shoot-diag-a 5s cubic-bezier(0.15, 1, 0.4, 1) infinite;
-  animation-delay: 0.2s;
-}
-
-.star-2 {
-  left: 35%;
-  width: 100px;
-  animation: shoot-diag-b 6.5s cubic-bezier(0.15, 1, 0.4, 1) infinite;
-  animation-delay: 1.5s;
-}
-
-.star-3 {
-  left: 55%;
-  width: 70px;
-  animation: shoot-diag-a 4.5s cubic-bezier(0.15, 1, 0.4, 1) infinite;
-  animation-delay: 0.8s;
-}
-
-.star-4 {
-  left: 75%;
-  width: 110px;
-  animation: shoot-diag-b 7s cubic-bezier(0.15, 1, 0.4, 1) infinite;
-  animation-delay: 3.0s;
-}
-
-.star-5 {
-  left: 20%;
-  width: 85px;
-  animation: shoot-diag-a 5.8s cubic-bezier(0.15, 1, 0.4, 1) infinite;
-  animation-delay: 2.2s;
-}
-
-.star-6 {
-  left: 88%;
-  width: 90px;
-  animation: shoot-diag-b 5.5s cubic-bezier(0.15, 1, 0.4, 1) infinite;
-  animation-delay: 3.8s;
-}
+/* 12 Staggered Stars distributed across the full window height and width */
+.star-1 { top: -20px; left: 5%; width: 100px; animation: shoot-diag-a 8s linear infinite; animation-delay: 0.5s; }
+.star-2 { top: 40px; left: 35%; width: 120px; animation: shoot-diag-b 11s linear infinite; animation-delay: 2s; }
+.star-3 { top: 100px; left: -10%; width: 90px; animation: shoot-diag-a 9s linear infinite; animation-delay: 4s; }
+.star-4 { top: 160px; left: 60%; width: 130px; animation: shoot-diag-b 12s linear infinite; animation-delay: 6s; }
+.star-5 { top: 220px; left: 15%; width: 100px; animation: shoot-diag-a 7s linear infinite; animation-delay: 1s; }
+.star-6 { top: 280px; left: 80%; width: 110px; animation: shoot-diag-b 10s linear infinite; animation-delay: 3.5s; }
+.star-7 { top: -50px; left: 25%; width: 115px; animation: shoot-diag-a 11.5s linear infinite; animation-delay: 5s; }
+.star-8 { top: 120px; left: 50%; width: 95px; animation: shoot-diag-b 8.5s linear infinite; animation-delay: 7.5s; }
+.star-9 { top: 200px; left: -5%; width: 125px; animation: shoot-diag-a 10.5s linear infinite; animation-delay: 9s; }
+.star-10 { top: 300px; left: 40%; width: 105px; animation: shoot-diag-b 9.5s linear infinite; animation-delay: 2.5s; }
+.star-11 { top: 70px; left: 75%; width: 135px; animation: shoot-diag-a 12.5s linear infinite; animation-delay: 11s; }
+.star-12 { top: 350px; left: 10%; width: 110px; animation: shoot-diag-b 7.5s linear infinite; animation-delay: 4.5s; }
 
 /* Animations that translate precisely along their own rotated angle (down and to the right) */
 @keyframes shoot-diag-a {
   0% {
-    transform: rotate(35deg) translate3d(-120px, 0, 0);
+    transform: rotate(35deg) translate3d(-150px, 0, 0);
     opacity: 0;
   }
-  4% {
-    opacity: 1;
+  5% {
+    opacity: 0.75;
   }
-  18% {
-    transform: rotate(35deg) translate3d(220px, 0, 0);
+  35% {
+    opacity: 0.75;
+  }
+  45% {
+    transform: rotate(35deg) translate3d(650px, 0, 0);
     opacity: 0;
   }
   100% {
-    transform: rotate(35deg) translate3d(220px, 0, 0);
+    transform: rotate(35deg) translate3d(650px, 0, 0);
     opacity: 0;
   }
 }
 
 @keyframes shoot-diag-b {
   0% {
-    transform: rotate(30deg) translate3d(-140px, 0, 0);
+    transform: rotate(30deg) translate3d(-180px, 0, 0);
     opacity: 0;
   }
   5% {
-    opacity: 1;
+    opacity: 0.8;
   }
-  22% {
-    transform: rotate(30deg) translate3d(280px, 0, 0);
+  38% {
+    opacity: 0.8;
+  }
+  48% {
+    transform: rotate(30deg) translate3d(750px, 0, 0);
     opacity: 0;
   }
   100% {
-    transform: rotate(30deg) translate3d(280px, 0, 0);
+    transform: rotate(30deg) translate3d(750px, 0, 0);
     opacity: 0;
   }
 }
