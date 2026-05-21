@@ -97,6 +97,15 @@ body {
   filter: saturate(0.85) brightness(0.92); /* Subtle dimming, mostly opaque */
 }
 
+/* Hide home page content when in focus mode to keep background clean for stars */
+#app.focus-mode-active > .input-area,
+#app.focus-mode-active > .task-container,
+#app.focus-mode-active > .title-bar:not(.focus-header-bar) {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
 #app:not(.focused):hover:not(.collapsed-x):not(.collapsed-y) {
   opacity: 1;
   filter: none; /* Make hover state identical to focused state for visual consistency */
