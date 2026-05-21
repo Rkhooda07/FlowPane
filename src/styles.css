@@ -653,6 +653,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: eye-blink 6s infinite;
+  will-change: transform;
+}
+
+@keyframes eye-blink {
+  0%, 95%, 100% {
+    transform: scaleY(1);
+  }
+  96.2% {
+    transform: scaleY(0.01);
+  }
 }
 
 .pupil {
