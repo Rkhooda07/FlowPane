@@ -3712,10 +3712,6 @@ body {
 .star-6 { top: 280px; left: 80%; width: 110px; animation: shoot-diag-b 10s linear infinite; animation-delay: 3.5s; }
 .star-7 { top: -50px; left: 25%; width: 115px; animation: shoot-diag-a 11.5s linear infinite; animation-delay: 5s; }
 .star-8 { top: 120px; left: 50%; width: 95px; animation: shoot-diag-b 8.5s linear infinite; animation-delay: 7.5s; }
-.star-9 { top: 200px; left: -5%; width: 125px; animation: shoot-diag-a 10.5s linear infinite; animation-delay: 9s; }
-.star-10 { top: 300px; left: 40%; width: 105px; animation: shoot-diag-b 9.5s linear infinite; animation-delay: 2.5s; }
-.star-11 { top: 70px; left: 75%; width: 135px; animation: shoot-diag-a 12.5s linear infinite; animation-delay: 11s; }
-.star-12 { top: 350px; left: 10%; width: 110px; animation: shoot-diag-b 7.5s linear infinite; animation-delay: 4.5s; }
 
 /* Animations that translate precisely along their own rotated angle (down and to the right) */
 @keyframes shoot-diag-a {
