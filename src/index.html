@@ -322,7 +322,7 @@
         <div class="reminder-popup-icon" style="width: 42px; height: 42px; background: transparent; box-shadow: none; overflow: hidden; border-radius: 50%;">
           <img src="assets/times_up_rabbit.png" style="width: 100%; height: 100%; object-fit: cover;" />
         </div>
-        <div class="reminder-popup-info" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+        <div class="reminder-popup-info" id="island-info-main" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
           <div style="display: flex; flex-direction: column;">
             <div class="reminder-popup-label" style="color: #FF3B30; font-size: 11px;">Time's Up!</div>
             <h3 id="collapsed-times-up-title" style="font-size: 16px; font-weight: 600; color: #ffffff; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">Task Name</h3>
@@ -331,6 +331,14 @@
             <button id="collapsed-times-up-complete-btn-island" class="reminder-popup-close" style="background: #34C759; color: white; padding: 8px 14px; font-size: 13px;">Finished</button>
             <button id="collapsed-times-up-not-done-btn-island" class="reminder-popup-close" style="background: rgba(255, 255, 255, 0.15); color: white; padding: 8px 14px; font-size: 13px;">Still left</button>
           </div>
+        </div>
+        <!-- Completion State for Island -->
+        <div class="reminder-popup-info hidden" id="island-info-complete" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <div style="display: flex; flex-direction: column;">
+            <div class="reminder-popup-label" style="color: #34C759; font-size: 11px;">Well Done!</div>
+            <h3 id="collapsed-complete-time" style="font-size: 16px; font-weight: 600; color: #ffffff; margin: 0;">00:00</h3>
+          </div>
+          <button id="island-lets-go-btn" class="reminder-popup-close" style="background: #34C759; color: white; padding: 8px 14px; font-size: 13px;">Let's Go &rarr;</button>
         </div>
       </div>
     </div>

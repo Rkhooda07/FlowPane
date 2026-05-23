@@ -2932,10 +2932,15 @@ function showTimesUpModal() {
       popup.setAttribute('aria-hidden', 'false');
       
       void expandTopCollapsedReminder().then(() => {
+        // Text is revealed earlier via the reveal class
+      });
+      
+      // Reveal text almost immediately after starting expansion for better sync
+      setTimeout(() => {
         if (!popup.classList.contains('hidden') && appElement.classList.contains('collapsed-reminder-active')) {
           appElement.classList.add('collapsed-reminder-revealed');
         }
-      });
+      }, 40);
     }
   } else if (appElement.classList.contains('collapsed-x')) {
     showSideNotification();
@@ -2975,16 +2980,50 @@ async function handleTimesUpComplete() {
     currentFocusTask.completed = true;
     currentFocusTask.completedAt = Date.now();
     currentFocusTask.elapsedSeconds = 0;
-    
+
     await saveTasks();
     renderTasks();
-    
-    hideTimesUpModal();
-    // Show congrats with the total duration they spent across all timers
-    showCongrats(currentFocusTask.totalWorkTime || 0);
+
+    const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
+
+    if (isCollapsed) {
+      // Show completion info right in the island
+      const mainInfo = document.getElementById('island-info-main');
+      const completeInfo = document.getElementById('island-info-complete');
+      const timeDisplay = document.getElementById('collapsed-complete-time');
+
+      if (mainInfo && completeInfo && timeDisplay) {
+        const seconds = currentFocusTask.totalWorkTime || 0;
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        timeDisplay.textContent = `${m}:${s}`;
+
+        mainInfo.classList.add('hidden');
+        setTimeout(() => {
+          completeInfo.classList.remove('hidden');
+        }, 150);
+      }
+    } else {
+      hideTimesUpModal();
+      // Show congrats with the total duration they spent across all timers
+      showCongrats(currentFocusTask.totalWorkTime || 0);
+    }
   }
 }
 
+// Add listener for the new island "Let's Go" button
+document.getElementById('island-lets-go-btn').addEventListener('click', () => {
+  hideTimesUpModal();
+  exitFocusMode();
+
+  // Reset island state for next time
+  const mainInfo = document.getElementById('island-info-main');
+  const completeInfo = document.getElementById('island-info-complete');
+  if (mainInfo && completeInfo) {
+    mainInfo.classList.remove('hidden');
+    completeInfo.classList.add('hidden');
+  }
+});
 function handleTimesUpNotDone() {
   hideTimesUpModal();
   // Optionally reset to 0 or leave at 0 so they can start a new timer/stopwatch
