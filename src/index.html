@@ -344,6 +344,29 @@
     </div>
 
 
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden" aria-hidden="true">
+      <button class="context-item" id="menu-about">About FlowPane</button>
+      <button class="context-item" id="menu-privacy">Privacy Policy</button>
+      <div class="context-divider"></div>
+      <button class="context-item quit" id="menu-quit">Quit</button>
+    </div>
+
+    <!-- About Modal -->
+    <div id="about-modal" class="modal-overlay hidden" aria-hidden="true">
+      <div class="resume-card about-card">
+        <div class="resume-icon about-icon">
+          <img src="assets/FlowPane_logo.png" alt="FlowPane Logo" style="width: 48px; height: 48px;" />
+        </div>
+        <h3>FlowPane</h3>
+        <p id="about-version">Version 0.1.0</p>
+        <p>A translucent, always-on-top desktop utility.</p>
+        <div class="resume-actions">
+          <button id="about-close-btn" class="resume-btn continue">Close</button>
+        </div>
+      </div>
+    </div>
+
     <div id="focus-mode" class="focus-mode hidden">
       <header class="title-bar focus-header-bar" data-tauri-drag-region>
         <div class="window-controls" aria-hidden="true">

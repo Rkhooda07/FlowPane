@@ -48,6 +48,11 @@ fn hide_eye_bubble_overlay(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -55,7 +60,9 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
-
+            
+            // Onboarding check could also be done here or in frontend
+            
             let bubble_window = WebviewWindowBuilder::new(
                 app,
                 "eye-bubble",
@@ -114,11 +121,22 @@ pub fn run() {
                 }
             });
 
-            /* 
+            // Transparency and Vibrancy
             #[cfg(target_os = "macos")]
-            apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
-                .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
-            */
+            let _ = apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None);
+
+            #[cfg(target_os = "windows")]
+            let _ = apply_acrylic(&window, Some((18, 18, 18, 125)));
+
+            #[cfg(target_os = "linux")]
+            {
+                // Simple check for compositor on Linux
+                let has_compositor = std::env::var("XDG_CURRENT_DESKTOP").is_ok() || 
+                                     std::env::var("WAYLAND_DISPLAY").is_ok();
+                if !has_compositor {
+                    eprintln!("Warning: No compositor detected on Linux. Transparency may not work as expected.");
+                }
+            }
 
             // Tray setup
             let tray_menu = tauri::menu::Menu::with_items(app, &[
@@ -148,7 +166,8 @@ pub fn run() {
             greet,
             get_cursor_position,
             show_eye_bubble_overlay,
-            hide_eye_bubble_overlay
+            hide_eye_bubble_overlay,
+            get_app_version
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

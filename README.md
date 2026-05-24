@@ -19,6 +19,38 @@ FlowPane is a lightweight desktop task manager built with Tauri. It is designed 
 - System tray integration (`Show`, `Quit`)
 - Persistent task storage via Tauri Store plugin (with localStorage fallback)
 
+## System Requirements
+
+- **macOS**: 10.15 or newer.
+- **Windows**: Windows 10 or 11.
+- **Linux**: Any modern distribution with a compositor (e.g., Ubuntu, Fedora).
+
+## Installation
+
+### macOS
+Download the `.dmg` from the [Releases](https://github.com/rkhooda/FlowPane/releases) page and drag FlowPane to your Applications folder.
+
+### Windows
+Download the `.exe` installer from the [Releases](https://github.com/rkhooda/FlowPane/releases) page and run it.
+
+### Linux
+Download the `.AppImage` or `.deb` from the [Releases](https://github.com/rkhooda/FlowPane/releases) page. For AppImage, make it executable (`chmod +x FlowPane.AppImage`) and run it.
+
+## Keyboard Shortcuts
+
+- `Esc`: Close active note, exit focus mode, or dismiss modals.
+- `Enter`: Quick add task (when in task input).
+- `Right-Click`: Open context menu (About, Privacy, Quit).
+
+## Known Limitations
+
+- **Linux Transparency**: Requires a running compositor (like Picom or KWin) for full translucency.
+- **Wayland**: Always-on-top behavior may vary depending on the compositor's layer-shell support.
+
+## Privacy Policy
+
+FlowPane values your privacy. No data is collected or transmitted from your device. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for the full policy.
+
 ## Tech Stack
 
 - Desktop runtime: Tauri v2
