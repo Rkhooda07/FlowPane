@@ -1,6 +1,29 @@
 const { getCurrentWindow, currentMonitor, LogicalSize } = window.__TAURI__.window;
 
 const appWindow = getCurrentWindow();
+let isCreatingAppWindow = false;
+
+async function createAppWindowFromShortcut(event) {
+  const key = event.key?.toLowerCase();
+  const isNewWindowShortcut = key === 'n' && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey;
+
+  if (!isNewWindowShortcut || event.repeat || isCreatingAppWindow) return;
+
+  event.preventDefault();
+  isCreatingAppWindow = true;
+
+  try {
+    await window.__TAURI__.core.invoke('create_app_window');
+  } catch (error) {
+    console.error('Failed to create app window:', error);
+  } finally {
+    setTimeout(() => {
+      isCreatingAppWindow = false;
+    }, 250);
+  }
+}
+
+document.addEventListener('keydown', createAppWindowFromShortcut, true);
 
 // State management
 let tasks = [];
