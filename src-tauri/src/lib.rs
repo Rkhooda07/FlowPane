@@ -1,5 +1,5 @@
-use std::time::Duration;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::Mutex;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
 };
@@ -7,6 +7,24 @@ use tauri::{
 const APP_WINDOW_WIDTH: f64 = 325.0;
 const APP_WINDOW_HEIGHT: f64 = 395.0;
 const NEW_WINDOW_OFFSET: i32 = 32;
+const MIN_WINDOW_SPAWN_INTERVAL: Duration = Duration::from_millis(700);
+const MAX_APP_WINDOWS: usize = 8;
+
+#[derive(Default)]
+struct WindowSpawnLimiter {
+    last_spawn: Mutex<Option<Instant>>,
+}
+
+fn is_app_window_label(label: &str) -> bool {
+    label == "main" || label.starts_with("flowpane-")
+}
+
+fn app_window_count(app: &AppHandle) -> usize {
+    app.webview_windows()
+        .keys()
+        .filter(|label| is_app_window_label(label))
+        .count()
+}
 
 fn spawn_hover_tracker(window: WebviewWindow) {
     tauri::async_runtime::spawn(async move {
@@ -151,7 +169,26 @@ fn get_app_version() -> String {
 }
 
 #[tauri::command]
-fn create_app_window(app: AppHandle, window: WebviewWindow) -> Result<String, String> {
+fn create_app_window(
+    app: AppHandle,
+    window: WebviewWindow,
+    limiter: tauri::State<WindowSpawnLimiter>,
+) -> Result<Option<String>, String> {
+    if app_window_count(&app) >= MAX_APP_WINDOWS {
+        return Ok(None);
+    }
+
+    {
+        let mut last_spawn = limiter.last_spawn.lock().map_err(|e| e.to_string())?;
+        let now = Instant::now();
+
+        if last_spawn.is_some_and(|last| now.duration_since(last) < MIN_WINDOW_SPAWN_INTERVAL) {
+            return Ok(None);
+        }
+
+        *last_spawn = Some(now);
+    }
+
     let label = next_app_window_label(&app);
     let position = offset_window_position(&window);
     let scale_factor = window.scale_factor().unwrap_or(1.0);
@@ -178,7 +215,7 @@ fn create_app_window(app: AppHandle, window: WebviewWindow) -> Result<String, St
     let _ = new_window.set_focus();
     spawn_hover_tracker(new_window);
 
-    Ok(label)
+    Ok(Some(label))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -186,6 +223,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .manage(WindowSpawnLimiter::default())
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
 

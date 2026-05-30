@@ -1,6 +1,7 @@
 const { getCurrentWindow, currentMonitor, LogicalSize } = window.__TAURI__.window;
 
 const appWindow = getCurrentWindow();
+const APP_WINDOW_SHORTCUT_COOLDOWN_MS = 700;
 let isCreatingAppWindow = false;
 
 async function createAppWindowFromShortcut(event) {
@@ -19,7 +20,7 @@ async function createAppWindowFromShortcut(event) {
   } finally {
     setTimeout(() => {
       isCreatingAppWindow = false;
-    }, 250);
+    }, APP_WINDOW_SHORTCUT_COOLDOWN_MS);
   }
 }
 
