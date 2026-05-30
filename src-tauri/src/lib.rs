@@ -1,7 +1,5 @@
 use std::time::Duration;
 use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
-#[allow(unused_imports)]
-use window_vibrancy::{apply_acrylic, apply_vibrancy, NSVisualEffectMaterial};
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -120,13 +118,6 @@ pub fn run() {
                     }
                 }
             });
-
-            // Transparency and Vibrancy
-            #[cfg(target_os = "macos")]
-            let _ = apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None);
-
-            #[cfg(target_os = "windows")]
-            let _ = apply_acrylic(&window, Some((18, 18, 18, 125)));
 
             #[cfg(target_os = "linux")]
             {
