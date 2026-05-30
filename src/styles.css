@@ -73,8 +73,15 @@ body {
   border: var(--glass-border);
   box-shadow: var(--glass-shadow);
   overflow: hidden;
+  isolation: isolate;
+  clip-path: inset(0 round var(--border-radius));
+  transform: translateZ(0); /* Force compositor layer */
+  -webkit-mask-image: -webkit-radial-gradient(white, black); /* Ancient WebKit clipping hack */
+
   &.bubble-active {
     overflow: visible !important;
+    clip-path: none !important;
+    -webkit-mask-image: none !important;
   }
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
               height 0.5s cubic-bezier(0.16, 1, 0.3, 1),
@@ -86,6 +93,23 @@ body {
               filter 0.6s;
   animation: appAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+.app-background-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: transparent;
+  border-radius: var(--border-radius);
+  clip-path: inset(0 round var(--border-radius));
+  overflow: hidden;
+  transform: translateZ(0);
+  pointer-events: none;
+}
+
+#app > :not(.app-background-layer) {
+  z-index: 2;
+}
+
 
 #app:not(.focused):not(:hover):not(.collapsed-x):not(.collapsed-y):not(.focus-mode-active) {
   opacity: 0.4;
@@ -143,14 +167,13 @@ body {
 }
 
 #app.collapsed-y.collapsed-reminder-active {
+  --border-radius: 22px;
   height: 112px !important;
-  border-radius: 22px;
+  border-radius: var(--border-radius);
 }
 
 #app.times-up-active.collapsed-y.collapsed-reminder-active {
-  background: radial-gradient(circle at center, rgba(80, 20, 30, 0.92) 0%, rgba(15, 10, 20, 0.98) 100%);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: transparent !important;
   box-shadow: inset 0 0 60px rgba(255, 50, 50, 0.15);
   border-color: transparent;
 }
@@ -2230,6 +2253,7 @@ body {
 .resize-handle {
   position: absolute;
   z-index: 1000;
+  background: transparent !important;
 }
 
 .resize-handle.n { top: 0; left: 0; right: 0; height: 5px; cursor: n-resize; }
@@ -3717,16 +3741,15 @@ body {
 
 .navbar-stars-container {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   overflow: hidden;
   pointer-events: none;
   z-index: 1; /* Behind text/controls but in front of background */
   background: linear-gradient(to bottom, rgba(25, 25, 45, 0.08) 0%, rgba(15, 15, 30, 0.12) 100%);
-  border-radius: inherit; /* Sit flush in collapsed rounded states */
-  transition: opacity 0.5s ease, visibility 0.5s ease;
+  border-radius: var(--border-radius);
+  clip-path: inset(0 round var(--border-radius));
+  transform: translateZ(0);
+  transition: opacity 0.5s ease, visibility 0.5s ease, border-radius 0.5s;
 }
 
 #app.notes-active .navbar-stars-container {
@@ -3745,6 +3768,8 @@ body {
   content: '';
   position: absolute;
   inset: 0;
+  border-radius: var(--border-radius);
+  clip-path: inset(0 round var(--border-radius));
   background-image: 
     radial-gradient(1px 1px at 15% 30%, rgba(255, 255, 255, 0.8), rgba(255,255,255,0)),
     radial-gradient(1.2px 1.2px at 45% 70%, rgba(255, 255, 255, 0.95), rgba(255,255,255,0)),
