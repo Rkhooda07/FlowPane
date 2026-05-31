@@ -30,6 +30,7 @@ document.addEventListener('keydown', createAppWindowFromShortcut, true);
 let tasks = [];
 let store = null;
 let isInFocusMode = false;
+let collapseModeAfterCongrats = null; // Stores 'x' or 'y' to know where to collapse back to
 let lastNormalPosition = null;
 let isAnimating = false;
 let lastExpandTime = 0;
@@ -3001,6 +3002,7 @@ if (islandNotDoneBtn) islandNotDoneBtn.addEventListener('click', handleTimesUpNo
 
 async function handleTimesUpComplete() {
   if (currentFocusTask) {
+    const totalTime = currentFocusTask.totalWorkTime || 0;
     currentFocusTask.completed = true;
     currentFocusTask.completedAt = Date.now();
     currentFocusTask.elapsedSeconds = 0;
@@ -3008,29 +3010,46 @@ async function handleTimesUpComplete() {
     await saveTasks();
     renderTasks();
 
-    const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
+    const isCollapsedY = appElement.classList.contains('collapsed-y');
+    const isCollapsedX = appElement.classList.contains('collapsed-x');
 
-    if (isCollapsed) {
-      // Show completion info right in the island
-      const mainInfo = document.getElementById('island-info-main');
-      const completeInfo = document.getElementById('island-info-complete');
-      const timeDisplay = document.getElementById('collapsed-complete-time');
+    if (isCollapsedY || isCollapsedX) {
+      // Clear any pending animations or flags that might block expansion
+      isAnimating = false;
+      collapseModeAfterCongrats = isCollapsedY ? 'y' : 'x';
 
-      if (mainInfo && completeInfo && timeDisplay) {
-        const seconds = currentFocusTask.totalWorkTime || 0;
-        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-        const s = (seconds % 60).toString().padStart(2, '0');
-        timeDisplay.textContent = `${m}:${s}`;
-
-        mainInfo.classList.add('hidden');
-        setTimeout(() => {
-          completeInfo.classList.remove('hidden');
-        }, 150);
+      // Manually clean up the island popup state before expanding
+      const popup = document.getElementById('collapsed-times-up-popup');
+      if (popup) {
+        popup.classList.add('hidden');
+        popup.setAttribute('aria-hidden', 'true');
       }
+      appElement.classList.remove('collapsed-reminder-revealed', 'collapsed-reminder-active');
+      
+      // Now hide the main modal (without triggering automatic restoration)
+      document.getElementById('times-up-modal').classList.add('hidden');
+      appElement.classList.remove('times-up-active');
+      clearSideNotification();
+
+      // Hide focus mode screen to prevent it from overlaying the congrats modal
+      document.getElementById('focus-mode').classList.add('hidden');
+      appElement.classList.remove('focus-mode-active');
+
+      // Expand the app fully
+      if (isCollapsedY) {
+        await toggleCollapseY();
+      } else {
+        await toggleCollapseX();
+      }
+
+      // Show the full congrats modal
+      showCongrats(totalTime);
     } else {
       hideTimesUpModal();
-      // Show congrats with the total duration they spent across all timers
-      showCongrats(currentFocusTask.totalWorkTime || 0);
+      // Hide focus mode screen
+      document.getElementById('focus-mode').classList.add('hidden');
+      appElement.classList.remove('focus-mode-active');
+      showCongrats(totalTime);
     }
   }
 }
@@ -3307,10 +3326,22 @@ document.getElementById('focus-nav-complete-btn').addEventListener('click', asyn
   }
 });
 
-document.getElementById('congrats-done-btn').addEventListener('click', () => {
+document.getElementById('congrats-done-btn').addEventListener('click', async () => {
   document.getElementById('congrats-modal').classList.add('hidden');
   if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
   exitFocusMode();
+
+  if (collapseModeAfterCongrats) {
+    const mode = collapseModeAfterCongrats;
+    collapseModeAfterCongrats = null;
+    
+    // Collapse back to exactly where it was (top or side)
+    if (mode === 'y') {
+      await toggleCollapseY();
+    } else {
+      await toggleCollapseX();
+    }
+  }
 });
 
 document.getElementById('focus-nav-exit-btn').addEventListener('click', exitFocusMode);
