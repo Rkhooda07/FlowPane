@@ -24,7 +24,28 @@ async function createAppWindowFromShortcut(event) {
   }
 }
 
+async function closeWindowFromShortcut(event) {
+  const key = event.key?.toLowerCase();
+  const isCloseWindowShortcut = key === 'w' && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey;
+
+  if (!isCloseWindowShortcut || event.repeat) return;
+
+  event.preventDefault();
+  try {
+    if (appWindow.label === 'main') {
+      // For main window, we hide it instead of closing to keep the tray "Show" functional
+      // and keep the app state alive if it's the only window.
+      await appWindow.hide();
+    } else {
+      await appWindow.close();
+    }
+  } catch (error) {
+    console.error('Failed to close window:', error);
+  }
+}
+
 document.addEventListener('keydown', createAppWindowFromShortcut, true);
+document.addEventListener('keydown', closeWindowFromShortcut, true);
 
 // State management
 let tasks = [];
