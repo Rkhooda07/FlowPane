@@ -32,13 +32,7 @@ async function closeWindowFromShortcut(event) {
 
   event.preventDefault();
   try {
-    if (appWindow.label === 'main') {
-      // For main window, we hide it instead of closing to keep the tray "Show" functional
-      // and keep the app state alive if it's the only window.
-      await appWindow.hide();
-    } else {
-      await appWindow.close();
-    }
+    await window.__TAURI__.core.invoke('close_app_window');
   } catch (error) {
     console.error('Failed to close window:', error);
   }
@@ -115,6 +109,11 @@ function updateFocusState() {
 
 appWindow.onFocusChanged(({ payload: focused }) => {
   isWindowFocused = focused;
+  if (focused) {
+    window.__TAURI__.core.invoke('mark_app_window_active').catch(error => {
+      console.error('Failed to mark app window active:', error);
+    });
+  }
   updateFocusState();
 });
 
@@ -128,7 +127,6 @@ appWindow.listen('mouse-leave', () => {
   updateFocusState();
 });
 
-// Added DOM listeners for more reliable tracking when unfocused
 appElement.addEventListener('mouseenter', () => {
   isMouseInside = true;
   updateFocusState();

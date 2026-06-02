@@ -1,7 +1,8 @@
 use std::sync::Mutex;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{
-    AppHandle, Emitter, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    AppHandle, Emitter, Manager, PhysicalPosition, State, WebviewUrl, WebviewWindow,
+    WebviewWindowBuilder,
 };
 
 const APP_WINDOW_WIDTH: f64 = 325.0;
@@ -15,6 +16,12 @@ struct WindowSpawnLimiter {
     last_spawn: Mutex<Option<Instant>>,
 }
 
+#[derive(Default)]
+struct HoverTrackerState {
+    hovered_label: Mutex<Option<String>>,
+    app_window_order: Mutex<Vec<String>>,
+}
+
 fn is_app_window_label(label: &str) -> bool {
     label == "main" || label.starts_with("flowpane-")
 }
@@ -26,43 +33,69 @@ fn app_window_count(app: &AppHandle) -> usize {
         .count()
 }
 
-fn spawn_hover_tracker(window: WebviewWindow) {
+fn remember_app_window_order(state: &HoverTrackerState, label: &str) -> Result<(), String> {
+    if !is_app_window_label(label) {
+        return Ok(());
+    }
+
+    let mut order = state.app_window_order.lock().map_err(|e| e.to_string())?;
+    order.retain(|existing_label| existing_label != label);
+    order.push(label.to_string());
+    Ok(())
+}
+
+fn app_window_under_cursor(
+    app: &AppHandle,
+    state: &HoverTrackerState,
+) -> Option<(String, WebviewWindow)> {
+    let cursor_pos = app.cursor_position().ok()?;
+    let windows = app.webview_windows();
+    let order = state.app_window_order.lock().ok()?;
+
+    order.iter().rev().find_map(|label| {
+        let window = windows.get(label)?;
+        let win_pos = window.outer_position().ok()?;
+        let win_size = window.outer_size().ok()?;
+
+        let x_over = cursor_pos.x >= win_pos.x as f64
+            && cursor_pos.x <= (win_pos.x as f64 + win_size.width as f64);
+        let y_over = cursor_pos.y >= win_pos.y as f64
+            && cursor_pos.y <= (win_pos.y as f64 + win_size.height as f64);
+
+        (x_over && y_over).then(|| (label.clone(), window.clone()))
+    })
+}
+
+fn spawn_hover_tracker(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
-        let mut is_over = false;
+        let state = app.state::<HoverTrackerState>();
+
         loop {
             tokio::time::sleep(Duration::from_millis(150)).await;
 
-            let cursor_pos = match window.app_handle().cursor_position() {
-                Ok(pos) => pos,
-                Err(_) => continue,
+            let hovered_window = app_window_under_cursor(&app, &state);
+            let hovered_label = hovered_window.as_ref().map(|(label, _)| label.clone());
+            let previous_label = {
+                let mut previous = match state.hovered_label.lock() {
+                    Ok(previous) => previous,
+                    Err(_) => continue,
+                };
+
+                if *previous == hovered_label {
+                    continue;
+                }
+
+                std::mem::replace(&mut *previous, hovered_label)
             };
 
-            let win_pos = match window.outer_position() {
-                Ok(pos) => pos,
-                Err(_) => break,
-            };
+            if let Some(previous_label) = previous_label {
+                if let Some(previous_window) = app.get_webview_window(&previous_label) {
+                    let _ = previous_window.emit("mouse-leave", ());
+                }
+            }
 
-            let win_size = match window.outer_size() {
-                Ok(size) => size,
-                Err(_) => break,
-            };
-
-            let x_over = cursor_pos.x >= win_pos.x as f64
-                && cursor_pos.x <= (win_pos.x as f64 + win_size.width as f64);
-            let y_over = cursor_pos.y >= win_pos.y as f64
-                && cursor_pos.y <= (win_pos.y as f64 + win_size.height as f64);
-            let currently_over = x_over && y_over;
-
-            if currently_over != is_over {
-                is_over = currently_over;
-                let _ = window.emit(
-                    if is_over {
-                        "mouse-enter"
-                    } else {
-                        "mouse-leave"
-                    },
-                    (),
-                );
+            if let Some((_, hovered_window)) = hovered_window {
+                let _ = hovered_window.emit("mouse-enter", ());
             }
         }
     });
@@ -173,6 +206,7 @@ fn create_app_window(
     app: AppHandle,
     window: WebviewWindow,
     limiter: tauri::State<WindowSpawnLimiter>,
+    hover_state: State<HoverTrackerState>,
 ) -> Result<Option<String>, String> {
     if app_window_count(&app) >= MAX_APP_WINDOWS {
         return Ok(None);
@@ -213,9 +247,27 @@ fn create_app_window(
             .map_err(|e| e.to_string())?;
 
     let _ = new_window.set_focus();
-    spawn_hover_tracker(new_window);
+    remember_app_window_order(&hover_state, &label)?;
 
     Ok(Some(label))
+}
+
+#[tauri::command]
+fn mark_app_window_active(
+    window: WebviewWindow,
+    hover_state: State<HoverTrackerState>,
+) -> Result<(), String> {
+    remember_app_window_order(&hover_state, window.label())
+}
+
+#[tauri::command]
+fn close_app_window(app: AppHandle, window: WebviewWindow) -> Result<bool, String> {
+    if !is_app_window_label(window.label()) || app_window_count(&app) <= 1 {
+        return Ok(false);
+    }
+
+    window.close().map_err(|e| e.to_string())?;
+    Ok(true)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -224,8 +276,11 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .manage(WindowSpawnLimiter::default())
+        .manage(HoverTrackerState::default())
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
+            let hover_state = app.state::<HoverTrackerState>();
+            remember_app_window_order(&hover_state, window.label())?;
 
             // Onboarding check could also be done here or in frontend
 
@@ -250,7 +305,7 @@ pub fn run() {
             let _ = bubble_window.set_ignore_cursor_events(true);
 
             // Background task to track mouse hover for inactive windows.
-            spawn_hover_tracker(window.clone());
+            spawn_hover_tracker(app.handle().clone());
 
             #[cfg(target_os = "linux")]
             {
@@ -276,9 +331,14 @@ pub fn run() {
                         app.exit(0);
                     }
                     "show" => {
-                        let window = app.get_webview_window("main").unwrap();
-                        window.show().unwrap();
-                        window.set_focus().unwrap();
+                        if let Some(window) = app
+                            .webview_windows()
+                            .into_iter()
+                            .find_map(|(label, window)| is_app_window_label(&label).then_some(window))
+                        {
+                            window.show().unwrap();
+                            window.set_focus().unwrap();
+                        }
                     }
                     _ => {}
                 })
@@ -292,7 +352,9 @@ pub fn run() {
             show_eye_bubble_overlay,
             hide_eye_bubble_overlay,
             get_app_version,
-            create_app_window
+            create_app_window,
+            mark_app_window_active,
+            close_app_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
