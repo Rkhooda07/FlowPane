@@ -125,9 +125,10 @@ body {
 #app.focus-mode-active > .input-area,
 #app.focus-mode-active > .task-container,
 #app.focus-mode-active > .title-bar:not(.focus-header-bar) {
-  opacity: 0;
+  opacity: 0 !important;
   pointer-events: none;
-  visibility: hidden;
+  visibility: hidden !important;
+  transition: none !important;
 }
 
 #app.focused:not(.collapsed-x):not(.collapsed-y) {
@@ -2312,6 +2313,70 @@ body {
   visibility: hidden;
   transform: scale(0.96) translateY(10px); /* Smooth sink effect on exit */
   pointer-events: none;
+}
+
+#app.focus-mode-active .focus-mode {
+  transition-duration: 0.22s;
+}
+
+#app.focus-mode-active .focus-mode:not(.hidden) {
+  animation: focusModeEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#app.focus-mode-active .focus-mode:not(.hidden) .focus-content {
+  animation: focusContentEnter 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#app.focus-mode-active .focus-mode:not(.hidden) .focus-bottom-controls {
+  animation: focusControlsEnter 0.34s cubic-bezier(0.16, 1, 0.3, 1) 0.04s both;
+}
+
+#app.focus-mode-active .focus-mode:not(.hidden) .focus-quote {
+  animation: focusQuoteEnter 0.32s ease-out 0.08s both;
+}
+
+@keyframes focusModeEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.985) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes focusContentEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.975) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes focusControlsEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes focusQuoteEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .focus-header-bar {
