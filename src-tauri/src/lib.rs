@@ -19,6 +19,7 @@ struct WindowSpawnLimiter {
 #[derive(Default)]
 struct HoverTrackerState {
     hovered_label: Mutex<Option<String>>,
+    active_label: Mutex<Option<String>>,
     app_window_order: Mutex<Vec<String>>,
 }
 
@@ -41,6 +42,34 @@ fn remember_app_window_order(state: &HoverTrackerState, label: &str) -> Result<(
     let mut order = state.app_window_order.lock().map_err(|e| e.to_string())?;
     order.retain(|existing_label| existing_label != label);
     order.push(label.to_string());
+    Ok(())
+}
+
+fn set_active_app_window(
+    app: &AppHandle,
+    state: &HoverTrackerState,
+    label: &str,
+) -> Result<(), String> {
+    if !is_app_window_label(label) {
+        return Ok(());
+    }
+
+    remember_app_window_order(state, label)?;
+
+    {
+        let mut active_label = state.active_label.lock().map_err(|e| e.to_string())?;
+        if active_label.as_deref() == Some(label) {
+            return Ok(());
+        }
+        *active_label = Some(label.to_string());
+    }
+
+    for (window_label, window) in app.webview_windows() {
+        if is_app_window_label(&window_label) {
+            let _ = window.emit("app-window-active-changed", label.to_string());
+        }
+    }
+
     Ok(())
 }
 
@@ -75,6 +104,7 @@ fn spawn_hover_tracker(app: AppHandle) {
 
             let hovered_window = app_window_under_cursor(&app, &state);
             let hovered_label = hovered_window.as_ref().map(|(label, _)| label.clone());
+            let hover_payload = hovered_label.clone().unwrap_or_default();
             let previous_label = {
                 let mut previous = match state.hovered_label.lock() {
                     Ok(previous) => previous,
@@ -91,6 +121,12 @@ fn spawn_hover_tracker(app: AppHandle) {
             if let Some(previous_label) = previous_label {
                 if let Some(previous_window) = app.get_webview_window(&previous_label) {
                     let _ = previous_window.emit("mouse-leave", ());
+                }
+            }
+
+            for (window_label, window) in app.webview_windows() {
+                if is_app_window_label(&window_label) {
+                    let _ = window.emit("app-window-hover-changed", hover_payload.clone());
                 }
             }
 
@@ -254,10 +290,11 @@ fn create_app_window(
 
 #[tauri::command]
 fn mark_app_window_active(
+    app: AppHandle,
     window: WebviewWindow,
     hover_state: State<HoverTrackerState>,
 ) -> Result<(), String> {
-    remember_app_window_order(&hover_state, window.label())
+    set_active_app_window(&app, &hover_state, window.label())
 }
 
 #[tauri::command]

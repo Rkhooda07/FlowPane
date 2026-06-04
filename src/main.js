@@ -1,6 +1,7 @@
 const { getCurrentWindow, currentMonitor, LogicalSize } = window.__TAURI__.window;
 
 const appWindow = getCurrentWindow();
+const appWindowLabel = appWindow.label;
 const APP_WINDOW_SHORTCUT_COOLDOWN_MS = 700;
 let isCreatingAppWindow = false;
 
@@ -98,9 +99,14 @@ function updateReminderBtnState() {
 const appElement = document.getElementById('app');
 let isWindowFocused = false;
 let isMouseInside = false;
+let isActiveWindow = false;
+let hoveredWindowLabel = '';
 
 function updateFocusState() {
-  if (isWindowFocused || isMouseInside) {
+  const isHoveredWindow = hoveredWindowLabel === appWindowLabel;
+  const hasHoveredWindow = hoveredWindowLabel !== '';
+
+  if (isHoveredWindow || (!hasHoveredWindow && isActiveWindow)) {
     appElement.classList.add('focused');
   } else {
     appElement.classList.remove('focused');
@@ -109,7 +115,10 @@ function updateFocusState() {
 
 appWindow.onFocusChanged(({ payload: focused }) => {
   isWindowFocused = focused;
-  if (focused) {
+  if (!focused) {
+    isActiveWindow = false;
+  }
+  if (focused && isMouseInside) {
     window.__TAURI__.core.invoke('mark_app_window_active').catch(error => {
       console.error('Failed to mark app window active:', error);
     });
@@ -117,25 +126,25 @@ appWindow.onFocusChanged(({ payload: focused }) => {
   updateFocusState();
 });
 
-appWindow.listen('mouse-enter', () => {
-  isMouseInside = true;
+appWindow.listen('app-window-active-changed', ({ payload: activeLabel }) => {
+  isActiveWindow = activeLabel === appWindowLabel;
   updateFocusState();
 });
 
-appWindow.listen('mouse-leave', () => {
-  isMouseInside = false;
+appWindow.listen('app-window-hover-changed', ({ payload: hoverLabel }) => {
+  hoveredWindowLabel = typeof hoverLabel === 'string' ? hoverLabel : '';
+  isMouseInside = hoveredWindowLabel === appWindowLabel;
   updateFocusState();
 });
 
-appElement.addEventListener('mouseenter', () => {
-  isMouseInside = true;
+appElement.addEventListener('pointerdown', () => {
+  isWindowFocused = true;
+  isActiveWindow = true;
   updateFocusState();
-});
-
-appElement.addEventListener('mouseleave', () => {
-  isMouseInside = false;
-  updateFocusState();
-});
+  window.__TAURI__.core.invoke('mark_app_window_active').catch(error => {
+    console.error('Failed to mark app window active:', error);
+  });
+}, { capture: true });
 
 // Initial check
 appWindow.isFocused().then(focused => {

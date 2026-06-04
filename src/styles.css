@@ -111,12 +111,12 @@ body {
 }
 
 
-#app:not(.focused):not(:hover):not(.collapsed-x):not(.collapsed-y):not(.focus-mode-active) {
+#app:not(.focused):not(.collapsed-x):not(.collapsed-y):not(.focus-mode-active) {
   opacity: 0.4;
   filter: saturate(0.6) grayscale(0.3) brightness(0.8); /* Stronger dimming effect when working on other apps */
 }
 
-#app.focus-mode-active:not(.focused):not(:hover):not(.collapsed-x):not(.collapsed-y) {
+#app.focus-mode-active:not(.focused):not(.collapsed-x):not(.collapsed-y) {
   opacity: 0.75; /* Much clearer for timer visibility while backgrounded */
   filter: saturate(0.85) brightness(0.92); /* Subtle dimming, mostly opaque */
 }
@@ -130,7 +130,7 @@ body {
   visibility: hidden;
 }
 
-#app:not(.focused):hover:not(.collapsed-x):not(.collapsed-y) {
+#app.focused:not(.collapsed-x):not(.collapsed-y) {
   opacity: 1;
   filter: none; /* Make hover state identical to focused state for visual consistency */
 }
