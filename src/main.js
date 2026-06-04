@@ -3350,6 +3350,11 @@ document.getElementById('focus-nav-complete-btn').addEventListener('click', asyn
 
     // Stop the timer and show congrats before exiting
     const finalSeconds = currentFocusTask.totalWorkTime || 0;
+    const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
+    if (!isCollapsed) {
+      document.getElementById('focus-mode').classList.add('hidden');
+      appElement.classList.remove('focus-mode-active');
+    }
     showCongrats(finalSeconds);
   }
 });

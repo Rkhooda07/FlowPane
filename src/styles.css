@@ -2434,6 +2434,43 @@ body {
   opacity: 0;
 }
 
+#app.peeking-y.focus-mode-active .focus-content {
+  margin: 0;
+  justify-content: center;
+}
+
+#app.peeking-y.focus-mode-active #focus-task-name {
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+#app.peeking-y.focus-mode-active .focus-timer {
+  font-size: 44px;
+}
+
+#app.peeking-y.focus-mode-active .focus-quote {
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 8px;
+  max-width: 220px;
+}
+
+#app.peeking-y.focus-mode-active .focus-bottom-controls {
+  gap: 20px;
+  padding-bottom: 10px;
+}
+
+#app.peeking-y.focus-mode-active .round-btn.timer-util,
+#app.peeking-y.focus-mode-active .round-btn.reset {
+  width: 40px;
+  height: 40px;
+}
+
+#app.peeking-y.focus-mode-active .round-btn.play-pause {
+  width: 54px;
+  height: 54px;
+}
+
 .round-btn {
   border: none;
   border-radius: 50%;
