@@ -1440,6 +1440,11 @@ body {
   clip-path: circle(145% at var(--reveal-x) var(--reveal-y));
 }
 
+#app.notes-active #list-filter,
+#app.notes-active #task-list > .empty-state {
+  display: none;
+}
+
 .notes-editor-shell {
   width: 100%;
   height: 100%;
