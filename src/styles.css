@@ -2697,6 +2697,7 @@ body {
 #app.history-active > .input-area,
 #app.history-active #list-filter,
 #app.history-active #task-list,
+#app.history-active .task-container,
 #app.history-active #task-list > .empty-state,
 #app.history-active .navbar-stars-container {
   display: none !important;
@@ -2713,7 +2714,7 @@ body {
   right: 0;
   bottom: 0;
   background: var(--history-bg);
-  z-index: 50;
+  z-index: 150; /* Increased to ensure it's above everything else when active */
   display: flex;
   flex-direction: column;
   padding: 4px 20px 20px 20px;
@@ -2721,6 +2722,7 @@ body {
   visibility: visible;
   transform: translateY(0);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto; /* Explicitly allow pointer events */
 }
 
 .history-workspace.hidden {
@@ -2766,12 +2768,13 @@ body {
 
 .history-back-btn:hover,
 .history-back-btn.pseudo-hover {
-  transform: translateY(-2px);
+  transform: translateX(-3px) scale(1.1);
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  color: #ffcc66; /* Subtle gold tint on hover */
 }
 
 .history-back-btn:active {
-  transform: translateY(0) scale(0.92);
+  transform: translateX(0) scale(0.92);
 }
 
 .history-header h2 {
@@ -2799,8 +2802,20 @@ body {
 
 .clear-history-btn:hover,
 .clear-history-btn.pseudo-hover {
-  color: #ff5252;
+  color: #ff5252 !important;
   transform: scale(1.15);
+  animation: binHoverWiggle 0.5s ease-in-out infinite;
+}
+
+.clear-history-btn:hover #trash-lid,
+.clear-history-btn.pseudo-hover #trash-lid {
+  transform: translateY(-2px) rotate(-8deg);
+}
+
+@keyframes binHoverWiggle {
+  0%, 100% { transform: scale(1.15) rotate(0); }
+  25% { transform: scale(1.15) rotate(-4deg); }
+  75% { transform: scale(1.15) rotate(4deg); }
 }
 
 .trash-bin-svg {
@@ -2813,11 +2828,22 @@ body {
   color: #ff5252 !important;
 }
 
+.clear-history-btn.shake #trash-lid {
+  animation: lidFlap 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
 @keyframes binShake {
   10%, 90% { transform: translateX(-1px) rotate(-3deg); }
   20%, 80% { transform: translateX(2px) rotate(3deg); }
   30%, 50%, 70% { transform: translateX(-2px) rotate(-3deg); }
   40%, 60% { transform: translateX(2px) rotate(3deg); }
+}
+
+@keyframes lidFlap {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-35deg) translateY(-2px); }
+  50% { transform: rotate(-10deg) translateY(-1px); }
+  75% { transform: rotate(-25deg) translateY(-1.5px); }
 }
 
 #trash-lid {
@@ -2826,12 +2852,13 @@ body {
 }
 
 .clear-history-btn.animating {
-  color: #ff5252;
-  transform: scale(1.1);
+  color: #ff5252 !important;
+  transform: scale(1.1) !important;
+  animation: none; /* Stop hover wiggle while animating */
 }
 
 .clear-history-btn.animating #trash-lid {
-  transform: rotate(-45deg) translateY(-2px);
+  transform: rotate(-45deg) translateY(-3px);
 }
 
 /* History items swallowing animation */
@@ -2841,9 +2868,9 @@ body {
 }
 
 @keyframes swallowToBin {
-  0% { transform: scale(1) translate(0, 0); opacity: 1; filter: blur(0); }
-  40% { transform: scale(0.8) translate(40px, -20px); opacity: 0.6; filter: blur(1px); }
-  100% { transform: scale(0) translate(120px, -80px); opacity: 0; filter: blur(4px); }
+  0% { transform: scale(1) translate(0, 0) rotate(0); opacity: 1; filter: blur(0); }
+  40% { transform: scale(0.7) translate(40px, -20px) rotate(10deg); opacity: 0.8; filter: blur(1px); }
+  100% { transform: scale(0) translate(120px, -80px) rotate(25deg); opacity: 0; filter: blur(4px); }
 }
 
 .history-list {
@@ -3983,11 +4010,6 @@ body {
     opacity: 0;
   }
   100% {
-    transform: rotate(30deg) translate3d(750px, 0, 0);
-    opacity: 0;
-  }
-}
-
     transform: rotate(30deg) translate3d(750px, 0, 0);
     opacity: 0;
   }

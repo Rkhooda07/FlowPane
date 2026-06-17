@@ -3224,7 +3224,7 @@ function renderHistory(completedTasks) {
             renderTasks();
           }
           if (btn) btn.classList.remove('animating');
-        }, 500);
+        }, 600);
       });
 
       li.addEventListener('click', () => {
@@ -3288,7 +3288,7 @@ document.getElementById('history-btn').addEventListener('click', (e) => {
 
 document.getElementById('history-back-btn').addEventListener('click', (e) => {
   e.stopPropagation();
-  toggleHistory();
+  goToHomeView();
 });
 
 document.getElementById('clear-history-btn').addEventListener('click', async (e) => {
@@ -3308,7 +3308,7 @@ document.getElementById('clear-history-btn').addEventListener('click', async (e)
       }, 2000);
     }
     
-    setTimeout(() => btn.classList.remove('shake'), 400);
+    setTimeout(() => btn.classList.remove('shake'), 500);
     return;
   }
 
@@ -3319,16 +3319,23 @@ document.getElementById('clear-history-btn').addEventListener('click', async (e)
     const btn = document.getElementById('clear-history-btn');
     const items = document.querySelectorAll('.history-item');
     
-    // Play swallow animation
+    // Play swallow animation with staggered delay
     if (btn) btn.classList.add('animating');
-    items.forEach(li => li.classList.add('swallowing'));
+    items.forEach((li, index) => {
+      // Add a small delay for each subsequent item for a staggered effect
+      li.style.animationDelay = `${index * 50}ms`;
+      li.classList.add('swallowing');
+    });
+    
+    // Adjust timeout based on the number of items to ensure all animations finish
+    const totalDuration = 600 + (items.length * 50);
     
     setTimeout(async () => {
       tasks = tasks.filter(t => !t.completed);
       await saveTasks();
       renderTasks();
       if (btn) btn.classList.remove('animating');
-    }, 600);
+    }, Math.max(600, totalDuration));
   }
 });
 
