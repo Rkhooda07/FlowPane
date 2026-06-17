@@ -123,6 +123,7 @@ body {
 
 /* Hide home page content when in focus mode to keep background clean for stars */
 #app.focus-mode-active > .input-area,
+#app.history-active > .input-area,
 #app.focus-mode-active > .task-container,
 #app.focus-mode-active > .title-bar:not(.focus-header-bar) {
   opacity: 0 !important;
@@ -2692,9 +2693,22 @@ body {
 }
 
 /* History Workspace */
+/* Hide home page content when in history mode */
+#app.history-active > .input-area,
+#app.history-active #list-filter,
+#app.history-active #task-list,
+#app.history-active #task-list > .empty-state,
+#app.history-active .navbar-stars-container {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+/* Ensure history workspace starts below the main title-bar */
 .history-workspace {
   position: absolute;
-  top: 0;
+  top: var(--navbar-height);
   left: 0;
   right: 0;
   bottom: 0;
@@ -2702,7 +2716,7 @@ body {
   z-index: 50;
   display: flex;
   flex-direction: column;
-  padding: calc(var(--navbar-height) + 4px) 20px 20px 20px; /* Reduced from +20px for tighter layout */
+  padding: 4px 20px 20px 20px;
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -3969,6 +3983,11 @@ body {
     opacity: 0;
   }
   100% {
+    transform: rotate(30deg) translate3d(750px, 0, 0);
+    opacity: 0;
+  }
+}
+
     transform: rotate(30deg) translate3d(750px, 0, 0);
     opacity: 0;
   }
