@@ -847,7 +847,7 @@ body {
 }
 
 .input-area.expanded {
-  gap: 15px;
+  gap: 8px !important;
 }
 
 .task-input-shell {
