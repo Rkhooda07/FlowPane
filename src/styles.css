@@ -1442,9 +1442,15 @@ body {
   clip-path: circle(145% at var(--reveal-x) var(--reveal-y));
 }
 
+/* Hide home page content when in notes mode */
+#app.notes-active > .input-area,
 #app.notes-active #list-filter,
+#app.notes-active .task-container,
 #app.notes-active #task-list > .empty-state {
-  display: none;
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 
 .notes-editor-shell {
