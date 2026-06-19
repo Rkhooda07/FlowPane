@@ -374,12 +374,12 @@ body {
 #app.collapsed-y .focus-bottom-controls,
 #app.collapsed-y .focus-secondary-actions,
 #app.collapsed-y .notes-editor-shell {
-  opacity: 0;
-  transform: translateY(-20px) scale(0.95); /* Subtle drift up and shrink */
-  pointer-events: none;
-  margin: 0;
+  opacity: 0 !important;
+  transform: translateY(-20px) scale(0.95) !important; /* Subtle drift up and shrink */
+  pointer-events: none !important;
+  margin: 0 !important;
   padding: 0 !important;
-  height: 0;
+  height: 0 !important;
   transition: opacity 0.2s ease-out, transform 0.2s ease-out; /* Fast exit */
 }
 
@@ -389,12 +389,12 @@ body {
 #app.collapsed-x .focus-bottom-controls,
 #app.collapsed-x .focus-secondary-actions,
 #app.collapsed-x .notes-editor-shell {
-  opacity: 0;
-  transform: translateX(-20px) scale(0.95);
-  pointer-events: none;
-  margin: 0;
+  opacity: 0 !important;
+  transform: translateX(-20px) scale(0.95) !important;
+  pointer-events: none !important;
+  margin: 0 !important;
   padding: 0 !important;
-  height: 0;
+  height: 0 !important;
   transition: opacity 0.2s ease-out, transform 0.2s ease-out; /* Fast exit */
 }
 
