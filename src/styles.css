@@ -422,11 +422,16 @@ body {
 #app.peeking .focus-content,
 #app.peeking .focus-bottom-controls,
 #app.peeking .focus-secondary-actions,
-#app.peeking .notes-editor-shell,
 #app.peeking .history-content-shell {
   transition-delay: 0s !important;
   transition-duration: 0.3s !important;
   transform: scale(0.95) !important;
+}
+
+#app.peeking .notes-editor-shell {
+  transition-delay: 0s !important;
+  transition-duration: 0.3s !important;
+  transform: scale(1) !important;
 }
 
 .title-bar {
