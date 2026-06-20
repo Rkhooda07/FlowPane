@@ -2812,6 +2812,11 @@ function showCongrats(seconds) {
   if (funText) funText.textContent = congratsMessages[Math.floor(Math.random() * congratsMessages.length)];
   
   modal.classList.remove('hidden');
+  // Hide task input and notes icons during congrats modal
+  const inputArea = document.querySelector('.input-area');
+  const notesIcons = document.querySelector('.task-notes-icons');
+  if (inputArea) inputArea.classList.add('hidden');
+  if (notesIcons) notesIcons.classList.add('hidden');
   
   playVictorySound();
   startConfetti();
@@ -3368,6 +3373,11 @@ document.getElementById('focus-nav-complete-btn').addEventListener('click', asyn
 
 document.getElementById('congrats-done-btn').addEventListener('click', async () => {
   document.getElementById('congrats-modal').classList.add('hidden');
+  // Restore task input and notes icons
+  const inputArea = document.querySelector('.input-area');
+  const notesIcons = document.querySelector('.task-notes-icons');
+  if (inputArea) inputArea.classList.remove('hidden');
+  if (notesIcons) notesIcons.classList.remove('hidden');
   if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
   exitFocusMode();
 
