@@ -1955,6 +1955,24 @@ appWindow.listen('mouse-enter', () => {
 
 appWindow.listen('mouse-leave', () => {
   clearTimeout(peekTimeout);
+  
+  const congratsModal = document.getElementById('congrats-modal');
+  if (congratsModal && !congratsModal.classList.contains('hidden')) {
+    congratsModal.classList.add('hidden');
+    if (confettiAnimationId) {
+      cancelAnimationFrame(confettiAnimationId);
+    }
+    const canvas = document.getElementById('confetti-canvas');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    const inputArea = document.querySelector('.input-area');
+    const notesIcons = document.querySelector('.task-notes-icons');
+    if (inputArea) inputArea.classList.remove('hidden');
+    if (notesIcons) notesIcons.classList.remove('hidden');
+  }
+
   if (isPeeking) {
     if (!isAnimating) {
       isPeeking = false;
@@ -3363,7 +3381,7 @@ document.getElementById('focus-nav-complete-btn').addEventListener('click', asyn
     // Stop the timer and show congrats before exiting
     const finalSeconds = currentFocusTask.totalWorkTime || 0;
     const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
-    if (!isCollapsed) {
+    if (!isCollapsed && !isPeeking) {
       document.getElementById('focus-mode').classList.add('hidden');
       appElement.classList.remove('focus-mode-active');
     }
