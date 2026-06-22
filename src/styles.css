@@ -2110,6 +2110,73 @@ body {
   padding: 20px;
 }
 
+/* Make congrats modal smaller in collapsed and peeking states for better visibility */
+#app.collapsed-y .congrats-modal,
+#app.collapsed-x .congrats-modal,
+#app.peeking-y .congrats-modal,
+#app.peeking-x .congrats-modal {
+  inset: auto;
+  width: 250px;
+  height: auto;
+  max-height: 230px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+}
+
+#app.collapsed-y .congrats-content,
+#app.collapsed-x .congrats-content,
+#app.peeking-y .congrats-content,
+#app.peeking-x .congrats-content {
+  width: 100%;
+  max-width: 220px;
+}
+
+#app.collapsed-y .congrats-icon,
+#app.collapsed-x .congrats-icon,
+#app.peeking-y .congrats-icon,
+#app.peeking-x .congrats-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+#app.collapsed-y .congrats-content h3,
+#app.collapsed-x .congrats-content h3,
+#app.peeking-y .congrats-content h3,
+#app.peeking-x .congrats-content h3 {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+#app.collapsed-y .congrats-time,
+#app.collapsed-x .congrats-time,
+#app.peeking-y .congrats-time,
+#app.peeking-x .congrats-time {
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+#app.collapsed-y .congrats-fun-text,
+#app.collapsed-x .congrats-fun-text,
+#app.peeking-y .congrats-fun-text,
+#app.peeking-x .congrats-fun-text {
+  font-size: 12px;
+  margin-bottom: 12px;
+  max-width: 200px;
+}
+
+#app.collapsed-y #congrats-done-btn,
+#app.collapsed-x #congrats-done-btn,
+#app.peeking-y #congrats-done-btn,
+#app.peeking-x #congrats-done-btn {
+  padding: 6px 20px;
+  font-size: 12px;
+}
+
 #confetti-canvas {
   position: absolute;
   inset: 0;
