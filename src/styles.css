@@ -866,7 +866,7 @@ body {
   width: 100%;
   background: var(--input-bg);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 115px 12px 12px;
+  padding: 12px 95px 12px 12px;
   border-radius: 12px;
   color: var(--text-color);
   font-size: 14px;
@@ -877,36 +877,55 @@ body {
 }
 
 .task-reminder-btn {
-  position: absolute;
-  right: 85px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
+  position: relative;
+  background: rgba(255, 255, 255, 0.06);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  border-radius: 8px;
+  padding: 8px;
+  height: 32px;
+  width: 32px;
   cursor: pointer;
-  z-index: 3;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(10px);
 }
 
 .task-reminder-btn:hover {
   color: var(--text-color);
-  transform: translateY(-50%) scale(1.1);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.task-reminder-btn:active {
+  transform: translateY(1px) scale(0.98);
 }
 
 .task-reminder-btn.shake {
-  animation: bellShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+  animation: bellShakeNew 0.4s cubic-bezier(.36,.07,.19,.97) both;
   color: #FF9500 !important;
   opacity: 1 !important;
 }
 
+@media (prefers-color-scheme: light) {
+  .task-reminder-btn {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: var(--text-color);
+  }
+  .task-reminder-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+    border-color: rgba(0, 0, 0, 0.2);
+  }
+}
+
 .task-due-date-btn {
   position: absolute;
-  right: 110px;
+  right: 85px;
   top: 48%;
   transform: translateY(-50%);
   background: transparent;
@@ -1011,8 +1030,8 @@ body {
 .reminder-dropdown {
   position: absolute;
   top: 100%;
-  right: 60px;
-  margin-top: 12px;
+  right: 0;
+  margin-top: 8px;
   background: rgba(22, 22, 24, 0.95);
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
@@ -1038,7 +1057,7 @@ body {
   content: "";
   position: absolute;
   top: -6.5px;
-  right: 33px;
+  right: 10px;
   width: 13px;
   height: 13px;
   background: var(--bg-color);
@@ -1055,7 +1074,7 @@ body {
   content: "";
   position: absolute;
   top: 0;
-  right: 28px;
+  right: 4px;
   width: 25px;
   height: 8px;
   background: var(--bg-color);
@@ -1095,19 +1114,6 @@ body {
   padding-right: 4px; /* Space for hidden scrollbar */
 }
 
-/* Adjust position in side-peeking mode to prevent cutoff on narrow 270px width */
-#app.peeking-x .reminder-dropdown {
-  right: 12px;
-}
-
-#app.peeking-x .reminder-dropdown::before {
-  right: 81px; /* Center it relative to task-reminder-btn at right: 85px */
-}
-
-#app.peeking-x .reminder-dropdown::after {
-  right: 76px;
-}
-
 #app.peeking-x #reminder-custom-input {
   width: 65px; /* Slightly narrower to fit better */
 }
@@ -1117,8 +1123,11 @@ body {
   right: 25px;
 }
 
-#app.peeking-x .task-reminder-btn {
-  right: 55px;
+@keyframes bellShakeNew {
+  10%, 90% { transform: translateX(-1px) rotate(-3deg); }
+  20%, 80% { transform: translateX(2px) rotate(6deg); }
+  30%, 50%, 70% { transform: translateX(-3px) rotate(-9deg); }
+  40%, 60% { transform: translateX(3px) rotate(9deg); }
 }
 
 /* Glow Pulse for app when notification active in collapsed states */
@@ -1659,10 +1668,10 @@ body {
   opacity: 0.5;
 }
 
-.quick-time-presets {
+.reminder-button-wrapper {
   display: flex;
   align-items: center;
-  gap: 6px;
+  position: relative;
   opacity: 0;
   pointer-events: none;
   height: 0;
@@ -1671,104 +1680,13 @@ body {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.input-area.expanded .quick-time-presets {
+.input-area.expanded .reminder-button-wrapper {
   opacity: 1;
   pointer-events: all;
   height: 32px;
   margin-top: 4px;
   transform: translateX(0);
-}
-
-.quick-time-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 0.5px solid rgba(255, 255, 255, 0.1);
-  color: var(--text-color);
-  font-family: var(--font-family);
-  font-size: 11px;
-  font-weight: 500;
-  border-radius: 8px;
-  padding: 8px;
-  height: 26px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(10px);
-  position: relative;
-  overflow: hidden;
-}
-
-.quick-time-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.quick-time-btn:active {
-  transform: translateY(1px);
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.quick-time-btn .btn-text,
-.quick-time-btn .btn-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.quick-time-btn .btn-icon {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  color: #28c840;
-  opacity: 0;
-  transform: translateY(100%);
-}
-
-@keyframes iconSlideUpIn {
-  0% { transform: translateY(100%); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-@keyframes textSlideUpOut {
-  0% { transform: translateY(0); opacity: 1; }
-  100% { transform: translateY(-100%); opacity: 0; }
-}
-@keyframes iconSlideUpOut {
-  0% { transform: translateY(0); opacity: 1; }
-  100% { transform: translateY(-100%); opacity: 0; }
-}
-@keyframes textSlideUpIn {
-  0% { transform: translateY(100%); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-
-.quick-time-btn.success-active {
-  background: rgba(40, 200, 64, 0.2) !important;
-  border-color: rgba(40, 200, 64, 0.4) !important;
-}
-
-.quick-time-btn.success-active .btn-icon {
-  animation: iconSlideUpIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.quick-time-btn.success-active .btn-text {
-  animation: textSlideUpOut 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.quick-time-btn.success-exit .btn-icon {
-  animation: iconSlideUpOut 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.quick-time-btn.success-exit .btn-text {
-  animation: textSlideUpIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@media (prefers-color-scheme: light) {
-  .quick-time-btn {
-    background: rgba(0, 0, 0, 0.04);
-    border-color: rgba(0, 0, 0, 0.1);
-  }
-  .quick-time-btn:hover {
-    background: rgba(0, 0, 0, 0.08);
-    border-color: rgba(0, 0, 0, 0.2);
-  }
+  overflow: visible;
 }
 
 .task-container {

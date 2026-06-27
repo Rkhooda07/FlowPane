@@ -2008,46 +2008,6 @@ const quotes = [
 // Initialize default date
 dueInput.value = formatDateTimeHuman(getDefaultDueDate());
 
-document.querySelectorAll('.quick-time-btn').forEach(btn => {
-  btn.addEventListener('mousedown', (e) => {
-    // Prevent focus from shifting away from the inputs so the form stays expanded
-    e.preventDefault();
-  });
-
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    hasUserModifiedDate = true;
-    updateReminderBtnState();
-
-    if (btn.classList.contains('success-active')) return;
-
-    
-    const minutes = parseInt(btn.getAttribute('data-minutes'), 10);
-    
-    let currentDate = parseMaskedDate(dueInput.value);
-    // If not a valid date in the input, start from now
-    if (!currentDate || isNaN(currentDate.getTime())) {
-      currentDate = new Date();
-    }
-    
-    currentDate.setMinutes(currentDate.getMinutes() + minutes);
-    dueInput.value = formatDateTimeHuman(currentDate);
-
-    // Trigger visual feedback animations
-    btn.classList.remove('success-exit');
-    btn.classList.add('success-active');
-
-    setTimeout(() => {
-      btn.classList.remove('success-active');
-      btn.classList.add('success-exit');
-      
-      // Clean up exit animation class after it finishes
-      setTimeout(() => {
-        btn.classList.remove('success-exit');
-      }, 400); // 400ms matches the animation duration
-    }, 1000);
-  });
-});
 
 if (taskDueDateBtn) {
   // Prevent mousedown from bubbling to the document collapse handler before click fires
