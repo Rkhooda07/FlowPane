@@ -1182,6 +1182,13 @@ const filterPill = document.getElementById('filter-pill');
 const taskReminderBtn = document.getElementById('task-reminder-btn');
 const reminderDropdown = document.getElementById('reminder-dropdown');
 const taskDueDateBtn = document.getElementById('task-due-date-btn');
+const taskTimerBtn = document.getElementById('task-timer-btn');
+const taskTimerModal = document.getElementById('task-timer-modal');
+const taskTimerInput = document.getElementById('task-timer-input');
+const taskTimerUnitToggle = document.getElementById('task-timer-unit-toggle');
+const taskTimerUnitMenu = document.getElementById('task-timer-unit-menu');
+const taskTimerCancel = document.getElementById('task-timer-cancel');
+const taskTimerStart = document.getElementById('task-timer-start');
 
 const NOTES_STORAGE_KEY = 'flowpane-notes-drafts';
 const DELETE_CONFIRM_PREF_KEY = 'flowpane-skip-delete-confirm';
@@ -1189,6 +1196,7 @@ let activeNoteId = null;
 let currentFilter = 'all';
 let noteDrafts = {};
 let skipDeleteConfirm = false;
+let selectedTimerSeconds = null;
 
 function extractNoteId(tab) {
   const noteClass = [...tab.classList].find(c => /^note-\d+$/.test(c));
@@ -2379,7 +2387,8 @@ function addTask() {
     createdAt: Date.now(),
     totalWorkTime: 0,
     elapsedSeconds: 0,
-    isCountdownSession: false
+    isCountdownSession: false,
+    timerDurationSeconds: selectedTimerSeconds
   };
 
   if (finalDue) {
@@ -2408,9 +2417,12 @@ function addTask() {
   hasUserModifiedDate = false;
   updateReminderBtnState();
   selectedReminderMinutes = null;
+  selectedTimerSeconds = null;
 
   taskReminderBtn.classList.remove('has-reminder');
   reminderDropdown.querySelectorAll('.reminder-option').forEach(btn => btn.classList.remove('active'));
+
+  if (taskTimerBtn) taskTimerBtn.classList.remove('active');
 
   // Reset custom area if open
   const customTrigger = document.getElementById('reminder-custom-trigger');
@@ -2855,16 +2867,22 @@ function startFocusSession(task, resume = false) {
 
   // Reset timer
   stopTimer();
-  focusSeconds = resume ? task.elapsedSeconds : 0;
-  isCountdown = resume ? (task.isCountdownSession || false) : false;
-  updateTimerDisplay();
-
-  // If starting over, clear the saved time
-  if (!resume) {
+  if (resume) {
+    focusSeconds = task.elapsedSeconds;
+    isCountdown = task.isCountdownSession || false;
+  } else {
+    if (task.timerDurationSeconds && task.timerDurationSeconds > 0) {
+      focusSeconds = task.timerDurationSeconds;
+      isCountdown = true;
+    } else {
+      focusSeconds = 0;
+      isCountdown = false;
+    }
     task.elapsedSeconds = 0;
     task.totalWorkTime = 0;
     saveTasks();
   }
+  updateTimerDisplay();
 
   // Play sound immediately upon entering focus mode
   playTaskActivationSound();
@@ -3969,6 +3987,104 @@ console.log('FlowPane initialized');
         }
       }
     }, 500);
+  }
+
+  // Task Timer settings modal listeners
+  if (taskTimerBtn && taskTimerModal) {
+    taskTimerBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      taskTimerModal.classList.remove('hidden');
+      taskTimerModal.setAttribute('aria-hidden', 'false');
+      if (taskTimerInput) {
+        taskTimerInput.value = '25';
+        taskTimerInput.focus();
+        taskTimerInput.select();
+      }
+    });
+
+    const closeTaskTimerModal = () => {
+      taskTimerModal.classList.add('hidden');
+      taskTimerModal.setAttribute('aria-hidden', 'true');
+      if (taskTimerUnitMenu) taskTimerUnitMenu.classList.add('hidden');
+    };
+
+    if (taskTimerCancel) {
+      taskTimerCancel.addEventListener('click', closeTaskTimerModal);
+    }
+
+    if (taskTimerModal) {
+      taskTimerModal.addEventListener('click', (e) => {
+        if (e.target === taskTimerModal) {
+          closeTaskTimerModal();
+        }
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !taskTimerModal.classList.contains('hidden')) {
+        closeTaskTimerModal();
+      }
+    });
+
+    if (taskTimerUnitToggle && taskTimerUnitMenu) {
+      taskTimerUnitToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        taskTimerUnitMenu.classList.toggle('hidden');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!taskTimerUnitMenu.classList.contains('hidden') && !taskTimerUnitToggle.contains(e.target) && !taskTimerUnitMenu.contains(e.target)) {
+          taskTimerUnitMenu.classList.add('hidden');
+        }
+      });
+
+      taskTimerUnitMenu.querySelectorAll('.unit-opt').forEach(opt => {
+        opt.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const unit = opt.dataset.unit;
+          taskTimerUnitToggle.dataset.unit = unit;
+          
+          const textSpan = taskTimerUnitToggle.querySelector('.unit-toggle-text');
+          if (textSpan) {
+            textSpan.textContent = unit === 'm' ? 'min' : (unit === 'h' ? 'hours' : 'days');
+          }
+
+          taskTimerUnitMenu.querySelectorAll('.unit-opt').forEach(btn => btn.classList.remove('active'));
+          opt.classList.add('active');
+          taskTimerUnitMenu.classList.add('hidden');
+        });
+      });
+    }
+
+    const applyTaskTimer = () => {
+      const val = parseInt(taskTimerInput.value, 10);
+      if (val && val > 0) {
+        const unit = taskTimerUnitToggle.dataset.unit || 'm';
+        let factor = 60; // default minutes
+        if (unit === 'h') factor = 3600;
+        else if (unit === 'd') factor = 86400;
+
+        selectedTimerSeconds = val * factor;
+        taskTimerBtn.classList.add('active');
+      } else {
+        selectedTimerSeconds = null;
+        taskTimerBtn.classList.remove('active');
+      }
+      closeTaskTimerModal();
+    };
+
+    if (taskTimerStart) {
+      taskTimerStart.addEventListener('click', applyTaskTimer);
+    }
+
+    if (taskTimerInput) {
+      taskTimerInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyTaskTimer();
+        }
+      });
+    }
   }
 
   initOnboarding();

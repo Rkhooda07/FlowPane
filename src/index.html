@@ -79,7 +79,13 @@
             <line x1="3" y1="10" x2="21" y2="10"></line>
           </svg>
         </button>
-
+        <button id="task-timer-btn" class="task-timer-btn" title="Set timer" aria-label="Set timer" type="button">
+          <svg id="timer-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="10" y1="2" x2="14" y2="2"></line>
+            <line x1="12" y1="14" x2="15" y2="11"></line>
+            <circle cx="12" cy="14" r="8"></circle>
+          </svg>
+        </button>
         <div class="task-notes-icons" aria-hidden="true">
           <span class="task-note-tab note-1"></span>
           <span class="task-note-tab note-2"></span>
@@ -195,20 +201,7 @@
       </div>
     </div>
 
-    <div id="delete-confirm-modal" class="delete-confirm-modal hidden" aria-hidden="true">
-      <div class="delete-confirm-card">
-        <h3 id="delete-confirm-title">Delete item?</h3>
-        <p id="delete-confirm-text">Are you sure you want to remove this item?</p>
-        <label class="delete-confirm-checkbox-wrap">
-          <input type="checkbox" id="delete-confirm-never-again" />
-          <span>Don't ask again</span>
-        </label>
-        <div class="delete-confirm-actions">
-          <button id="delete-confirm-cancel" class="modal-btn cancel">Cancel</button>
-          <button id="delete-confirm-yes" class="modal-btn start">Delete</button>
-        </div>
-      </div>
-    </div>
+
 
     <main class="task-container">
       <div class="list-filter" id="list-filter">
@@ -461,6 +454,51 @@
       <span class="ice-text">Time's Up</span>
       <div class="ice-rabbit-wrap">
         <img src="assets/times_up_rabbit.png" class="ice-rabbit-img" alt="" />
+      </div>
+    </div>
+
+    <!-- Modals at root bottom for correct stacking order -->
+    <div id="delete-confirm-modal" class="delete-confirm-modal hidden" aria-hidden="true">
+      <div class="delete-confirm-card">
+        <h3 id="delete-confirm-title">Delete item?</h3>
+        <p id="delete-confirm-text">Are you sure you want to remove this item?</p>
+        <label class="delete-confirm-checkbox-wrap">
+          <input type="checkbox" id="delete-confirm-never-again" />
+          <span>Don't ask again</span>
+        </label>
+        <div class="delete-confirm-actions">
+          <button id="delete-confirm-cancel" class="modal-btn cancel">Cancel</button>
+          <button id="delete-confirm-yes" class="modal-btn start">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="task-timer-modal" class="task-timer-modal hidden" aria-hidden="true">
+      <div class="task-timer-card">
+        <h3>Set Timer</h3>
+        <div class="task-timer-input-wrap">
+          <input type="number" id="task-timer-input" value="25" min="1" />
+          <div class="unit-selector-shell">
+            <button id="task-timer-unit-toggle" class="unit-toggle-btn" type="button" data-unit="m">
+              <span class="unit-toggle-text">min</span>
+            </button>
+            <div id="task-timer-unit-menu" class="unit-menu hidden">
+              <button type="button" class="unit-opt active" data-unit="m">
+                <span class="check-icon">✓</span> Minutes
+              </button>
+              <button type="button" class="unit-opt" data-unit="h">
+                <span class="check-icon">✓</span> Hours
+              </button>
+              <button type="button" class="unit-opt" data-unit="d">
+                <span class="check-icon">✓</span> Days
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="task-timer-actions">
+          <button id="task-timer-cancel" class="modal-btn cancel">Cancel</button>
+          <button id="task-timer-start" class="modal-btn start">Start</button>
+        </div>
       </div>
     </div>
 
