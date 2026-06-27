@@ -904,6 +904,38 @@ body {
   opacity: 1 !important;
 }
 
+.task-due-date-btn {
+  position: absolute;
+  right: 55px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.task-due-date-btn:hover {
+  color: var(--text-color);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.task-due-date-btn.has-due {
+  color: rgba(var(--theme-accent-rgb, 0, 122, 255), 1) !important;
+  filter: drop-shadow(0 0 5px rgba(var(--theme-accent-rgb, 0, 122, 255), 0.4));
+}
+
+.input-area.expanded .task-due-date-btn {
+  color: rgba(var(--theme-accent-rgb, 0, 122, 255), 1);
+  opacity: 1;
+}
+
 .reminder-warning {
   position: absolute;
   left: 20px;
@@ -1078,6 +1110,15 @@ body {
 
 #app.peeking-x #reminder-custom-input {
   width: 65px; /* Slightly narrower to fit better */
+}
+
+/* Adjust calendar button in peeking-x mode */
+#app.peeking-x .task-due-date-btn {
+  right: 25px;
+}
+
+#app.peeking-x .task-reminder-btn {
+  right: 55px;
 }
 
 /* Glow Pulse for app when notification active in collapsed states */

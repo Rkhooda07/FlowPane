@@ -82,14 +82,18 @@ let collapseTimer = null;
 
 function updateReminderBtnState() {
   if (!taskReminderBtn) return;
+  // taskDueDateBtn is declared later at module level — use getElementById as fallback for early calls
+  const calBtn = (typeof taskDueDateBtn !== 'undefined' && taskDueDateBtn) || document.getElementById('task-due-date-btn');
   if (hasUserModifiedDate) {
     taskReminderBtn.title = "Add reminder";
     taskReminderBtn.style.opacity = "1";
     taskReminderBtn.style.cursor = "pointer";
+    if (calBtn) calBtn.classList.add('has-due');
   } else {
     taskReminderBtn.title = "Set a deadline first";
     taskReminderBtn.style.opacity = "0.5";
     taskReminderBtn.style.cursor = "default";
+    if (calBtn) calBtn.classList.remove('has-due');
   }
 }
 
@@ -1177,6 +1181,7 @@ const filterBtns = document.querySelectorAll('.filter-btn');
 const filterPill = document.getElementById('filter-pill');
 const taskReminderBtn = document.getElementById('task-reminder-btn');
 const reminderDropdown = document.getElementById('reminder-dropdown');
+const taskDueDateBtn = document.getElementById('task-due-date-btn');
 
 const NOTES_STORAGE_KEY = 'flowpane-notes-drafts';
 const DELETE_CONFIRM_PREF_KEY = 'flowpane-skip-delete-confirm';
@@ -2044,16 +2049,38 @@ document.querySelectorAll('.quick-time-btn').forEach(btn => {
   });
 });
 
-taskInput.addEventListener('focus', () => {
-  inputArea.classList.add('expanded');
-  // Refresh the due input with current live time when user starts adding a task
-  if (!taskInput.value.trim() && !hasUserModifiedDate) {
-    dueInput.value = formatDateTimeHuman(new Date());
-    hasUserModifiedDate = false;
-    updateReminderBtnState();
+if (taskDueDateBtn) {
+  // Prevent mousedown from bubbling to the document collapse handler before click fires
+  // Also prevent focus loss from dueInput when the due date panel is already open
+  taskDueDateBtn.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+  });
 
-  }
-});
+  taskDueDateBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isExpanded = inputArea.classList.contains('expanded');
+    if (!isExpanded) {
+      inputArea.classList.add('expanded');
+      // Refresh the due input with current live time when user opens the date panel
+      if (!hasUserModifiedDate) {
+        dueInput.value = formatDateTimeHuman(new Date());
+        hasUserModifiedDate = false;
+        updateReminderBtnState();
+      }
+      // Focus the due input so the user can start editing right away
+      requestAnimationFrame(() => {
+        dueInput.focus();
+        setDueSelection(getDueBlockFromCursor(0));
+      });
+    } else {
+      // Toggle: clicking calendar again collapses the date panel only if no task is typed
+      if (!taskInput.value.trim()) {
+        inputArea.classList.remove('expanded');
+      }
+    }
+  });
+}
 
 const DUE_BLOCKS = [
   { start: 0, end: 2, type: 'day', length: 2 },
