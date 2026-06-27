@@ -953,7 +953,7 @@ body {
 .task-due-date-btn {
   position: absolute;
   right: 110px;
-  top: 48%;
+  top: 50%;
   transform: translateY(-50%);
   background: transparent;
   border: none;
@@ -965,6 +965,13 @@ body {
   justify-content: center;
   padding: 6px;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.task-timer-btn svg,
+.task-due-date-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  display: block;
 }
 
 .task-due-date-btn:hover {
