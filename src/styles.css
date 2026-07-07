@@ -4513,6 +4513,7 @@ body {
   border-style: solid;
   pointer-events: none;
   z-index: 10009;
+  box-sizing: content-box !important;
 }
 
 /* Directions of arrow */

@@ -3978,6 +3978,7 @@ console.log('FlowPane initialized');
   let currentOnboardingStep = 0;
   let onboardingExpandedInput = false;
   let onboardingExpandedFilter = false;
+  let onboardingPositionInterval = null;
 
   const onboardingSteps = [
     {
@@ -4051,6 +4052,10 @@ console.log('FlowPane initialized');
   }
 
   function endOnboarding() {
+    if (onboardingPositionInterval) {
+      clearInterval(onboardingPositionInterval);
+      onboardingPositionInterval = null;
+    }
     // Clean up both states to be safe
     cleanupStep(5);
     cleanupStep(9);
@@ -4199,6 +4204,10 @@ console.log('FlowPane initialized');
   }
 
   function showOnboardingStep(stepIndex) {
+    if (onboardingPositionInterval) {
+      clearInterval(onboardingPositionInterval);
+      onboardingPositionInterval = null;
+    }
     cleanupStep(currentOnboardingStep);
     currentOnboardingStep = stepIndex;
     
@@ -4254,12 +4263,25 @@ console.log('FlowPane initialized');
     }
     
     // Position the elements dynamically
-    setTimeout(() => {
-      const targetEl = document.querySelector(step.selector);
-      if (targetEl) {
-        positionOnboardingTooltip(targetEl);
-      }
-    }, 50);
+    if (step.selector) {
+      setTimeout(() => {
+        const targetEl = document.querySelector(step.selector);
+        if (targetEl) {
+          positionOnboardingTooltip(targetEl);
+          
+          // Poll position during CSS layout transitions to ensure precise alignment
+          let pollCount = 0;
+          onboardingPositionInterval = setInterval(() => {
+            positionOnboardingTooltip(targetEl);
+            pollCount++;
+            if (pollCount >= 18) { // 18 * 20ms = 360ms (covers the 300ms layout transitions)
+              clearInterval(onboardingPositionInterval);
+              onboardingPositionInterval = null;
+            }
+          }, 20);
+        }
+      }, 50);
+    }
   }
 
   async function initOnboarding() {
