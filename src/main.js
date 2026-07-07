@@ -4269,7 +4269,7 @@ console.log('FlowPane initialized');
     if (stepIndex === onboardingSteps.length - 1) {
       nextBtn.textContent = 'Finish';
     } else {
-      nextBtn.textContent = 'Next';
+      nextBtn.textContent = '→';
     }
     
     const cursorTooltip = document.getElementById('onboarding-cursor-tooltip');
