@@ -4066,6 +4066,11 @@ console.log('FlowPane initialized');
       overlay.setAttribute('aria-hidden', 'true');
     }
     
+    const cursorTooltip = document.getElementById('onboarding-cursor-tooltip');
+    if (cursorTooltip) {
+      cursorTooltip.classList.add('hidden');
+    }
+    
     // Save seen status
     void saveOnboardingSeen();
   }
@@ -4105,6 +4110,11 @@ console.log('FlowPane initialized');
     welcomeCard.classList.remove('hidden');
     tooltip.classList.add('hidden');
     highlight.classList.add('hidden');
+    
+    const cursorTooltip = document.getElementById('onboarding-cursor-tooltip');
+    if (cursorTooltip) {
+      cursorTooltip.classList.add('hidden');
+    }
   }
 
   function positionOnboardingTooltip(targetEl) {
@@ -4262,6 +4272,20 @@ console.log('FlowPane initialized');
       nextBtn.textContent = 'Next';
     }
     
+    const cursorTooltip = document.getElementById('onboarding-cursor-tooltip');
+    if (cursorTooltip) {
+      if (stepIndex > 0) {
+        cursorTooltip.classList.remove('hidden');
+        if (stepIndex === onboardingSteps.length - 1) {
+          cursorTooltip.textContent = 'Finish';
+        } else {
+          cursorTooltip.textContent = 'Next';
+        }
+      } else {
+        cursorTooltip.classList.add('hidden');
+      }
+    }
+    
     // Position the elements dynamically
     if (step.selector) {
       setTimeout(() => {
@@ -4284,7 +4308,38 @@ console.log('FlowPane initialized');
     }
   }
 
+  function handleTourGlobalClick(e) {
+    const overlay = document.getElementById('onboarding-overlay');
+    if (!overlay || overlay.classList.contains('hidden')) return;
+    if (currentOnboardingStep === 0) return;
+    
+    // Ignore clicks on buttons that already have click handlers
+    if (e.target.closest('#onboarding-next-btn') || 
+        e.target.closest('#onboarding-start-btn') || 
+        e.target.closest('#onboarding-skip-link') || 
+        e.target.closest('#onboarding-welcome-skip-btn')) {
+      return;
+    }
+    
+    // Advance to next step
+    if (currentOnboardingStep < onboardingSteps.length - 1) {
+      showOnboardingStep(currentOnboardingStep + 1);
+    } else {
+      endOnboarding();
+    }
+  }
+
   async function initOnboarding() {
+    document.addEventListener('click', handleTourGlobalClick);
+    
+    document.addEventListener('mousemove', (e) => {
+      const cursorTooltip = document.getElementById('onboarding-cursor-tooltip');
+      if (cursorTooltip && !cursorTooltip.classList.contains('hidden')) {
+        cursorTooltip.style.left = `${e.clientX}px`;
+        cursorTooltip.style.top = `${e.clientY}px`;
+      }
+    });
+
     const startBtn = document.getElementById('onboarding-start-btn');
     const welcomeSkipBtn = document.getElementById('onboarding-welcome-skip-btn');
     const skipLink = document.getElementById('onboarding-skip-link');
