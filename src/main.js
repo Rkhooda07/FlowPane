@@ -3985,11 +3985,11 @@ console.log('FlowPane initialized');
       copy: "Welcome to FlowPane! Your translucent, always-on-top companion designed to keep you in your flow state. Let's take a quick 1-minute tour."
     },
     {
-      selector: ".window-controls",
+      selector: ".googly-eyes",
       copy: "FlowPane floats above your other windows. These eyes track your cursor to keep your focus centered!"
     },
     {
-      selector: ".fold-guide",
+      selector: ".guide-icon",
       copy: "Drag the pane to screen edges to snap and collapse it into a minimal floating indicator."
     },
     {
@@ -4131,13 +4131,19 @@ console.log('FlowPane initialized');
     }
     
     arrow.style.display = 'block';
-    highlight.style.top = `${rect.top}px`;
-    highlight.style.left = `${rect.left}px`;
-    highlight.style.width = `${rect.width}px`;
-    highlight.style.height = `${rect.height}px`;
+    const HIGHLIGHT_PADDING = 4;
+    highlight.style.left = (rect.left - HIGHLIGHT_PADDING) + 'px';
+    highlight.style.top = (rect.top - HIGHLIGHT_PADDING) + 'px';
+    highlight.style.width = (rect.width + HIGHLIGHT_PADDING * 2) + 'px';
+    highlight.style.height = (rect.height + HIGHLIGHT_PADDING * 2) + 'px';
     
     const targetRadius = window.getComputedStyle(targetEl).borderRadius;
-    highlight.style.borderRadius = targetRadius || '8px';
+    const radiusVal = parseFloat(targetRadius);
+    if (!isNaN(radiusVal) && radiusVal > 0) {
+      highlight.style.borderRadius = (radiusVal + HIGHLIGHT_PADDING) + 'px';
+    } else {
+      highlight.style.borderRadius = '8px';
+    }
     highlight.classList.remove('hidden');
     
     // 2. Decide placement: above or below

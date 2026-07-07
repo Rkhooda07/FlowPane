@@ -4337,7 +4337,7 @@ body {
   transform: translate(-50%, -50%) scale(1);
   width: 82%;
   max-width: 280px;
-  background: rgba(30, 30, 45, 0.96);
+  background: #1a1a1f;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
   padding: 18px;
@@ -4409,7 +4409,7 @@ body {
   position: absolute;
   z-index: 10008;
   width: 250px;
-  background: rgba(25, 25, 35, 0.98);
+  background: #1a1a1f;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   padding: 10px 12px;
@@ -4520,13 +4520,13 @@ body {
 /* Directions of arrow */
 .onboarding-arrow.arrow-top {
   border-width: 0 6px 6px 6px;
-  border-color: transparent transparent rgba(25, 25, 35, 0.98) transparent;
+  border-color: transparent transparent #1a1a1f transparent;
   top: -6px;
 }
 
 .onboarding-arrow.arrow-bottom {
   border-width: 6px 6px 0 6px;
-  border-color: rgba(25, 25, 35, 0.98) transparent transparent transparent;
+  border-color: #1a1a1f transparent transparent transparent;
   bottom: -6px;
 }
 
