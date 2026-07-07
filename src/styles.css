@@ -4327,37 +4327,58 @@ body {
   pointer-events: none !important;
 }
 
+@keyframes welcomeAppear {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -44%) scale(0.93);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes sparklePulse {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.15) rotate(10deg); filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.5)); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
 /* Welcome Card style */
 .onboarding-welcome-card {
   position: absolute;
   top: 52%;
   left: 50%;
-  transform: translate(-50%, -50%) scale(1);
-  width: 82%;
-  max-width: 280px;
+  transform: translate(-50%, -50%);
+  width: 76%;
+  max-width: 236px;
   background: #1a1a1f;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 18px;
-  padding: 18px;
+  border-radius: 16px;
+  padding: 16px;
   text-align: center;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
   z-index: 10007;
   pointer-events: auto; /* Active clicking */
-  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   font-family: var(--font-family);
   color: var(--text-color);
 }
 
+.onboarding-welcome-card:not(.hidden) {
+  animation: welcomeAppear 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 .onboarding-welcome-card.hidden {
   opacity: 0;
-  transform: translate(-50%, -46%) scale(0.95);
   pointer-events: none !important;
   display: none !important;
 }
 
 .onboarding-welcome-icon {
-  font-size: 32px;
-  margin-bottom: 8px;
+  font-size: 28px;
+  margin-bottom: 6px;
+  display: inline-block;
+  animation: sparklePulse 2.5s infinite ease-in-out;
 }
 
 .onboarding-welcome-card h3 {
