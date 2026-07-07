@@ -3909,6 +3909,7 @@ console.log('FlowPane initialized');
   const menuAbout = document.getElementById('menu-about');
   const menuPrivacy = document.getElementById('menu-privacy');
   const menuQuit = document.getElementById('menu-quit');
+  const menuReplayGuide = document.getElementById('menu-replay-guide');
 
   if (contextMenu) {
     document.addEventListener('contextmenu', (e) => {
@@ -3967,26 +3968,352 @@ console.log('FlowPane initialized');
     });
   }
 
+  if (menuReplayGuide) {
+    menuReplayGuide.addEventListener('click', () => {
+      startOnboardingTour();
+    });
+  }
+
   // Onboarding Logic
+  let currentOnboardingStep = 0;
+  let onboardingExpandedInput = false;
+  let onboardingExpandedFilter = false;
+
+  const onboardingSteps = [
+    {
+      selector: null,
+      copy: "Welcome to FlowPane! Your translucent, always-on-top companion designed to keep you in your flow state. Let's take a quick 1-minute tour."
+    },
+    {
+      selector: ".window-controls",
+      copy: "FlowPane floats above your other windows. These eyes track your cursor to keep your focus centered!"
+    },
+    {
+      selector: ".fold-guide",
+      copy: "Drag the pane to screen edges to snap and collapse it into a minimal floating indicator."
+    },
+    {
+      selector: "#task-input",
+      copy: "Type a task description or note title here, then press Enter to quickly add it."
+    },
+    {
+      selector: "#task-due-date-btn",
+      copy: "Click the calendar to set a deadline or due date for the task you are adding."
+    },
+    {
+      selector: "#task-reminder-btn",
+      copy: "Schedule a reminder notification to alert you before your task deadline."
+    },
+    {
+      selector: "#task-timer-btn",
+      copy: "Set a focus duration to launch a Pomodoro-style timer in Focus Mode."
+    },
+    {
+      selector: ".task-notes-icons",
+      copy: "Select a color tab to create separate, color-coded workspaces for notes."
+    },
+    {
+      selector: ".filter-icon",
+      copy: "Click this funnel to toggle the visibility of the filter controls."
+    },
+    {
+      selector: ".filter-options",
+      copy: "Switch between viewing everything, just active tasks, or note pages."
+    },
+    {
+      selector: "#history-btn",
+      copy: "Open the completed tasks history to review your finished items or restore them."
+    },
+    {
+      selector: "#task-input",
+      copy: "You're all set! Start typing your first task above to begin."
+    }
+  ];
+
+  function cleanupStep(stepIndex) {
+    // Step 5 (Bell Icon) Cleanup
+    if (stepIndex === 5 && onboardingExpandedInput) {
+      const inputArea = document.querySelector('.input-area');
+      if (inputArea) {
+        inputArea.classList.remove('expanded');
+      }
+      onboardingExpandedInput = false;
+    }
+    // Step 9 (Filter Options) Cleanup
+    if (stepIndex === 9 && onboardingExpandedFilter) {
+      const filterOptions = document.querySelector('.filter-options');
+      if (filterOptions) {
+        filterOptions.classList.add('hidden');
+        filterOptions.style.display = '';
+      }
+      onboardingExpandedFilter = false;
+    }
+  }
+
+  function endOnboarding() {
+    // Clean up both states to be safe
+    cleanupStep(5);
+    cleanupStep(9);
+    
+    const overlay = document.getElementById('onboarding-overlay');
+    if (overlay) {
+      overlay.classList.add('hidden');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+    
+    // Save seen status
+    void saveOnboardingSeen();
+  }
+
+  async function saveOnboardingSeen() {
+    try {
+      if (store) {
+        await store.set('hasSeenOnboarding', true);
+        await store.save();
+      } else {
+        localStorage.setItem('hasSeenOnboarding', 'true');
+      }
+    } catch (e) {
+      console.error('Failed to save onboarding preference:', e);
+      localStorage.setItem('hasSeenOnboarding', 'true');
+    }
+  }
+
+  function startOnboardingTour() {
+    currentOnboardingStep = 0;
+    
+    const overlay = document.getElementById('onboarding-overlay');
+    const backdrop = document.getElementById('onboarding-backdrop');
+    const welcomeCard = document.getElementById('onboarding-welcome-card');
+    const tooltip = document.getElementById('onboarding-tooltip');
+    const highlight = document.getElementById('onboarding-highlight-box');
+    
+    if (!overlay) return;
+    
+    // Reset layout states
+    cleanupStep(5);
+    cleanupStep(9);
+    
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+    backdrop.classList.remove('hidden');
+    welcomeCard.classList.remove('hidden');
+    tooltip.classList.add('hidden');
+    highlight.classList.add('hidden');
+  }
+
+  function positionOnboardingTooltip(targetEl) {
+    const tooltip = document.getElementById('onboarding-tooltip');
+    const arrow = document.getElementById('onboarding-arrow');
+    const highlight = document.getElementById('onboarding-highlight-box');
+    
+    if (!tooltip || !arrow || !highlight || !targetEl) return;
+    
+    const rect = targetEl.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // 1. Position highlight box
+    if (rect.width === 0 || rect.height === 0) {
+      // Fallback: If target is hidden, center the tooltip without arrow or highlight
+      highlight.classList.add('hidden');
+      arrow.style.display = 'none';
+      
+      tooltip.style.display = 'flex';
+      tooltip.classList.remove('hidden');
+      
+      const tooltipWidth = tooltip.offsetWidth || 250;
+      const tooltipHeight = tooltip.offsetHeight || 80;
+      
+      tooltip.style.left = `${(viewportWidth - tooltipWidth) / 2}px`;
+      tooltip.style.top = `${(viewportHeight - tooltipHeight) / 2}px`;
+      return;
+    }
+    
+    arrow.style.display = 'block';
+    highlight.style.top = `${rect.top}px`;
+    highlight.style.left = `${rect.left}px`;
+    highlight.style.width = `${rect.width}px`;
+    highlight.style.height = `${rect.height}px`;
+    
+    const targetRadius = window.getComputedStyle(targetEl).borderRadius;
+    highlight.style.borderRadius = targetRadius || '8px';
+    highlight.classList.remove('hidden');
+    
+    // 2. Decide placement: above or below
+    const targetCenterY = rect.top + rect.height / 2;
+    const placeBelow = targetCenterY < 185;
+    
+    tooltip.style.display = 'flex';
+    tooltip.classList.remove('hidden');
+    
+    const tooltipWidth = tooltip.offsetWidth || 250;
+    const tooltipHeight = tooltip.offsetHeight || 80;
+    
+    let tooltipLeft = rect.left + rect.width / 2 - tooltipWidth / 2;
+    const minMargin = 12;
+    tooltipLeft = Math.max(minMargin, Math.min(viewportWidth - tooltipWidth - minMargin, tooltipLeft));
+    
+    let tooltipTop = 0;
+    
+    if (placeBelow) {
+      tooltipTop = rect.bottom + 10;
+      arrow.className = 'onboarding-arrow arrow-top';
+      arrow.style.bottom = '';
+      arrow.style.top = '-6px';
+    } else {
+      tooltipTop = rect.top - tooltipHeight - 10;
+      arrow.className = 'onboarding-arrow arrow-bottom';
+      arrow.style.top = '';
+      arrow.style.bottom = '-6px';
+    }
+    
+    let arrowLeft = rect.left + rect.width / 2 - tooltipLeft - 6;
+    const arrowPadding = 12;
+    arrowLeft = Math.max(arrowPadding, Math.min(tooltipWidth - arrowPadding - 12, arrowLeft));
+    
+    tooltip.style.left = `${tooltipLeft}px`;
+    tooltip.style.top = `${tooltipTop}px`;
+    arrow.style.left = `${arrowLeft}px`;
+  }
+
+  function updateCurrentTooltipPosition() {
+    const overlay = document.getElementById('onboarding-overlay');
+    if (!overlay || overlay.classList.contains('hidden')) return;
+    
+    if (currentOnboardingStep === 0) return;
+    
+    const step = onboardingSteps[currentOnboardingStep];
+    if (!step || !step.selector) return;
+    
+    const targetEl = document.querySelector(step.selector);
+    if (targetEl) {
+      positionOnboardingTooltip(targetEl);
+    }
+  }
+
+  function showOnboardingStep(stepIndex) {
+    cleanupStep(currentOnboardingStep);
+    currentOnboardingStep = stepIndex;
+    
+    const welcomeCard = document.getElementById('onboarding-welcome-card');
+    const backdrop = document.getElementById('onboarding-backdrop');
+    const tooltip = document.getElementById('onboarding-tooltip');
+    const textEl = document.getElementById('onboarding-tooltip-text');
+    const progressEl = document.getElementById('onboarding-tooltip-progress');
+    const nextBtn = document.getElementById('onboarding-next-btn');
+    
+    if (stepIndex === 0) {
+      startOnboardingTour();
+      return;
+    }
+    
+    welcomeCard.classList.add('hidden');
+    backdrop.classList.add('hidden');
+    
+    const step = onboardingSteps[stepIndex];
+    if (!step) return;
+    
+    // Setup dynamic workspace expansions
+    if (stepIndex === 5) {
+      const inputArea = document.querySelector('.input-area');
+      if (inputArea) {
+        const isExpanded = inputArea.classList.contains('expanded');
+        if (!isExpanded) {
+          inputArea.classList.add('expanded');
+          onboardingExpandedInput = true;
+        }
+      }
+    }
+    
+    if (stepIndex === 9) {
+      const filterOptions = document.querySelector('.filter-options');
+      if (filterOptions) {
+        const isVisible = getComputedStyle(filterOptions).display !== 'none' && !filterOptions.classList.contains('hidden');
+        if (!isVisible) {
+          filterOptions.classList.remove('hidden');
+          filterOptions.style.display = 'flex';
+          onboardingExpandedFilter = true;
+        }
+      }
+    }
+    
+    textEl.textContent = step.copy;
+    progressEl.textContent = `${stepIndex} / ${onboardingSteps.length - 1}`;
+    
+    if (stepIndex === onboardingSteps.length - 1) {
+      nextBtn.textContent = 'Finish';
+    } else {
+      nextBtn.textContent = 'Next';
+    }
+    
+    // Position the elements dynamically
+    setTimeout(() => {
+      const targetEl = document.querySelector(step.selector);
+      if (targetEl) {
+        positionOnboardingTooltip(targetEl);
+      }
+    }, 50);
+  }
+
   async function initOnboarding() {
+    const startBtn = document.getElementById('onboarding-start-btn');
+    const welcomeSkipBtn = document.getElementById('onboarding-welcome-skip-btn');
+    const skipLink = document.getElementById('onboarding-skip-link');
+    const nextBtn = document.getElementById('onboarding-next-btn');
+    
+    if (startBtn) {
+      startBtn.addEventListener('click', () => {
+        showOnboardingStep(1);
+      });
+    }
+    
+    if (welcomeSkipBtn) {
+      welcomeSkipBtn.addEventListener('click', () => {
+        endOnboarding();
+      });
+    }
+    
+    if (skipLink) {
+      skipLink.addEventListener('click', () => {
+        endOnboarding();
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (currentOnboardingStep >= onboardingSteps.length - 1) {
+          endOnboarding();
+        } else {
+          showOnboardingStep(currentOnboardingStep + 1);
+        }
+      });
+    }
+    
+    window.addEventListener('resize', updateCurrentTooltipPosition);
+
     // Wait for store to be ready
     const checkStore = setInterval(async () => {
       if (typeof store !== 'undefined' && store !== null) {
         clearInterval(checkStore);
         try {
-          const hasSeen = await store.get('hasSeenOnboarding');
+          let hasSeen = await store.get('hasSeenOnboarding');
+          if (hasSeen === null || hasSeen === undefined) {
+            hasSeen = localStorage.getItem('hasSeenOnboarding') === 'true';
+          }
           if (!hasSeen) {
             console.log('First launch detected. Showing onboarding...');
-            // In a real app, we would show a nice overlay here.
-            // For now, we'll just set the flag.
-            await store.set('hasSeenOnboarding', true);
-            await store.save();
+            startOnboardingTour();
           }
         } catch (e) {
-          console.error('Onboarding check failed:', e);
+          console.error('Onboarding check failed, checking localStorage:', e);
+          const hasSeen = localStorage.getItem('hasSeenOnboarding') === 'true';
+          if (!hasSeen) {
+            startOnboardingTour();
+          }
         }
       }
-    }, 500);
+    }, 250);
   }
 
   // Task Timer settings modal listeners

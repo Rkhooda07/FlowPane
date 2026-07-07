@@ -4290,3 +4290,253 @@ body {
 .task-timer-modal.hidden .task-timer-card {
   transform: scale(0.92);
 }
+
+/* === ONBOARDING === */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10005; /* Must sit above everything else */
+  pointer-events: none; /* Allow background dragging and clicking by default */
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+}
+
+.onboarding-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none !important;
+}
+
+/* Semi-transparent dark overlay starting below title bar for welcome screen */
+.onboarding-backdrop {
+  position: absolute;
+  top: var(--navbar-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 10006;
+  opacity: 1;
+  pointer-events: none; /* Let drag pass through to navbar, card will override this */
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.onboarding-backdrop.hidden {
+  opacity: 0;
+  pointer-events: none !important;
+}
+
+/* Welcome Card style */
+.onboarding-welcome-card {
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  width: 82%;
+  max-width: 280px;
+  background: rgba(30, 30, 45, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 18px;
+  text-align: center;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+  z-index: 10007;
+  pointer-events: auto; /* Active clicking */
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: var(--font-family);
+  color: var(--text-color);
+}
+
+.onboarding-welcome-card.hidden {
+  opacity: 0;
+  transform: translate(-50%, -46%) scale(0.95);
+  pointer-events: none !important;
+  display: none !important;
+}
+
+.onboarding-welcome-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.onboarding-welcome-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.2px;
+}
+
+.onboarding-welcome-card p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.onboarding-welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.onboarding-welcome-actions button {
+  width: 100%;
+}
+
+/* Spotlight Highlight Box */
+.onboarding-highlight-box {
+  position: absolute;
+  pointer-events: none; /* Passive overlay, let clicks pass through to target */
+  z-index: 10005;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--accent-color), 0 0 15px rgba(0, 122, 255, 0.5);
+  border-radius: 8px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 1;
+}
+
+.onboarding-highlight-box.hidden {
+  opacity: 0;
+  box-shadow: none;
+}
+
+/* Tooltip container style */
+.onboarding-tooltip {
+  position: absolute;
+  z-index: 10008;
+  width: 250px;
+  background: rgba(25, 25, 35, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  pointer-events: auto; /* Active clicking */
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: var(--font-family);
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.onboarding-tooltip.hidden {
+  opacity: 0;
+  pointer-events: none !important;
+  display: none !important;
+}
+
+.onboarding-tooltip-body p {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.onboarding-tooltip-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+.onboarding-progress {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.onboarding-tooltip-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Reuse primary/secondary button themes */
+.onboarding-next-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--accent-color);
+  color: #fff;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+}
+
+.onboarding-next-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.onboarding-next-btn:active {
+  transform: scale(0.98);
+}
+
+.onboarding-skip-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 4px;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+  pointer-events: auto;
+}
+
+.onboarding-skip-btn:hover {
+  color: #fff;
+}
+
+.onboarding-welcome-card .onboarding-next-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+.onboarding-welcome-card .onboarding-skip-btn {
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* Caret/Arrow styles */
+.onboarding-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  pointer-events: none;
+  z-index: 10009;
+}
+
+/* Directions of arrow */
+.onboarding-arrow.arrow-top {
+  border-width: 0 6px 6px 6px;
+  border-color: transparent transparent rgba(25, 25, 35, 0.98) transparent;
+  top: -6px;
+}
+
+.onboarding-arrow.arrow-bottom {
+  border-width: 6px 6px 0 6px;
+  border-color: rgba(25, 25, 35, 0.98) transparent transparent transparent;
+  bottom: -6px;
+}
+
+/* Glow highlight border animation */
+@keyframes highlight-glow {
+  0% { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--accent-color), 0 0 10px rgba(0, 122, 255, 0.4); }
+  50% { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--accent-color), 0 0 18px rgba(0, 122, 255, 0.7); }
+  100% { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--accent-color), 0 0 10px rgba(0, 122, 255, 0.4); }
+}
+
+.onboarding-highlight-box:not(.hidden) {
+  animation: highlight-glow 2s infinite ease-in-out;
+}
