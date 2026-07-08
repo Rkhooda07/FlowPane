@@ -4313,6 +4313,14 @@ console.log('FlowPane initialized');
     if (!overlay || overlay.classList.contains('hidden')) return;
     if (currentOnboardingStep === 0) return;
     
+    // Trigger the click scale animation on the cursor tooltip
+    const cursorTooltip = document.getElementById('onboarding-cursor-tooltip');
+    if (cursorTooltip && !cursorTooltip.classList.contains('hidden')) {
+      cursorTooltip.classList.remove('clicked');
+      void cursorTooltip.offsetWidth; // Force reflow to restart keyframe animation
+      cursorTooltip.classList.add('clicked');
+    }
+    
     // Ignore clicks on buttons that already have click handlers
     if (e.target.closest('#onboarding-next-btn') || 
         e.target.closest('#onboarding-start-btn') || 
