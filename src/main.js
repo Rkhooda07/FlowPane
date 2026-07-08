@@ -4269,7 +4269,7 @@ console.log('FlowPane initialized');
     if (stepIndex === onboardingSteps.length - 1) {
       nextBtn.textContent = 'Finish';
     } else {
-      nextBtn.textContent = '→';
+      nextBtn.textContent = 'Next';
     }
     
     const cursorTooltip = document.getElementById('onboarding-cursor-tooltip');
@@ -4277,9 +4277,9 @@ console.log('FlowPane initialized');
       if (stepIndex > 0) {
         cursorTooltip.classList.remove('hidden');
         if (stepIndex === onboardingSteps.length - 1) {
-          cursorTooltip.textContent = 'Finish';
+          cursorTooltip.textContent = '✓';
         } else {
-          cursorTooltip.textContent = 'Next';
+          cursorTooltip.textContent = '→';
         }
       } else {
         cursorTooltip.classList.add('hidden');
