@@ -376,7 +376,7 @@
   border: 1.5px solid rgba(255, 255, 255, 0.4);
   z-index: 10;
   box-shadow: 0 0 12px rgba(255, 50, 50, 0.4);
-  transition: all 0.3s ease;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .ice-rabbit-img {

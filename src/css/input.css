@@ -5,7 +5,7 @@
   gap: 0; /* No gap when hidden */
   background: rgba(255, 255, 255, 0.04);
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: gap 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   z-index: 161 !important;
 }
@@ -31,7 +31,7 @@
   outline: none;
   user-select: none;
   -webkit-user-select: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .task-reminder-btn {
@@ -45,7 +45,7 @@
   height: 32px;
   width: 32px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -95,7 +95,7 @@
   align-items: center;
   justify-content: center;
   padding: 6px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .task-timer-btn:hover {
@@ -122,7 +122,7 @@
   align-items: center;
   justify-content: center;
   padding: 6px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .task-timer-btn svg,
@@ -164,7 +164,7 @@
   pointer-events: none;
   z-index: 100;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: top center;
 }
 
@@ -368,7 +368,7 @@
   border-radius: 4px;
   cursor: pointer;
   text-transform: uppercase;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .reminder-action-btn.none:hover {
@@ -392,7 +392,7 @@
   padding: 6px 8px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease;
   width: 100%;
 }
 
@@ -442,7 +442,7 @@
   padding: 2px 4px 2px 8px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   min-width: 52px;
   height: 22px;
   display: flex;
@@ -513,7 +513,7 @@
   text-align: left;
   cursor: pointer;
   width: 100%;
-  transition: all 0.2s;
+  transition: background 0.2s, transform 0.2s;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -551,7 +551,7 @@
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   height: 24px;
   display: flex;
   align-items: center;
@@ -600,7 +600,7 @@
   box-shadow: 0 0 0 1px rgba(var(--theme-accent-rgb, 0, 122, 255), 0.3), 
               0 0 20px rgba(var(--theme-accent-rgb, 0, 122, 255), 0.15),
               inset 0 0 10px rgba(255, 255, 255, 0.05);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .due-container {
@@ -609,7 +609,7 @@
   display: flex;
   align-items: flex-end;
   gap: 6px;
-  transition: all 0.3s ease;
+  transition: gap 0.3s ease;
 }
 
 .due-container.warning #due-input {
@@ -637,7 +637,7 @@
   cursor: pointer;
   width: 150px;
   min-width: unset;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-width 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   opacity: 0;
   height: 0;
   pointer-events: none;
@@ -673,7 +673,7 @@
   height: 0;
   overflow: hidden;
   transform: translateX(-10px);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .input-area.expanded .reminder-button-wrapper {

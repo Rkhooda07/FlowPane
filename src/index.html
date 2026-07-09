@@ -5,7 +5,8 @@
   <meta charset="UTF-8" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet"></noscript>
   <link rel="stylesheet" href="styles.css" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FlowPane</title>
@@ -307,7 +308,7 @@
     <div id="collapsed-times-up-popup" class="reminder-popup hidden" aria-hidden="true" style="top: 48px; left: 0; right: 0; bottom: 0; padding: 0 12px; align-items: center; z-index: 10001;">
       <div class="reminder-popup-card" style="box-shadow: none; border: none; height: 100%; background: transparent; padding: 0; gap: 12px; pointer-events: auto;">
         <div class="reminder-popup-icon" style="width: 42px; height: 42px; background: transparent; box-shadow: none; overflow: hidden; border-radius: 50%;">
-          <img src="assets/times_up_rabbit.png" style="width: 100%; height: 100%; object-fit: cover;" />
+          <img src="assets/times_up_rabbit.png" width="42" height="42" style="width: 100%; height: 100%; object-fit: cover;" />
         </div>
         <div class="reminder-popup-info" id="island-info-main" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
           <div style="display: flex; flex-direction: column;">
@@ -446,7 +447,7 @@
       </div>
       <span class="ice-text">Time's Up</span>
       <div class="ice-rabbit-wrap">
-        <img src="assets/times_up_rabbit.png" class="ice-rabbit-img" alt="" />
+        <img src="assets/times_up_rabbit.png" class="ice-rabbit-img" width="32" height="32" alt="" />
       </div>
     </div>
 

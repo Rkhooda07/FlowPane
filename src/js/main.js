@@ -1176,6 +1176,35 @@ const taskTimerUnitMenu = document.getElementById('task-timer-unit-menu');
 const taskTimerCancel = document.getElementById('task-timer-cancel');
 const taskTimerStart = document.getElementById('task-timer-start');
 
+// PERF: module-level DOM cache — query once, reuse everywhere
+const eyes = document.querySelectorAll('.eye'); // RAF loop runs every frame
+const timerDisplay = document.getElementById('timer-display'); // updated every second
+const playIcon = document.getElementById('play-icon'); // updated on toggle
+const pauseIcon = document.getElementById('pause-icon'); // updated on toggle
+const navbarTimers = document.querySelectorAll('.navbar-timer'); // updated every second in focus mode
+const mainTitle = document.getElementById('main-home-link'); // updated on view change
+const focusTitle = document.getElementById('focus-home-link'); // updated on view change
+const focusModeEl = document.getElementById('focus-mode');
+const focusTaskNameEl = document.getElementById('focus-task-name');
+const focusQuoteEl = document.getElementById('focus-quote');
+const timesUpModalEl = document.getElementById('times-up-modal');
+const congratsModalEl = document.getElementById('congrats-modal');
+const congratsTimerValEl = document.getElementById('congrats-timer-val');
+const congratsFunTextEl = document.getElementById('congrats-fun-text');
+const collapsedTimesUpPopupEl = document.getElementById('collapsed-times-up-popup');
+const collapsedTimesUpTitleEl = document.getElementById('collapsed-times-up-title');
+const resumeModalEl = document.getElementById('resume-modal');
+const resumeTimeValEl = document.getElementById('resume-time-val');
+const historyWorkspaceEl = document.getElementById('history-workspace');
+const historyListEl = document.getElementById('history-list');
+const historyEmptyStateEl = document.getElementById('history-empty-state');
+const restoreModalEl = document.getElementById('restore-modal');
+const notesIconsEl = document.querySelector('.task-notes-icons');
+const nameWarningEl = document.getElementById('name-warning');
+const taskInputShellEl = document.querySelector('.task-input-shell');
+const clearHistoryBtnEl = document.getElementById('clear-history-btn');
+const eyeBubblesAll = document.querySelectorAll('.eye-bubble');
+
 const NOTES_STORAGE_KEY = 'flowpane-notes-drafts';
 const DELETE_CONFIRM_PREF_KEY = 'flowpane-skip-delete-confirm';
 let activeNoteId = null;
@@ -1532,8 +1561,8 @@ function checkReminders() {
   }
 }
 
-// Check reminders every 1 second (increased from 10s for maximum precision)
-setInterval(checkReminders, 1000);
+// PERF: 10s is sufficient for minute-precision reminders; was 1s (60× too frequent)
+setInterval(checkReminders, 10000);
 
 
 function setNotesRevealOrigin(tab) {
@@ -1901,10 +1930,9 @@ appWindow.listen('mouse-leave', () => {
       const ctx = canvas.getContext('2d');
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-    const inputArea = document.querySelector('.input-area');
-    const notesIcons = document.querySelector('.task-notes-icons');
+    // PERF: inputArea/notesIconsEl cached at module level
     if (inputArea) inputArea.classList.remove('hidden');
-    if (notesIcons) notesIcons.classList.remove('hidden');
+    if (notesIconsEl) notesIconsEl.classList.remove('hidden');
   }
 
   if (isPeeking) {
@@ -1991,16 +2019,14 @@ inputArea.addEventListener('focusout', (e) => {
 taskInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
     if (!taskInput.value.trim()) {
-      const nameWarning = document.getElementById('name-warning');
-      const inputShell = document.querySelector('.task-input-shell');
+      // PERF: nameWarningEl/taskInputShellEl cached at module level
+      if (nameWarningEl) {
+        nameWarningEl.classList.remove('hidden');
+        if (taskInputShellEl) taskInputShellEl.classList.add('warning');
 
-      if (nameWarning) {
-        nameWarning.classList.remove('hidden');
-        if (inputShell) inputShell.classList.add('warning');
-        
         setTimeout(() => {
-          nameWarning.classList.add('hidden');
-          if (inputShell) inputShell.classList.remove('warning');
+          nameWarningEl.classList.add('hidden');
+          if (taskInputShellEl) taskInputShellEl.classList.remove('warning');
         }, 2000);
       }
       return;
@@ -2143,10 +2169,8 @@ function commitActiveDueBlockEdit() {
 }
 
 function addTask() {
-  const titleInput = document.getElementById('task-input');
-  const dueInput = document.getElementById('due-input');
-
-  if (!titleInput.value.trim()) return;
+  // PERF: taskInput/dueInput cached at module level; removed redundant local queries
+  if (!taskInput.value.trim()) return;
 
   playTaskCreateSound();
 
@@ -2156,7 +2180,7 @@ function addTask() {
   const finalDue = (hasUserModifiedDate && dueDate) ? dueDate.toISOString() : null;
 
   const newTask = {
-    title: titleInput.value.trim(),
+    title: taskInput.value.trim(),
     due: finalDue,
     completed: false,
     urgent: false,
@@ -2185,8 +2209,8 @@ function addTask() {
 
   renderTasks();
 
-  titleInput.value = '';
-  
+  taskInput.value = '';
+
   // Immediately check for reminders in case one was set for 'now'
   checkReminders();
 
@@ -2555,24 +2579,18 @@ function startConfetti() {
 
 function showCongrats(seconds) {
   if (seconds <= 0) return;
-  
-  const modal = document.getElementById('congrats-modal');
-  const timerVal = document.getElementById('congrats-timer-val');
-  const funText = document.getElementById('congrats-fun-text');
-  
+  // PERF: modal elements and notesIconsEl/inputArea cached at module level
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
   const s = (seconds % 60).toString().padStart(2, '0');
-  
-  if (timerVal) timerVal.textContent = `${m}:${s}`;
-  if (funText) funText.textContent = congratsMessages[Math.floor(Math.random() * congratsMessages.length)];
-  
-  modal.classList.remove('hidden');
+
+  if (congratsTimerValEl) congratsTimerValEl.textContent = `${m}:${s}`;
+  if (congratsFunTextEl) congratsFunTextEl.textContent = congratsMessages[Math.floor(Math.random() * congratsMessages.length)];
+
+  congratsModalEl.classList.remove('hidden');
   // Hide task input and notes icons during congrats modal
-  const inputArea = document.querySelector('.input-area');
-  const notesIcons = document.querySelector('.task-notes-icons');
   if (inputArea) inputArea.classList.add('hidden');
-  if (notesIcons) notesIcons.classList.add('hidden');
-  
+  if (notesIconsEl) notesIconsEl.classList.add('hidden');
+
   playVictorySound();
   startConfetti();
 }
@@ -2592,13 +2610,13 @@ function startFocusSession(task, resume = false) {
   currentFocusTask = task;
   isInFocusMode = true;
 
-  document.getElementById('focus-task-name').textContent = task.title;
-  document.getElementById('focus-mode').classList.remove('hidden');
+  focusTaskNameEl.textContent = task.title; // PERF: cached
+  focusModeEl.classList.remove('hidden'); // PERF: cached
   appElement.classList.add('focus-mode-active');
 
   // Set a random quote
   const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-  document.getElementById('focus-quote').textContent = `"${randomQuote}"`;
+  focusQuoteEl.textContent = `"${randomQuote}"`; // PERF: cached
 
   // Update navbar title to task name immediately
   updateNavbarTitle(task.title);
@@ -2634,19 +2652,17 @@ function startFocusSession(task, resume = false) {
 let taskToResume = null;
 function showResumeModal(task) {
   taskToResume = task;
-  const modal = document.getElementById('resume-modal');
-  const timerVal = document.getElementById('resume-time-val');
-  
+  // PERF: resumeModalEl/resumeTimeValEl cached at module level
   const hrs = Math.floor(task.elapsedSeconds / 3600);
   const mins = Math.floor((task.elapsedSeconds % 3600) / 60);
   const secs = task.elapsedSeconds % 60;
-  timerVal.textContent = [hrs, mins, secs].map(v => String(v).padStart(2, '0')).join(':');
-  
-  modal.classList.remove('hidden');
+  resumeTimeValEl.textContent = [hrs, mins, secs].map(v => String(v).padStart(2, '0')).join(':');
+
+  resumeModalEl.classList.remove('hidden');
 }
 
 function hideResumeModal() {
-  document.getElementById('resume-modal').classList.add('hidden');
+  resumeModalEl.classList.add('hidden'); // PERF: cached
   taskToResume = null;
 }
 
@@ -2685,7 +2701,7 @@ async function exitFocusMode() {
     await saveTasks();
   }
 
-  document.getElementById('focus-mode').classList.add('hidden');
+  focusModeEl.classList.add('hidden'); // PERF: cached
   appElement.classList.remove('focus-mode-active');
   currentFocusTask = null;
   isInFocusMode = false;
@@ -2697,9 +2713,7 @@ async function exitFocusMode() {
 }
 
 function toggleTimer() {
-  const playIcon = document.getElementById('play-icon');
-  const pauseIcon = document.getElementById('pause-icon');
-
+  // PERF: playIcon/pauseIcon cached at module level
   if (focusTimerInterval) {
     stopTimer();
     playIcon.classList.remove('hidden');
@@ -2736,27 +2750,25 @@ let sessionOriginalDuration = 0;
 
 function showTimesUpModal() {
   playTimesUpSound();
-  const modal = document.getElementById('times-up-modal');
-  modal.classList.remove('hidden');
+  // PERF: timesUpModalEl/collapsedTimesUpPopupEl/collapsedTimesUpTitleEl cached at module level
+  timesUpModalEl.classList.remove('hidden');
   appElement.classList.add('times-up-active');
   suppressEyeMessageBubble(); // Hide any active eye guide bubble
 
   const shouldUseTopCollapsedReminder = isTopCollapsedReminderMode();
   if (shouldUseTopCollapsedReminder) {
-    const popup = document.getElementById('collapsed-times-up-popup');
-    const title = document.getElementById('collapsed-times-up-title');
-    if (popup && title) {
-      title.textContent = currentFocusTask ? currentFocusTask.title : 'Task';
-      popup.classList.remove('hidden');
-      popup.setAttribute('aria-hidden', 'false');
-      
+    if (collapsedTimesUpPopupEl && collapsedTimesUpTitleEl) {
+      collapsedTimesUpTitleEl.textContent = currentFocusTask ? currentFocusTask.title : 'Task';
+      collapsedTimesUpPopupEl.classList.remove('hidden');
+      collapsedTimesUpPopupEl.setAttribute('aria-hidden', 'false');
+
       void expandTopCollapsedReminder().then(() => {
         // Text is revealed earlier via the reveal class
       });
-      
+
       // Reveal text almost immediately after starting expansion for better sync
       setTimeout(() => {
-        if (!popup.classList.contains('hidden') && appElement.classList.contains('collapsed-reminder-active')) {
+        if (!collapsedTimesUpPopupEl.classList.contains('hidden') && appElement.classList.contains('collapsed-reminder-active')) {
           appElement.classList.add('collapsed-reminder-revealed');
         }
       }, 40);
@@ -2768,14 +2780,13 @@ function showTimesUpModal() {
 }
 
 function hideTimesUpModal() {
-  document.getElementById('times-up-modal').classList.add('hidden');
+  timesUpModalEl.classList.add('hidden'); // PERF: cached
   appElement.classList.remove('times-up-active');
   clearSideNotification(); // Clear bell and glow when dismissed
 
-  const popup = document.getElementById('collapsed-times-up-popup');
-  if (popup && !popup.classList.contains('hidden')) {
-    popup.classList.add('hidden');
-    popup.setAttribute('aria-hidden', 'true');
+  if (collapsedTimesUpPopupEl && !collapsedTimesUpPopupEl.classList.contains('hidden')) {
+    collapsedTimesUpPopupEl.classList.add('hidden');
+    collapsedTimesUpPopupEl.setAttribute('aria-hidden', 'true');
     appElement.classList.remove('collapsed-reminder-revealed');
     setTimeout(() => {
       void restoreTopCollapsedReminder();
@@ -2821,12 +2832,12 @@ async function handleTimesUpComplete() {
       appElement.classList.remove('collapsed-reminder-revealed', 'collapsed-reminder-active');
       
       // Now hide the main modal (without triggering automatic restoration)
-      document.getElementById('times-up-modal').classList.add('hidden');
+      timesUpModalEl.classList.add('hidden'); // PERF: cached
       appElement.classList.remove('times-up-active');
       clearSideNotification();
 
       // Hide focus mode screen to prevent it from overlaying the congrats modal
-      document.getElementById('focus-mode').classList.add('hidden');
+      focusModeEl.classList.add('hidden'); // PERF: cached
       appElement.classList.remove('focus-mode-active');
 
       // Expand the app fully
@@ -2841,7 +2852,7 @@ async function handleTimesUpComplete() {
     } else {
       hideTimesUpModal();
       // Hide focus mode screen
-      document.getElementById('focus-mode').classList.add('hidden');
+      focusModeEl.classList.add('hidden'); // PERF: cached
       appElement.classList.remove('focus-mode-active');
       showCongrats(totalTime);
     }
@@ -2872,8 +2883,7 @@ function resetTimer() {
   focusSeconds = 0;
   isCountdown = false;
   updateTimerDisplay();
-  const playIcon = document.getElementById('play-icon');
-  const pauseIcon = document.getElementById('pause-icon');
+  // PERF: playIcon/pauseIcon cached at module level
   playIcon.classList.remove('hidden');
   pauseIcon.classList.add('hidden');
 }
@@ -2894,7 +2904,7 @@ function updateTimerDisplay() {
     .map(v => String(v).padStart(2, '0'))
     .join(':');
 
-  document.getElementById('timer-display').textContent = display;
+  timerDisplay.textContent = display; // PERF: cached at module level
 
   // Update navbar timer if in focus mode
   if (isInFocusMode) {
@@ -2946,18 +2956,17 @@ timerInput.addEventListener('keypress', (e) => {
 
 
 function renderHistory(completedTasks) {
-  const historyList = document.getElementById('history-list');
-  const emptyState = document.getElementById('history-empty-state');
-  if (!historyList || !emptyState) return;
+  // PERF: historyListEl/historyEmptyStateEl cached at module level
+  if (!historyListEl || !historyEmptyStateEl) return;
 
-  historyList.innerHTML = '';
-  
+  historyListEl.innerHTML = '';
+
   if (completedTasks.length === 0) {
-    emptyState.classList.remove('hidden');
-    historyList.classList.add('hidden');
+    historyEmptyStateEl.classList.remove('hidden');
+    historyListEl.classList.add('hidden');
   } else {
-    emptyState.classList.add('hidden');
-    historyList.classList.remove('hidden');
+    historyEmptyStateEl.classList.add('hidden');
+    historyListEl.classList.remove('hidden');
     completedTasks.forEach(task => {
       const li = document.createElement('li');
       li.className = 'history-item';
@@ -2976,12 +2985,10 @@ function renderHistory(completedTasks) {
 
       li.querySelector('.delete-history-item').addEventListener('click', (e) => {
         e.stopPropagation();
-        const btn = document.getElementById('clear-history-btn');
-        
-        // Trigger bin animation
+        // PERF: clearHistoryBtnEl cached at module level
         li.classList.add('swallowing');
-        if (btn) btn.classList.add('animating');
-        
+        if (clearHistoryBtnEl) clearHistoryBtnEl.classList.add('animating');
+
         setTimeout(async () => {
           const index = tasks.indexOf(task);
           if (index !== -1) {
@@ -2989,7 +2996,7 @@ function renderHistory(completedTasks) {
             await saveTasks();
             renderTasks();
           }
-          if (btn) btn.classList.remove('animating');
+          if (clearHistoryBtnEl) clearHistoryBtnEl.classList.remove('animating');
         }, 600);
       });
 
@@ -2997,7 +3004,7 @@ function renderHistory(completedTasks) {
         showRestoreModal(task);
       });
 
-      historyList.appendChild(li);
+      historyListEl.appendChild(li); // PERF: cached
     });
   }
 }
@@ -3005,11 +3012,11 @@ function renderHistory(completedTasks) {
 let taskToRestore = null;
 function showRestoreModal(task) {
   taskToRestore = task;
-  document.getElementById('restore-modal').classList.remove('hidden');
+  restoreModalEl.classList.remove('hidden'); // PERF: cached
 }
 
 function hideRestoreModal() {
-  document.getElementById('restore-modal').classList.add('hidden');
+  restoreModalEl.classList.add('hidden'); // PERF: cached
   taskToRestore = null;
 }
 
@@ -3028,20 +3035,20 @@ document.getElementById('restore-no-btn').addEventListener('click', hideRestoreM
 
 
 function toggleHistory() {
-  const historyWorkspace = document.getElementById('history-workspace');
-  if (!historyWorkspace) return;
-  
+  // PERF: historyWorkspaceEl cached at module level
+  if (!historyWorkspaceEl) return;
+
   isHistoryOpen = !isHistoryOpen;
-  
+
   if (isHistoryOpen) {
-    historyWorkspace.classList.remove('hidden');
-    historyWorkspace.setAttribute('aria-hidden', 'false');
+    historyWorkspaceEl.classList.remove('hidden');
+    historyWorkspaceEl.setAttribute('aria-hidden', 'false');
     appElement.classList.add('history-active');
     // Ensure notes are closed when opening history
     if (activeNoteId) closeActiveNote();
   } else {
-    historyWorkspace.classList.add('hidden');
-    historyWorkspace.setAttribute('aria-hidden', 'true');
+    historyWorkspaceEl.classList.add('hidden');
+    historyWorkspaceEl.setAttribute('aria-hidden', 'true');
     appElement.classList.remove('history-active');
   }
 }
@@ -3063,9 +3070,9 @@ document.getElementById('clear-history-btn').addEventListener('click', async (e)
   const completedTasksCount = tasks.filter(t => t.completed).length;
   if (completedTasksCount === 0) {
     playFallbackDeleteSound();
-    const btn = document.getElementById('clear-history-btn');
-    btn.classList.add('shake');
-    
+    // PERF: clearHistoryBtnEl cached at module level
+    clearHistoryBtnEl.classList.add('shake');
+
     const warning = document.getElementById('history-clear-warning');
     if (warning) {
       warning.classList.remove('hidden');
@@ -3073,8 +3080,8 @@ document.getElementById('clear-history-btn').addEventListener('click', async (e)
         warning.classList.add('hidden');
       }, 2000);
     }
-    
-    setTimeout(() => btn.classList.remove('shake'), 500);
+
+    setTimeout(() => clearHistoryBtnEl.classList.remove('shake'), 500);
     return;
   }
 
@@ -3082,7 +3089,7 @@ document.getElementById('clear-history-btn').addEventListener('click', async (e)
 
   const shouldClear = await requestDeleteConfirmation('entire history');
   if (shouldClear) {
-    const btn = document.getElementById('clear-history-btn');
+    const btn = clearHistoryBtnEl; // PERF: cached at module level
     const items = document.querySelectorAll('.history-item');
     
     // Play swallow animation with staggered delay
@@ -3125,7 +3132,7 @@ document.getElementById('focus-nav-complete-btn').addEventListener('click', asyn
     const finalSeconds = currentFocusTask.totalWorkTime || 0;
     const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
     if (!isCollapsed && !isPeeking) {
-      document.getElementById('focus-mode').classList.add('hidden');
+      focusModeEl.classList.add('hidden'); // PERF: cached
       appElement.classList.remove('focus-mode-active');
     }
     showCongrats(finalSeconds);
@@ -3133,12 +3140,11 @@ document.getElementById('focus-nav-complete-btn').addEventListener('click', asyn
 });
 
 document.getElementById('congrats-done-btn').addEventListener('click', async () => {
-  document.getElementById('congrats-modal').classList.add('hidden');
+  // PERF: congratsModalEl/inputArea/notesIconsEl cached at module level
+  congratsModalEl.classList.add('hidden');
   // Restore task input and notes icons
-  const inputArea = document.querySelector('.input-area');
-  const notesIcons = document.querySelector('.task-notes-icons');
   if (inputArea) inputArea.classList.remove('hidden');
-  if (notesIcons) notesIcons.classList.remove('hidden');
+  if (notesIconsEl) notesIconsEl.classList.remove('hidden');
   if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
   exitFocusMode();
 
@@ -3171,9 +3177,7 @@ function getCurrentViewTitle() {
 // Helper function to update navbar title
 function updateNavbarTitle(title) {
   // Update both main navbar and focus mode navbar
-  const mainTitle = document.getElementById('main-home-link');
-  const focusTitle = document.getElementById('focus-home-link');
-
+  // PERF: mainTitle/focusTitle cached at module level
   const setNodeText = (element, text) => {
     if (!element) return;
     
@@ -3201,7 +3205,7 @@ function updateNavbarTitle(title) {
 
 // Helper function to update navbar timer
 function updateNavbarTimer(timeString) {
-  const navbarTimers = document.querySelectorAll('.navbar-timer');
+  // PERF: navbarTimers cached at module level
   const [h, m, s] = timeString.split(':');
 
   navbarTimers.forEach(timer => {
@@ -3227,7 +3231,7 @@ function updateNavbarTimer(timeString) {
 
 // Helper function to show navbar timer
 function showNavbarTimer() {
-  const navbarTimers = document.querySelectorAll('.navbar-timer');
+  // PERF: navbarTimers cached at module level
   navbarTimers.forEach(timer => {
     timer.classList.remove('hidden');
   });
@@ -3235,7 +3239,7 @@ function showNavbarTimer() {
 
 // Helper function to hide navbar timer
 function hideNavbarTimer() {
-  const navbarTimers = document.querySelectorAll('.navbar-timer');
+  // PERF: navbarTimers cached at module level
   navbarTimers.forEach(timer => {
     timer.classList.add('hidden');
   });
@@ -3290,7 +3294,7 @@ async function trackCursorGlobally() {
       }
     }
 
-    const eyes = document.querySelectorAll('.eye');
+    // PERF: eyes cached at module level — no per-frame DOM query
     eyes.forEach(eye => {
       const pupil = eye.querySelector('.pupil');
       if (!pupil) return;
@@ -3559,7 +3563,8 @@ async function suppressEyeMessageBubble() {
   await hideEyeMessageOverlay();
 
   const wasBubbleActive = appElement.classList.contains('bubble-active');
-  document.querySelectorAll('.eye-bubble').forEach((b) => {
+  // PERF: eyeBubblesAll cached at module level
+  eyeBubblesAll.forEach((b) => {
     b.classList.remove('visible');
     b.classList.add('hidden');
   });
@@ -3619,7 +3624,7 @@ async function showEyeMessage() {
   await showCollapsedBubbleMessage('i got my<br>eyes on you', 3000);
 }
 
-console.log('FlowPane initialized');
+// PERF: removed non-critical console.log
 
 // Production Release UX Polish
 (function() {

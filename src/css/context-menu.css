@@ -12,6 +12,8 @@
   flex-direction: column;
   gap: 2px;
   animation: contextMenuAppear 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  isolation: isolate;
+  contain: layout style;
 }
 
 .context-menu.hidden {
