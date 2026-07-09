@@ -1,0 +1,472 @@
+/* Glow/Active state for collapsed modes */
+#app.collapsed-y, #app.collapsed-x {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+
+#app.collapsed-y {
+  --collapsed-title-timer-gap: 10px;
+  height: 42px !important; /* Increased from 38px for better layout and equal thickness */
+  width: 325px !important;
+}
+
+#app.collapsed-y.collapsed-reminder-active {
+  --border-radius: 22px;
+  height: 112px !important;
+  border-radius: var(--border-radius);
+}
+
+#app.times-up-active.collapsed-y.collapsed-reminder-active {
+  background: transparent !important;
+  box-shadow: inset 0 0 60px rgba(255, 50, 50, 0.15);
+  border-color: transparent;
+}
+
+#app.times-up-active.collapsed-y.collapsed-reminder-active .title-bar,
+#app.times-up-active.collapsed-y.collapsed-reminder-active .focus-header-bar {
+  background: transparent;
+  border-bottom-color: transparent;
+  box-shadow: none;
+}
+
+#app.times-up-active.collapsed-y.collapsed-reminder-active h1 {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+#app.times-up-active.collapsed-y.collapsed-reminder-active .navbar-timer {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+
+#app.collapsed-x {
+  --collapsed-side-stack-gap: 16px;
+  --collapsed-title-timer-gap: 10px;
+  --collapsed-side-bubble-top: 120px;
+  width: 42px !important; /* Matched to collapsed-y height */
+  height: 300px !important; /* Taller for better proportions */
+  overflow: visible !important; /* Allow notifications and bubbles to pop out */
+}
+
+#app.focus-mode-active.collapsed-x {
+  --collapsed-side-bubble-top: 58px;
+  overflow: visible !important;
+}
+
+#app.collapsed-x .focus-header-bar .window-controls {
+  display: flex !important;
+  flex-direction: column;
+  transform: scale(0.85);
+  gap: 4px;
+  min-width: 0;
+  overflow: visible !important;
+}
+
+#app.collapsed-right {
+  left: auto !important;
+  right: 0 !important;
+}
+
+#app.collapsed-y .title-bar {
+  padding: 6px 16px; /* Better vertical padding */
+  height: 42px;
+  min-height: 42px;
+  justify-content: space-between;
+  align-items: center;
+  overflow: visible !important; /* Allow bubble to escape */
+}
+
+#app.collapsed-x .title-bar {
+  flex-direction: column;
+  height: 100%;
+  padding: 12px 0; /* Add vertical padding for breathing room */
+  width: 42px;
+  justify-content: center; /* Center the group together */
+  align-items: center;
+  gap: var(--collapsed-side-stack-gap);
+  overflow: visible !important; /* Allow bubble to escape */
+}
+
+#app.collapsed-x h1 {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 14px; /* Increased for consistency */
+  letter-spacing: 1px;
+  order: 2; /* Push title after buttons */
+  margin: 0;
+  padding: 0;
+  position: static; /* Override any absolute positioning */
+  left: auto;
+  transform-origin: center;
+  display: flex;
+  flex-direction: row; /* Horizontal in rotated context */
+  align-items: center;
+  justify-content: center; /* Center the content */
+  gap: var(--collapsed-title-timer-gap);
+  flex: 0; /* Don't grow, keep close to buttons */
+  max-height: 140px; /* Limit height to prevent shifting eyes/timer out */
+}
+
+#app.collapsed-x.collapsed-right h1 {
+  transform: rotate(0deg);
+  flex-direction: row-reverse; /* Reverses order so Timer is visual-top and Title is visual-bottom, matching Left side */
+}
+
+#app.collapsed-x.collapsed-right .focus-header-bar .navbar-timer {
+  transform: rotate(0deg);
+}
+
+#app.collapsed-y h1 {
+  font-size: 16px !important; /* Unified with main window */
+  transform: translate(-50%, -50%) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: var(--theme-text, var(--text-color)) !important;
+  z-index: 1000 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: var(--collapsed-title-timer-gap);
+  white-space: nowrap;
+  pointer-events: auto;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); /* Better readability on bright themes */
+}
+
+#app:not(.notes-active).collapsed-y .title-bar {
+  overflow: visible !important;
+}
+
+/* Note Theme Overrides for Collapsed States */
+#app.notes-active.collapsed-x,
+#app.notes-active.collapsed-y {
+  background: linear-gradient(160deg, 
+    rgba(var(--theme-accent-rgb), 0.38), 
+    rgba(var(--theme-accent-rgb), 0.12)
+  ) !important;
+  border: 1px solid rgba(var(--theme-accent-rgb), 0.45) !important;
+  box-shadow: 0 0 15px rgba(var(--theme-accent-rgb), 0.15);
+}
+
+#app.notes-active.collapsed-x .title-bar,
+#app.notes-active.collapsed-y .title-bar {
+  background: transparent !important;
+}
+
+#app.notes-active.collapsed-x h1,
+#app.notes-active.collapsed-y h1 {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(var(--theme-accent-rgb), 0.6), 0 1px 2px rgba(0,0,0,0.8);
+  font-weight: 600;
+  letter-spacing: 0.8px;
+}
+
+#app.collapsed-y .window-controls,
+#app.collapsed-y .action-controls {
+  gap: 4px;
+  transform: scale(1); /* Reset from 0.8 */
+}
+
+#app.collapsed-x .window-controls {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  order: -1; /* Keep eyes at the top in vertical layout */
+  min-width: 0;
+  gap: 4px;
+  overflow: visible !important; /* Ensure bubble doesn't clip */
+}
+
+#app.collapsed-x .googly-eyes {
+  flex-direction: column;
+  gap: 3px;
+}
+
+#app.collapsed-x .action-controls {
+  flex-direction: column;
+  gap: 10px; /* Spacing between tick and cross */
+  transform: scale(1);
+  order: 1; /* Put buttons at top */
+  margin: 0;
+  min-width: 0; /* Remove 60px constraint for vertical bar */
+  justify-content: center;
+}
+
+#app.collapsed-y .fold-guide,
+#app.collapsed-x .fold-guide,
+#app.collapsed-y .notes-action-controls,
+#app.collapsed-x .notes-action-controls {
+  display: none !important;
+}
+
+/* Hide Focus Mode content when collapsed side */
+#app.collapsed-x .focus-mode .timer-modal,
+#app.collapsed-y .focus-mode .timer-modal {
+  display: none !important;
+}
+
+#app.collapsed-x .focus-header-bar {
+  border-bottom: none;
+  background: transparent; 
+}
+
+#app.collapsed-y .input-area,
+#app.collapsed-y .task-container,
+#app.collapsed-y .focus-content,
+#app.collapsed-y .focus-bottom-controls,
+#app.collapsed-y .focus-secondary-actions,
+#app.collapsed-y .notes-editor-shell {
+  opacity: 0 !important;
+  transform: translateY(-20px) scale(0.95) !important; /* Subtle drift up and shrink */
+  pointer-events: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out; /* Fast exit */
+}
+
+#app.collapsed-x .input-area,
+#app.collapsed-x .task-container,
+#app.collapsed-x .focus-content,
+#app.collapsed-x .focus-bottom-controls,
+#app.collapsed-x .focus-secondary-actions,
+#app.collapsed-x .notes-editor-shell {
+  opacity: 0 !important;
+  transform: translateX(-20px) scale(0.95) !important;
+  pointer-events: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out; /* Fast exit */
+}
+
+#app.collapsed-y .title-bar,
+#app.collapsed-x .title-bar {
+  background: transparent;
+  border-bottom: none;
+}
+
+#app:not(.collapsed-x):not(.collapsed-y) .input-area,
+#app:not(.collapsed-x):not(.collapsed-y) .task-container,
+#app:not(.collapsed-x):not(.collapsed-y) .focus-content,
+#app:not(.collapsed-x):not(.collapsed-y) .focus-bottom-controls,
+#app:not(.collapsed-x):not(.collapsed-y) .focus-secondary-actions,
+#app:not(.collapsed-x):not(.collapsed-y) .notes-editor-shell,
+#app:not(.collapsed-x):not(.collapsed-y) .history-content-shell {
+  transition: opacity 0.4s ease-out 0.1s, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); /* Delay opacity entry slightly, transform is immediate for seamless un-peeking */
+  opacity: 1;
+  transform: translate(0, 0) scale(1);
+}
+
+/* Faster interior transition when peeking for seamless feel */
+#app.peeking .input-area,
+#app.peeking .task-container,
+#app.peeking .focus-content,
+#app.peeking .focus-bottom-controls,
+#app.peeking .focus-secondary-actions,
+#app.peeking .history-content-shell {
+  transition-delay: 0s !important;
+  transition-duration: 0.3s !important;
+  transform: scale(0.95) !important;
+}
+
+#app.peeking .notes-editor-shell {
+  transition-delay: 0s !important;
+  transition-duration: 0.3s !important;
+  transform: scale(1) !important;
+}
+
+
+/* Collapsed Time's Up Alert */
+.collapsed-times-up-msg {
+  display: none !important; /* hidden by default */
+}
+
+#app:not(.collapsed-y) #collapsed-times-up-popup {
+  display: none !important;
+}
+
+/* Only display when the window is collapsed, and the time's up active state is present */
+#app.times-up-active.collapsed-x .collapsed-times-up-msg {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(80, 20, 30, 0.92) 0%, rgba(15, 10, 20, 0.98) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  z-index: 10000;
+  pointer-events: none;
+  border-radius: inherit;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: inset 0 0 60px rgba(255, 50, 50, 0.15);
+}
+
+#app.times-up-active.collapsed-x,
+#app.times-up-active.collapsed-y.collapsed-reminder-active {
+  border-color: transparent !important;
+}
+
+#app.times-up-active.collapsed-y .collapsed-times-up-msg {
+  flex-direction: row;
+  gap: 12px;
+}
+
+.ice-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 60, 60, 0.25) 0%, transparent 65%);
+  animation: icePulseAnim 2s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ice-icon.alarm-ringing {
+  position: relative;
+  z-index: 2;
+  color: #ff6b6b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 12px rgba(255, 82, 82, 0.8));
+  animation: alarmVibrate 0.4s infinite ease-in-out;
+}
+
+/* Specific animations for ringing lines */
+.lines-left {
+  animation: ringLinesLeft 0.6s infinite ease-in-out;
+  transform-origin: 12px 13px;
+}
+
+.lines-right {
+  animation: ringLinesRight 0.6s infinite ease-in-out;
+  transform-origin: 12px 13px;
+}
+
+@keyframes ringLinesLeft {
+  0% { transform: translateX(0) scale(1); opacity: 0.5; }
+  50% { transform: translateX(-5px) scale(1.1); opacity: 1; }
+  100% { transform: translateX(0) scale(1); opacity: 0.5; }
+}
+
+@keyframes ringLinesRight {
+  0% { transform: translateX(0) scale(1); opacity: 0.5; }
+  50% { transform: translateX(5px) scale(1.1); opacity: 1; }
+  100% { transform: translateX(0) scale(1); opacity: 0.5; }
+}
+
+.ice-rabbit-wrap {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 32px;
+  width: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  z-index: 10;
+  box-shadow: 0 0 12px rgba(255, 50, 50, 0.4);
+  transition: all 0.3s ease;
+}
+
+.ice-rabbit-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.1) contrast(1.1) brightness(1.1);
+  display: block;
+}
+
+#app.collapsed-x .ice-rabbit-wrap {
+  position: absolute;
+  top: 8px;
+  bottom: auto;
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 32px;
+}
+
+#app.collapsed-x .ice-icon.alarm-ringing {
+  margin-top: 25px;
+  margin-bottom: 0px;
+}
+
+.ice-text {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-shadow: 0 0 20px rgba(255, 60, 60, 0.9), 0 0 40px rgba(255, 60, 60, 0.5);
+  animation: intenseGlow 1.5s infinite alternate ease-in-out;
+  white-space: nowrap;
+  transform: rotate(0deg);
+  transform-origin: center;
+  scale: 1;
+}
+
+#app.collapsed-x .ice-text {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  letter-spacing: 4px;
+}
+
+#app.collapsed-x.collapsed-right .ice-text {
+  transform: rotate(0deg);
+  margin-top: 8px;
+}
+
+#app.collapsed-x .ice-icon {
+  margin-bottom: 0;
+}
+
+#app.collapsed-y .ice-icon {
+  margin-right: 0;
+}
+
+@keyframes alarmVibrate {
+  0% { transform: rotate(0deg) scale(1.12); }
+  25% { transform: rotate(5deg) scale(1.15); }
+  50% { transform: rotate(0deg) scale(1.12); }
+  75% { transform: rotate(-5deg) scale(1.15); }
+  100% { transform: rotate(0deg) scale(1.12); }
+}
+
+@keyframes wavePulse {
+  0% { opacity: 0; transform: scale(0.8); }
+  50% { opacity: 0.8; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.2); }
+}
+
+@keyframes icePulseAnim {
+  0% { transform: translate(-50%, -50%) scale(0.7); opacity: 0.2; }
+  50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.5; }
+  100% { transform: translate(-50%, -50%) scale(0.7); opacity: 0.2; }
+}
+
+@keyframes intenseGlow {
+  from { 
+    text-shadow: 0 0 10px rgba(255, 50, 50, 0.6); 
+    color: #ffdce0; 
+    scale: 1;
+  }
+  to { 
+    text-shadow: 0 0 25px rgba(255, 50, 50, 1), 0 0 45px rgba(255, 0, 0, 0.6); 
+    color: #ffffff; 
+    scale: 1.05;
+  }
+}

@@ -1,3 +1,7 @@
+import { DUE_BLOCKS, quotes, congratsMessages, ALL_WINDOWS_SIZE, PEEK_SIZE_Y, PEEK_SIZE_X, COLLAPSED_SIZE_Y, COLLAPSED_REMINDER_SIZE_Y, COLLAPSED_SIZE_X, COLLAPSED_SIZE_Y_BUBBLE, COLLAPSED_SIZE_X_BUBBLE, HOVER_PEEK_DELAY_MS, HOVER_PEEK_RETRY_MS, SIDE_NOTIFICATION_BUBBLE_DURATION_MS, BOTTOM_DOCK_MINIMIZE_THRESHOLD, MANUAL_DRAG_EXPAND_DURATION_MS, NATIVE_EDGE_SNAP_THRESHOLD, NATIVE_SIDE_SNAP_MIN_WIDTH_RATIO, NATIVE_TOP_SNAP_MIN_WIDTH_RATIO, NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO, DRAG_GESTURE_IDLE_END_MS, SNAP_THRESHOLD } from './constants.js';
+import { clamp, parseMaskedDate, formatDateTimeHuman, normalizeDueInputValue, normalizeDueBlockValue, getDueBlockFromSelection, setDueBlockValue, formatDueBlockForEditing, capitalizeFirstLetter, tokenizeBubbleHTML, renderBubbleTokens } from './utils.js';
+import { reminderTone, collapseExpandTone, taskCreateTone, taskActivationTone, taskDeleteTone, fallbackDeleteTone, timesUpTone, playReminderTone, playCollapseExpandSound, playTaskCreateSound, playTaskActivationSound, playTaskDeleteSound, playFallbackDeleteSound, playTimesUpSound, playVictorySound } from './audio.js';
+
 const { getCurrentWindow, currentMonitor, LogicalSize } = window.__TAURI__.window;
 
 const appWindow = getCurrentWindow();
@@ -156,24 +160,6 @@ appWindow.isFocused().then(focused => {
   updateFocusState();
 });
 
-const ALL_WINDOWS_SIZE = new LogicalSize(325, 375);
-const PEEK_SIZE_Y = new LogicalSize(325, 270);
-const PEEK_SIZE_X = new LogicalSize(270, 325);
-const COLLAPSED_SIZE_Y = new LogicalSize(325, 42); // Match CSS height for bar
-const COLLAPSED_REMINDER_SIZE_Y = new LogicalSize(325, 112);
-const COLLAPSED_SIZE_X = new LogicalSize(42, 300); // Match CSS dimensions
-const COLLAPSED_SIZE_Y_BUBBLE = new LogicalSize(325, 180); 
-const COLLAPSED_SIZE_X_BUBBLE = new LogicalSize(300, 300); 
-const SIDE_NOTIFICATION_BUBBLE_DURATION_MS = 12000;
-const BOTTOM_DOCK_MINIMIZE_THRESHOLD = 0;
-const HOVER_PEEK_DELAY_MS = 150;
-const HOVER_PEEK_RETRY_MS = 80;
-const MANUAL_DRAG_EXPAND_DURATION_MS = 420;
-const NATIVE_EDGE_SNAP_THRESHOLD = 14;
-const NATIVE_SIDE_SNAP_MIN_WIDTH_RATIO = 0.42;
-const NATIVE_TOP_SNAP_MIN_WIDTH_RATIO = 0.9;
-const NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO = 0.72;
-const DRAG_GESTURE_IDLE_END_MS = 120;
 
 let isWindowDragGesture = false;
 let isDockMinimizing = false;
@@ -1390,62 +1376,6 @@ if (taskReminderBtn && reminderDropdown) {
 let reminderPopupAutoCloseTimer = null;
 let reminderPopupCloseHandler = null;
 let topCollapsedReminderAnimation = Promise.resolve();
-const reminderTone = new Audio('assets/due_reminder_tone.mp3');
-reminderTone.preload = 'auto';
-
-const collapseExpandTone = new Audio('assets/collapse:expand_tone.mp3');
-collapseExpandTone.preload = 'auto';
-
-const taskCreateTone = new Audio('assets/task_create_tone.mp3');
-taskCreateTone.preload = 'auto';
-
-const taskActivationTone = new Audio('assets/task_activation.mp3');
-taskActivationTone.preload = 'auto';
-taskActivationTone.volume = 1.0; // Ensure full volume
-
-const taskDeleteTone = new Audio('assets/task_delete_tone.mp3');
-taskDeleteTone.preload = 'auto';
-
-const fallbackDeleteTone = new Audio('assets/fallback_delete_tone.mp3');
-fallbackDeleteTone.preload = 'auto';
-
-const timesUpTone = new Audio('assets/times_up_tone.mp3');
-timesUpTone.preload = 'auto';
-
-function playReminderTone() {
-  reminderTone.currentTime = 0;
-  reminderTone.play().catch(() => {});
-}
-
-function playCollapseExpandSound() {
-  collapseExpandTone.currentTime = 0;
-  collapseExpandTone.play().catch(() => {});
-}
-
-function playTaskCreateSound() {
-  taskCreateTone.currentTime = 0;
-  taskCreateTone.play().catch(() => {});
-}
-
-function playTaskActivationSound() {
-  taskActivationTone.currentTime = 0;
-  taskActivationTone.play().catch(() => {});
-}
-
-function playTaskDeleteSound() {
-  taskDeleteTone.currentTime = 0;
-  taskDeleteTone.play().catch(() => {});
-}
-
-function playFallbackDeleteSound() {
-  fallbackDeleteTone.currentTime = 0;
-  fallbackDeleteTone.play().catch(() => {});
-}
-
-function playTimesUpSound() {
-  timesUpTone.currentTime = 0;
-  timesUpTone.play().catch(() => {});
-}
 
 function isTopCollapsedReminderMode() {
   return appElement.classList.contains('collapsed-y')
@@ -1774,15 +1704,6 @@ noteTabs.forEach(tab => {
   });
 });
 
-function capitalizeFirstLetter(e) {
-  const input = e.target;
-  const val = input.value;
-  // Only auto-capitalize when typing the very first character of an empty field
-  if (val && val.length === 1 && val[0] !== val[0].toUpperCase()) {
-    input.value = val[0].toUpperCase();
-  }
-}
-
 if (taskInput) {
   taskInput.addEventListener('input', capitalizeFirstLetter);
 }
@@ -2000,19 +1921,6 @@ function getDefaultDueDate() {
   return new Date();
 }
 
-const quotes = [
-  "Flow with the moment, focus on the task.",
-  "Your focus determines your reality.",
-  "One task at a time, one step closer.",
-  "Stay in the flow, the rest will follow.",
-  "Focus is the art of knowing what to ignore.",
-  "Deep work is the superpower of the 21st century.",
-  "The secret to getting ahead is getting started.",
-  "Don't stop until you're proud.",
-  "Small steps lead to big results.",
-  "Flow is the state of effortless action."
-];
-
 // Initialize default date
 dueInput.value = formatDateTimeHuman(getDefaultDueDate());
 
@@ -2049,15 +1957,6 @@ if (taskDueDateBtn) {
     }
   });
 }
-
-const DUE_BLOCKS = [
-  { start: 0, end: 2, type: 'day', length: 2 },
-  { start: 3, end: 5, type: 'month', length: 2 },
-  { start: 6, end: 10, type: 'year', length: 4 },
-  { start: 12, end: 14, type: 'hour', length: 2 },
-  { start: 15, end: 17, type: 'minute', length: 2 },
-  { start: 18, end: 20, type: 'period', length: 2 }
-];
 
 let activeDueBlockEdit = null;
 
@@ -2225,84 +2124,10 @@ dueInput.addEventListener('click', () => {
   setDueSelection(getDueBlockFromCursor(dueInput.selectionStart ?? 0));
 });
 
-function parseMaskedDate(str) {
-  // Format: DD/MM/YYYY, HH:MM AM/PM
-  const regex = /(\d{2})\/(\d{2})\/(\d{4}),\s(\d{2}):(\d{2})\s(AM|PM)/;
-  const match = str.match(regex);
-  if (!match) return null;
-
-  let [_, day, month, year, hour, min, period] = match;
-  hour = parseInt(hour);
-  if (period === 'PM' && hour < 12) hour += 12;
-  if (period === 'AM' && hour === 12) hour = 0;
-
-  const date = new Date(year, month - 1, day, hour, min);
-  return isNaN(date.getTime()) ? null : date;
-}
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function getDueBlockFromSelection(cursor, selectionEnd = cursor) {
-  return DUE_BLOCKS.find(({ start, end }) => cursor >= start && selectionEnd <= end) || null;
-}
-
-function setDueBlockValue(value, block, nextBlockValue) {
-  return value.substring(0, block.start) + nextBlockValue + value.substring(block.end);
-}
-
-function formatDueBlockForEditing(block, rawValue) {
-  const padded = rawValue.padStart(block.length, '0');
-  return padded.slice(-block.length);
-}
-
 function selectNextDueBlock(block) {
   const nextBlock = DUE_BLOCKS.find(({ start, type }) => start > block.start && type !== 'period');
   if (!nextBlock) return;
   setDueSelection(nextBlock);
-}
-
-function normalizeDueBlockValue(type, rawValue, fullValue) {
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentDay = now.getDate();
-  const currentYear = now.getFullYear();
-  const currentHour = now.getHours() % 12 || 12;
-  const currentMinute = now.getMinutes();
-  const parsedRaw = parseInt(rawValue, 10);
-
-  if (type === 'day') {
-    const fullYear = parseInt(fullValue.substring(6, 10), 10);
-    const fullMonth = parseInt(fullValue.substring(3, 5), 10);
-    const year = Math.max(Number.isNaN(fullYear) ? currentYear : fullYear, currentYear);
-    const month = clamp(Number.isNaN(fullMonth) ? currentMonth : fullMonth, 1, 12);
-    const maxDay = new Date(year, month, 0).getDate();
-    const dayValue = Number.isNaN(parsedRaw) ? currentDay : parsedRaw;
-    return String(clamp(dayValue, 1, maxDay)).padStart(2, '0');
-  }
-
-  if (type === 'month') {
-    const monthValue = Number.isNaN(parsedRaw) ? currentMonth : parsedRaw;
-    return String(clamp(monthValue, 1, 12)).padStart(2, '0');
-  }
-
-  if (type === 'year') {
-    const yearValue = Number.isNaN(parsedRaw) ? currentYear : parsedRaw;
-    return String(Math.max(yearValue, currentYear)).padStart(4, '0');
-  }
-
-  if (type === 'hour') {
-    const hourValue = Number.isNaN(parsedRaw) ? currentHour : parsedRaw;
-    return String(clamp(hourValue, 1, 12)).padStart(2, '0');
-  }
-
-  if (type === 'minute') {
-    const minuteValue = Number.isNaN(parsedRaw) ? currentMinute : parsedRaw;
-    return String(clamp(minuteValue, 0, 59)).padStart(2, '0');
-  }
-
-  return rawValue;
 }
 
 function commitActiveDueBlockEdit() {
@@ -2315,53 +2140,6 @@ function commitActiveDueBlockEdit() {
     normalizeDueBlockValue(block.type, raw, dueInput.value)
   );
   activeDueBlockEdit = null;
-}
-
-function normalizeDueInputValue(value, { enforceFuture = false } = {}) {
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
-  const currentDay = now.getDate();
-  const currentHour = now.getHours() % 12 || 12;
-  const currentMinute = now.getMinutes();
-
-  const parsedMonth = parseInt(value.substring(3, 5), 10);
-  const parsedYear = parseInt(value.substring(6, 10), 10);
-  const parsedDay = parseInt(value.substring(0, 2), 10);
-  const parsedHour = parseInt(value.substring(12, 14), 10);
-  const parsedMinute = parseInt(value.substring(15, 17), 10);
-
-  const month = clamp(Number.isNaN(parsedMonth) ? currentMonth : parsedMonth, 1, 12);
-  const year = Math.max(Number.isNaN(parsedYear) ? currentYear : parsedYear, currentYear);
-  const maxDay = new Date(year, month, 0).getDate();
-  const day = clamp(Number.isNaN(parsedDay) ? currentDay : parsedDay, 1, maxDay);
-  const hour = clamp(Number.isNaN(parsedHour) ? currentHour : parsedHour, 1, 12);
-  const minute = clamp(Number.isNaN(parsedMinute) ? currentMinute : parsedMinute, 0, 59);
-  const period = value.substring(18, 20).toUpperCase() === 'PM' ? 'PM' : 'AM';
-
-  const normalized = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${String(year).padStart(4, '0')}, ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`;
-  if (!enforceFuture) return normalized;
-
-  const parsed = parseMaskedDate(normalized);
-  if (!parsed || parsed.getTime() <= now.getTime()) {
-    const future = new Date(now.getTime() + 60 * 1000);
-    return formatDateTimeHuman(future);
-  }
-
-  return normalized;
-}
-
-function formatDateTimeHuman(date) {
-  const d = String(date.getDate()).padStart(2, '0');
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const y = date.getFullYear();
-  let h = date.getHours();
-  const min = String(date.getMinutes()).padStart(2, '0');
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12 || 12;
-  const hh = String(h).padStart(2, '0');
-
-  return `${d}/${m}/${y}, ${hh}:${min} ${ampm}`;
 }
 
 function addTask() {
@@ -2474,7 +2252,6 @@ Object.entries(dirMap).forEach(([dir, tauriDir]) => {
 setInterval(renderTasks, 60000);
 
 // Edge Snapping Logic
-const SNAP_THRESHOLD = 30;
 let moveTimeout;
 
 async function snapToEdges() {
@@ -2721,46 +2498,7 @@ let focusTimerInterval = null;
 let focusSeconds = 0;
 let currentFocusTask = null;
 
-const congratsMessages = [
-  "Great focus. Keep this momentum going.",
-  "One step closer to your goals. Well done.",
-  "Consistent effort pays off. Take a moment to appreciate your work.",
-  "Task completed successfully. You're doing great.",
-  "Outstanding focus session. Ready for the next challenge?",
-  "Consistency is key. Excellent job staying on track.",
-  "Progress is made one task at a time. Keep it up."
-];
-
 let confettiAnimationId = null;
-
-function playVictorySound() {
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) return;
-  const ctx = new AudioContext();
-  
-  const playNote = (freq, startTime, duration) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
-    
-    gain.gain.setValueAtTime(0, ctx.currentTime + startTime);
-    gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + startTime + 0.05);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + startTime + duration);
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc.start(ctx.currentTime + startTime);
-    osc.stop(ctx.currentTime + startTime + duration);
-  };
-  
-  // Triumphant fast arpeggio
-  playNote(523.25, 0.0, 0.15); // C5
-  playNote(659.25, 0.1, 0.15); // E5
-  playNote(783.99, 0.2, 0.15); // G5
-  playNote(1046.50, 0.3, 0.5); // C6
-}
 
 function startConfetti() {
   const canvas = document.getElementById('confetti-canvas');
@@ -3613,23 +3351,6 @@ async function hideEyeMessageOverlay() {
 
 async function showRightEyeMessageOverlay() {
   return showRightBubbleMessage('i got my<br>eyes on you', 3000);
-}
-
-function tokenizeBubbleHTML(fullHTML) {
-  const tokens = [];
-  for (let i = 0; i < fullHTML.length; i++) {
-    if (fullHTML.startsWith('<br>', i)) {
-      tokens.push('<br>');
-      i += 3;
-    } else {
-      tokens.push(fullHTML[i]);
-    }
-  }
-  return tokens;
-}
-
-function renderBubbleTokens(tokens, count) {
-  return tokens.slice(0, count).join('');
 }
 
 async function showRightBubbleMessage(fullHTML, durationMs = 3000) {

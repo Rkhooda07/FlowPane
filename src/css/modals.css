@@ -1,0 +1,455 @@
+.delete-confirm-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 18, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.congrats-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 18, 0.75); /* Darker overlay for focus */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 20px;
+}
+
+/* Make congrats modal smaller in collapsed and peeking states for better visibility */
+#app.collapsed-y .congrats-modal,
+#app.collapsed-x .congrats-modal,
+#app.peeking-y .congrats-modal,
+#app.peeking-x .congrats-modal {
+  inset: auto;
+  width: 250px;
+  height: auto;
+  max-height: 230px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+  z-index: 9999 !important; /* Ensure it is in front of the timer and other focus mode content */
+}
+
+#app.collapsed-y .congrats-content,
+#app.collapsed-x .congrats-content,
+#app.peeking-y .congrats-content,
+#app.peeking-x .congrats-content {
+  width: 100%;
+  max-width: 220px;
+}
+
+#app.collapsed-y .congrats-icon,
+#app.collapsed-x .congrats-icon,
+#app.peeking-y .congrats-icon,
+#app.peeking-x .congrats-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+#app.collapsed-y .congrats-content h3,
+#app.collapsed-x .congrats-content h3,
+#app.peeking-y .congrats-content h3,
+#app.peeking-x .congrats-content h3 {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+#app.collapsed-y .congrats-time,
+#app.collapsed-x .congrats-time,
+#app.peeking-y .congrats-time,
+#app.peeking-x .congrats-time {
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+#app.collapsed-y .congrats-fun-text,
+#app.collapsed-x .congrats-fun-text,
+#app.peeking-y .congrats-fun-text,
+#app.peeking-x .congrats-fun-text {
+  font-size: 12px;
+  margin-bottom: 12px;
+  max-width: 200px;
+}
+
+#app.collapsed-y #congrats-done-btn,
+#app.collapsed-x #congrats-done-btn,
+#app.peeking-y #congrats-done-btn,
+#app.peeking-x #congrats-done-btn {
+  padding: 6px 20px;
+  font-size: 12px;
+}
+
+#confetti-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.congrats-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: modalPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.8) translateY(20px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.congrats-icon {
+  font-size: 64px; /* Larger icon for full screen */
+  margin-bottom: 20px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
+}
+
+.congrats-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.congrats-time {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 24px;
+}
+
+#congrats-timer-val {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.congrats-fun-text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 32px;
+  max-width: 250px;
+  font-style: italic;
+  font-family: inherit;
+}
+
+#congrats-done-btn {
+  padding: 12px 36px;
+  font-size: 15px;
+  box-shadow: 0 4px 12px rgba(255, 204, 102, 0.2);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#congrats-done-btn:hover,
+#congrats-done-btn.pseudo-hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 8px 24px rgba(255, 204, 102, 0.3);
+}
+
+#congrats-done-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.delete-confirm-card {
+  width: min(280px, calc(100% - 32px));
+  background: rgba(26, 26, 38, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.4);
+  padding: 16px;
+}
+
+.delete-confirm-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.delete-confirm-card p {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.45;
+}
+
+.delete-confirm-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 14px 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.78);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.delete-confirm-checkbox-wrap input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: #ffcc66;
+}
+
+.delete-confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* About Card */
+.about-card {
+  text-align: center;
+  max-width: 280px;
+}
+
+.about-icon {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+#about-version {
+  font-size: 12px;
+  opacity: 0.6;
+  margin: 4px 0 12px;
+}
+
+/* Resume Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: var(--navbar-height); /* Start below the navbar */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0); /* Darker overlay for better visibility */
+  backdrop-filter: blur(8px);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto; /* Capture clicks */
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.modal-overlay.hidden {
+  display: flex !important; /* Override display: none to allow transition */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.modal-overlay:not(.hidden) {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Specific reveal for Time's Up to wait for window expansion */
+.times-up-card {
+  opacity: 0;
+  transform: scale(0.85); /* Start slightly smaller */
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease !important;
+  transition-delay: 0.2s !important;
+}
+
+.modal-overlay:not(.hidden) .times-up-card {
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* Delay the overlay background slightly too */
+#times-up-modal:not(.hidden) {
+  transition-delay: 0.1s;
+}
+
+.resume-card {
+  width: 65%; /* Dynamic width relative to app */
+  max-width: 280px;
+  min-width: 180px;
+  background: rgba(30, 30, 45, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: clamp(12px, 4vw, 18px);
+  padding: clamp(10px, 5%, 20px);
+  text-align: center;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+  transform: scale(1);
+  opacity: 1;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+}
+
+.modal-overlay.hidden .resume-card:not(.times-up-card) {
+  transform: scale(0.9) translateY(10px);
+  opacity: 0;
+}
+
+.resume-icon {
+  font-size: clamp(20px, 8vw, 32px);
+  margin-bottom: clamp(4px, 2vw, 8px);
+}
+
+.resume-card h3 {
+  margin: 0 0 1px 0;
+  font-size: clamp(13px, 4.5vw, 18px);
+  color: #fff;
+}
+
+.resume-card p {
+  font-size: clamp(10px, 3.6vw, 14px);
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: clamp(10px, 4vw, 18px);
+}
+
+.resume-time-box {
+  background: rgba(0, 0, 0, 0.3);
+  padding: clamp(3px, 1.5vw, 6px) clamp(8px, 3vw, 14px);
+  border-radius: 8px;
+  margin-bottom: clamp(10px, 4vw, 16px);
+  display: inline-block;
+}
+
+#resume-time-val {
+  font-family: var(--font-family);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #ffcc66;
+  font-size: clamp(15px, 5.5vw, 22px);
+}
+
+.resume-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.resume-btn {
+  border: none;
+  border-radius: clamp(8px, 3vw, 12px);
+  padding: clamp(7px, 2.8vw, 11px);
+  font-size: clamp(11.5px, 3.8vw, 15px);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.resume-btn.continue {
+  background: var(--accent-color);
+  color: #fff;
+}
+
+.resume-btn.restart {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.resume-btn:hover,
+.resume-btn.pseudo-hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.resume-btn:active {
+  transform: scale(0.98);
+}
+
+.resume-cancel {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: clamp(10px, 3.2vw, 12px);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.resume-cancel:hover,
+.resume-cancel.pseudo-hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.btn-icon {
+  font-size: 12px;
+}
+
+
+/* Hide normal Time's Up modal in collapsed mode */
+#app.collapsed-x #times-up-modal,
+#app.collapsed-y #times-up-modal {
+  display: none !important;
+}
+
+/* Adjust sizes for peek mode so modals fit cleanly */
+#app.peeking .resume-card {
+  width: min(230px, calc(100% - 24px));
+  padding: 14px 16px;
+  border-radius: 14px;
+}
+
+#app.peeking .resume-icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+#app.peeking .resume-card h3 {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+#app.peeking .resume-card p {
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+
+#app.peeking .resume-actions {
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+#app.peeking .resume-btn {
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 10px;
+}
+
+#app.peeking .resume-time-box {
+  padding: 4px 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+}
+
+#app.peeking #resume-time-val {
+  font-size: 16px;
+}

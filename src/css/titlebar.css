@@ -1,0 +1,406 @@
+.title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: grab;
+  user-select: none;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+  min-height: var(--navbar-height);
+  height: var(--navbar-height);
+  position: relative;
+  z-index: 100; /* Always on top */
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+#app.collapsed-y .title-bar,
+#app.collapsed-x .title-bar {
+  border-radius: inherit;
+}
+
+.title-bar:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.title-bar:active {
+  cursor: grabbing;
+}
+
+.title-bar h1 {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-color);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+  /* Specific transitions prevent the 'shift' caused by 'all' lagging behind resize */
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+              opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+  z-index: 5;
+  white-space: nowrap; /* Prevent wrapping in narrow states */
+  line-height: 1.3; /* Ensure descenders are not cropped */
+}
+
+.navbar-home-link {
+  user-select: none;
+  -webkit-user-select: none;
+  max-width: 140px; /* Snugger fit for narrow windows */
+  /* Use display flex to keep title and timer on the same line */
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* Standard gap between text and timer */
+}
+
+.navbar-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  text-align: center;
+  min-width: 0; /* Allow shrinking for ellipsis in horizontal flex */
+  min-height: 0; /* Allow shrinking for ellipsis in vertical flex */
+}
+
+/* Slide and fade title when guide is hovered to prevent overlap */
+.title-bar:has(.fold-guide:hover) h1 {
+  opacity: 0;
+  transform: translate(-120%, -50%); /* Shift left while fading out */
+}
+
+.navbar-timer {
+  margin-left: 12px;
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(255, 204, 102, 0.9);
+  letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Focus mode navbar timer - larger font */
+.focus-header-bar .navbar-timer {
+  font-size: 13px; /* Increased from 11px for focus mode */
+}
+
+#app.collapsed-y .navbar-timer {
+  font-size: 12px; /* Increased from 11px */
+  margin-left: 0;
+  background: rgba(255, 255, 255, 0.08); /* Distinct container block */
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+#app.collapsed-x .navbar-timer {
+  font-size: 11px; /* Increased from 10px */
+  margin-left: 0;
+  margin-top: 0;
+}
+
+/* Focus mode collapsed-x - larger font */
+#app.collapsed-x .focus-header-bar .navbar-timer {
+  font-size: 13px; /* Slightly larger for readability */
+  display: inline-flex;
+  flex-direction: column; /* Stack vertically */
+  writing-mode: horizontal-tb; /* Reset from vertical-rl */
+  transform: rotate(180deg); /* Counter-rotate to be upright */
+  background: rgba(255, 255, 255, 0.08); /* Distinct container */
+  padding: 6px 4px;
+  border-radius: 8px;
+  margin-top: 0;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Short timer in collapsed modes (no hours shown) */
+#app.collapsed-y .navbar-timer.short-timer {
+  font-size: 14px; /* Distinctly bigger since it lacks hours */
+  padding: 4px 10px;
+}
+
+#app.collapsed-x .focus-header-bar .navbar-timer.short-timer {
+  font-size: 14px; 
+  padding: 8px 4px; /* Reduced side padding so it isn't too wide for the window */
+}
+
+.t-unit {
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+}
+
+.t-sep {
+  font-size: 10px;
+  line-height: 0.5;
+  opacity: 0.6;
+  text-align: center;
+  margin: 1px 0;
+}
+
+/* Rotate separator in vertical mode to look like horizontal dots [..] */
+#app.collapsed-x .focus-header-bar .t-sep {
+  transform: rotate(90deg);
+  font-size: 12px;
+  letter-spacing: -1px; /* Bring dots closer */
+  margin: 2px 0;
+}
+
+/* Ensure horizontal timer looks normal */
+.navbar-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.window-controls,
+.action-controls,
+.fold-guide {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+  min-width: 60px; /* Balance both sides so title remains centered */
+  overflow: visible !important;
+}
+
+.action-controls {
+  justify-content: flex-end;
+}
+
+/* Hide controls in collapsed focus view for minimal look */
+#app.collapsed-y .focus-header-bar .action-controls,
+#app.collapsed-x .focus-header-bar .action-controls {
+  display: none !important;
+}
+
+#app.collapsed-y .focus-header-bar .window-controls {
+  display: flex !important;
+  transform: scale(1); /* Reset from 0.8 */
+}
+
+#app.collapsed-x .focus-header-bar .window-controls {
+  display: flex !important;
+  flex-direction: column;
+  transform: scale(0.85);
+  gap: 4px;
+  min-width: 0;
+}
+
+.notes-action-controls {
+  display: none;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+#app.notes-active .fold-guide {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#app.notes-active .notes-action-controls {
+  display: flex;
+}
+
+
+.control-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0; /* Hide internal text/symbols by default */
+  position: relative;
+}
+
+.control-btn:hover {
+  transform: scale(1.1);
+}
+
+.btn-close { background-color: #ff5f56; }
+.btn-minimize { background-color: #ffbd2e; }
+.btn-maximize { background-color: #28c840; }
+
+.googly-eyes {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  pointer-events: none; /* Let clicks pass through if dragging */
+}
+
+.eye {
+  width: 18px;
+  height: 18px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  position: relative;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: eye-blink 6s infinite;
+  will-change: transform;
+}
+
+@keyframes eye-blink {
+  0%, 95%, 100% {
+    transform: scaleY(1);
+  }
+  96.2% {
+    transform: scaleY(0.01);
+  }
+}
+
+.pupil {
+  width: 9px;
+  height: 9px;
+  background-color: #1a1a1a;
+  border-radius: 50%;
+  transform: translate(0px, 0px);
+  transition: transform 0.05s linear;
+  box-shadow: inset -1px -1px 2px rgba(255, 255, 255, 0.2);
+}
+
+/* Folding Guide Component */
+.fold-guide {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  cursor: default;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0.6;
+  z-index: 10;
+  user-select: none;
+  margin-right: -4px; /* Move slightly right to open center space */
+}
+
+.fold-guide:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.02);
+  gap: 14px;
+}
+
+.guide-icon {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+  width: 11px;
+  height: 11px;
+}
+
+.guide-icon span {
+  width: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fold-guide:hover .guide-icon span {
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+}
+
+.guide-text {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+}
+
+.fold-guide:hover .guide-text {
+  max-width: 100px;
+  opacity: 1;
+}
+
+.btn-complete { 
+  background-color: rgba(40, 200, 64, 0.1); 
+  color: #28c840;
+  border: 1px solid rgba(40, 200, 64, 0.25);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 0; /* Reset padding to ensure centering */
+}
+
+.btn-complete svg {
+  display: block;
+}
+
+.btn-exit { 
+  background-color: rgba(255, 255, 255, 0.05); 
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.btn-exit svg {
+  display: block;
+}
+
+.btn-complete:hover {
+  background-color: rgba(40, 200, 64, 0.3);
+  color: #ffffff;
+  border-color: rgba(40, 200, 64, 0.4);
+  transform: scale(1.1) translateY(-1px);
+  box-shadow: 0 0 15px rgba(40, 200, 64, 0.3);
+}
+
+.btn-exit:hover {
+  background-color: rgba(255, 59, 48, 0.15);
+  color: #ff5f56;
+  border-color: rgba(255, 59, 48, 0.3);
+  transform: scale(1.1) translateY(-1px);
+  box-shadow: 0 0 15px rgba(255, 59, 48, 0.25);
+}
+
+#notes-nav-exit-btn {
+  width: 30px;
+  height: 28px;
+}
+
+/* Old fold button styles removed */
+
+

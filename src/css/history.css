@@ -1,0 +1,271 @@
+/* History Workspace */
+/* Hide home page content when in history mode */
+#app.history-active > .input-area,
+#app.history-active #list-filter,
+#app.history-active #task-list,
+#app.history-active .task-container,
+#app.history-active #task-list > .empty-state,
+#app.history-active .navbar-stars-container {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+/* Ensure history workspace starts below the main title-bar */
+.history-workspace {
+  position: absolute;
+  top: var(--navbar-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--history-bg);
+  z-index: 150; /* Increased to ensure it's above everything else when active */
+  display: flex;
+  flex-direction: column;
+  padding: 4px 20px 20px 20px;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto; /* Explicitly allow pointer events */
+}
+
+.history-workspace.hidden {
+  display: flex !important; /* Override display: none to allow transition */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px);
+  pointer-events: none;
+}
+
+.history-content-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: var(--navbar-height);
+  margin-bottom: 0; /* Changed to 0; padding-top on the list provides the gap now */
+}
+
+.history-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-back-btn {
+  background: transparent;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-left: -4px; /* Pull closer to edge */
+}
+
+.history-back-btn:hover,
+.history-back-btn.pseudo-hover {
+  transform: translateX(-3px) scale(1.1);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  color: #ffcc66; /* Subtle gold tint on hover */
+}
+
+.history-back-btn:active {
+  transform: translateX(0) scale(0.92);
+}
+
+.history-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.clear-history-btn {
+  background: transparent !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.3);
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: visible;
+  position: relative;
+  margin-right: -8px; /* Offset padding for alignment */
+}
+
+.clear-history-btn:hover,
+.clear-history-btn.pseudo-hover {
+  color: #ff5252 !important;
+  transform: scale(1.15);
+  animation: binHoverWiggle 0.5s ease-in-out infinite;
+}
+
+.clear-history-btn:hover #trash-lid,
+.clear-history-btn.pseudo-hover #trash-lid {
+  transform: translateY(-2px) rotate(-8deg);
+}
+
+@keyframes binHoverWiggle {
+  0%, 100% { transform: scale(1.15) rotate(0); }
+  25% { transform: scale(1.15) rotate(-4deg); }
+  75% { transform: scale(1.15) rotate(4deg); }
+}
+
+.trash-bin-svg {
+  pointer-events: none;
+  overflow: visible !important;
+}
+
+.clear-history-btn.shake {
+  animation: binShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+  color: #ff5252 !important;
+}
+
+.clear-history-btn.shake #trash-lid {
+  animation: lidFlap 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes binShake {
+  10%, 90% { transform: translateX(-1px) rotate(-3deg); }
+  20%, 80% { transform: translateX(2px) rotate(3deg); }
+  30%, 50%, 70% { transform: translateX(-2px) rotate(-3deg); }
+  40%, 60% { transform: translateX(2px) rotate(3deg); }
+}
+
+@keyframes lidFlap {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-35deg) translateY(-2px); }
+  50% { transform: rotate(-10deg) translateY(-1px); }
+  75% { transform: rotate(-25deg) translateY(-1.5px); }
+}
+
+#trash-lid {
+  transform-origin: 2px 5px;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.clear-history-btn.animating {
+  color: #ff5252 !important;
+  transform: scale(1.1) !important;
+  animation: none; /* Stop hover wiggle while animating */
+}
+
+.clear-history-btn.animating #trash-lid {
+  transform: rotate(-45deg) translateY(-3px);
+}
+
+/* History items swallowing animation */
+.history-item.swallowing {
+  animation: swallowToBin 0.6s cubic-bezier(0.45, 0, 0.55, 1) forwards !important;
+  pointer-events: none;
+}
+
+@keyframes swallowToBin {
+  0% { transform: scale(1) translate(0, 0) rotate(0); opacity: 1; filter: blur(0); }
+  40% { transform: scale(0.7) translate(40px, -20px) rotate(10deg); opacity: 0.8; filter: blur(1px); }
+  100% { transform: scale(0) translate(120px, -80px) rotate(25deg); opacity: 0; filter: blur(4px); }
+}
+
+.history-list {
+  list-style: none;
+  padding: 8px 0 0 0; /* Provides the gap from header and room for hover uplift */
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideIn 0.3s ease-out;
+  cursor: pointer;
+}
+
+.history-item:hover,
+.history-item.pseudo-hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-10px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.history-item-title {
+  font-size: 14px;
+  color: #fff;
+  margin-bottom: 4px;
+  opacity: 0.9;
+}
+
+.history-item-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.delete-history-item {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  transition: all 0.2s;
+}
+
+.delete-history-item:hover,
+.delete-history-item.pseudo-hover {
+  color: #ff5252;
+  transform: scale(1.1);
+}
+
+.history-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  height: 100%; /* Take up the full history area height */
+}
+
+/* Completion Animation */
+@keyframes taskToHistory {
+  0% { transform: scale(1); opacity: 1; }
+  30% { transform: scale(1.02); opacity: 0.8; }
+  100% { 
+    transform: translate(120px, -150px) scale(0.1) rotate(10deg); 
+    opacity: 0; 
+  }
+}
+
+.task-completing {
+  animation: taskToHistory 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  pointer-events: none;
+  z-index: 100;
+}
+

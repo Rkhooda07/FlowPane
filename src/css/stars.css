@@ -1,0 +1,128 @@
+.navbar-stars-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1; /* Behind text/controls but in front of background */
+  background: linear-gradient(to bottom, rgba(25, 25, 45, 0.08) 0%, rgba(15, 15, 30, 0.12) 100%);
+  border-radius: var(--border-radius);
+  clip-path: inset(0 round var(--border-radius));
+  transform: translateZ(0);
+  transition: opacity 0.5s ease, visibility 0.5s ease, border-radius 0.5s;
+}
+
+#app.notes-active .navbar-stars-container {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@media (prefers-color-scheme: light) {
+  .navbar-stars-container {
+    background: linear-gradient(to bottom, rgba(245, 247, 250, 0.05) 0%, rgba(235, 238, 242, 0.08) 100%);
+  }
+}
+
+/* Tiny static/twinkling background stars to look like a realistic sky */
+.navbar-stars-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--border-radius);
+  clip-path: inset(0 round var(--border-radius));
+  background-image: 
+    radial-gradient(1px 1px at 15% 30%, rgba(255, 255, 255, 0.8), rgba(255,255,255,0)),
+    radial-gradient(1.2px 1.2px at 45% 70%, rgba(255, 255, 255, 0.95), rgba(255,255,255,0)),
+    radial-gradient(1px 1px at 75% 25%, rgba(255, 255, 255, 0.75), rgba(255,255,255,0)),
+    radial-gradient(1px 1px at 30% 60%, rgba(255, 255, 255, 0.6), rgba(255,255,255,0)),
+    radial-gradient(1.2px 1.2px at 60% 40%, rgba(255, 255, 255, 0.85), rgba(255,255,255,0)),
+    radial-gradient(1px 1px at 90% 80%, rgba(255, 255, 255, 0.7), rgba(255,255,255,0));
+  opacity: 0.4;
+  pointer-events: none;
+  animation: pulse-sky 8s ease-in-out infinite alternate;
+}
+
+@media (prefers-color-scheme: light) {
+  .navbar-stars-container::before {
+    background-image: 
+      radial-gradient(1px 1px at 15% 30%, rgba(0, 90, 200, 0.4), rgba(0,90,200,0)),
+      radial-gradient(1.2px 1.2px at 45% 70%, rgba(0, 90, 200, 0.55), rgba(0,90,200,0)),
+      radial-gradient(1px 1px at 75% 25%, rgba(0, 90, 200, 0.35), rgba(0,90,200,0)),
+      radial-gradient(1px 1px at 30% 60%, rgba(0, 90, 200, 0.2), rgba(0,90,200,0)),
+      radial-gradient(1.2px 1.2px at 60% 40%, rgba(0, 90, 200, 0.45), rgba(0,90,200,0)),
+      radial-gradient(1px 1px at 90% 80%, rgba(0, 90, 200, 0.3), rgba(0,90,200,0));
+  }
+}
+
+@keyframes pulse-sky {
+  0% { opacity: 0.25; }
+  100% { opacity: 0.55; }
+}
+
+/* Ensure title remains elevated above stars while fully maintaining its absolute positioning */
+.title-bar h1 {
+  z-index: 10 !important;
+}
+
+.star {
+  position: absolute;
+  height: 1.2px;
+  background: linear-gradient(90deg, var(--star-color-fade) 0%, var(--star-color) 70%, var(--star-color) 100%);
+  filter: drop-shadow(0 0 5px var(--star-glow));
+  opacity: 0;
+  will-change: transform, opacity;
+  transform-origin: left center;
+}
+
+/* 12 Staggered Stars distributed across the full window height and width */
+.star-1 { top: -20px; left: 5%; width: 100px; animation: shoot-diag-a 8s linear infinite; animation-delay: 0.5s; }
+.star-2 { top: 40px; left: 35%; width: 120px; animation: shoot-diag-b 11s linear infinite; animation-delay: 2s; }
+.star-3 { top: 100px; left: -10%; width: 90px; animation: shoot-diag-a 9s linear infinite; animation-delay: 4s; }
+.star-4 { top: 160px; left: 60%; width: 130px; animation: shoot-diag-b 12s linear infinite; animation-delay: 6s; }
+.star-5 { top: 220px; left: 15%; width: 100px; animation: shoot-diag-a 7s linear infinite; animation-delay: 1s; }
+.star-6 { top: 280px; left: 80%; width: 110px; animation: shoot-diag-b 10s linear infinite; animation-delay: 3.5s; }
+.star-7 { top: -50px; left: 25%; width: 115px; animation: shoot-diag-a 11.5s linear infinite; animation-delay: 5s; }
+.star-8 { top: 120px; left: 50%; width: 95px; animation: shoot-diag-b 8.5s linear infinite; animation-delay: 7.5s; }
+
+/* Animations that translate precisely along their own rotated angle (down and to the right) */
+@keyframes shoot-diag-a {
+  0% {
+    transform: rotate(35deg) translate3d(-150px, 0, 0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.75;
+  }
+  35% {
+    opacity: 0.75;
+  }
+  45% {
+    transform: rotate(35deg) translate3d(650px, 0, 0);
+    opacity: 0;
+  }
+  100% {
+    transform: rotate(35deg) translate3d(650px, 0, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes shoot-diag-b {
+  0% {
+    transform: rotate(30deg) translate3d(-180px, 0, 0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.8;
+  }
+  38% {
+    opacity: 0.8;
+  }
+  48% {
+    transform: rotate(30deg) translate3d(750px, 0, 0);
+    opacity: 0;
+  }
+  100% {
+    transform: rotate(30deg) translate3d(750px, 0, 0);
+    opacity: 0;
+  }
+}
+

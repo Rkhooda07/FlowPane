@@ -1,0 +1,130 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  outline: none !important;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent !important;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+html:has(.bubble-active), 
+body:has(.bubble-active) {
+  overflow: visible !important;
+}
+
+body {
+  font-family: var(--font-family);
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+}
+
+#app {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-color);
+  backdrop-filter: blur(32px) saturate(200%) brightness(var(--glass-brightness, 1));
+  -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(var(--glass-brightness, 1));
+  border-radius: var(--border-radius);
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  overflow: hidden;
+  isolation: isolate;
+  clip-path: inset(0 round var(--border-radius));
+  transform: translateZ(0); /* Force compositor layer */
+  -webkit-mask-image: -webkit-radial-gradient(white, black); /* Ancient WebKit clipping hack */
+
+  &.bubble-active {
+    overflow: visible !important;
+    clip-path: none !important;
+    -webkit-mask-image: none !important;
+  }
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              border-radius 0.5s,
+              background 0.6s,
+              box-shadow 0.6s,
+              border 0.6s,
+              filter 0.6s;
+  animation: appAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-background-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: transparent;
+  border-radius: var(--border-radius);
+  clip-path: inset(0 round var(--border-radius));
+  overflow: hidden;
+  transform: translateZ(0);
+  pointer-events: none;
+}
+
+#app > :not(.app-background-layer) {
+  z-index: 2;
+}
+
+
+#app:not(.focused):not(.collapsed-x):not(.collapsed-y):not(.focus-mode-active) {
+  opacity: 0.4;
+  filter: saturate(0.6) grayscale(0.3) brightness(0.8); /* Stronger dimming effect when working on other apps */
+}
+
+#app.focus-mode-active:not(.focused):not(.collapsed-x):not(.collapsed-y) {
+  opacity: 0.75; /* Much clearer for timer visibility while backgrounded */
+  filter: saturate(0.85) brightness(0.92); /* Subtle dimming, mostly opaque */
+}
+
+/* Hide home page content when in focus mode to keep background clean for stars */
+#app.focus-mode-active > .input-area,
+#app.history-active > .input-area,
+#app.focus-mode-active > .task-container,
+#app.focus-mode-active > .title-bar:not(.focus-header-bar) {
+  opacity: 0 !important;
+  pointer-events: none;
+  visibility: hidden !important;
+  transition: none !important;
+}
+
+#app.focused:not(.collapsed-x):not(.collapsed-y) {
+  opacity: 1;
+  filter: none; /* Make hover state identical to focused state for visual consistency */
+}
+
+/* Ensure collapsed states are always fully visible regardless of focus */
+#app.collapsed-x, #app.collapsed-y {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Brightness tweak for visibility protection */
+@media (prefers-color-scheme: dark) {
+  #app { --glass-brightness: 0.85; }
+}
+@media (prefers-color-scheme: light) {
+  #app { --glass-brightness: 1.1; }
+}
+
+@keyframes appAppear {
+  from { opacity: 0; transform: scale(0.98) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}

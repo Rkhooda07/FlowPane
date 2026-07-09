@@ -1,0 +1,15 @@
+/* Resize Handles */
+.resize-handle {
+  position: absolute;
+  z-index: 1000;
+  background: transparent !important;
+}
+
+.resize-handle.n { top: 0; left: 0; right: 0; height: 5px; cursor: n-resize; }
+.resize-handle.s { bottom: 0; left: 0; right: 0; height: 5px; cursor: s-resize; }
+.resize-handle.e { top: 0; right: 0; bottom: 0; width: 5px; cursor: e-resize; }
+.resize-handle.w { top: 0; left: 0; bottom: 0; width: 5px; cursor: w-resize; }
+.resize-handle.nw { top: 0; left: 0; width: 10px; height: 10px; cursor: nw-resize; }
+.resize-handle.ne { top: 0; right: 0; width: 10px; height: 10px; cursor: ne-resize; }
+.resize-handle.sw { bottom: 0; left: 0; width: 10px; height: 10px; cursor: sw-resize; }
+.resize-handle.se { bottom: 0; right: 0; width: 10px; height: 10px; cursor: se-resize; }
