@@ -9,7 +9,6 @@ taskCreateTone.preload = 'auto';
 
 export const taskActivationTone = new Audio('assets/task_activation.mp3');
 taskActivationTone.preload = 'auto';
-taskActivationTone.volume = 1.0; // Ensure full volume
 
 export const taskDeleteTone = new Audio('assets/task_delete_tone.mp3');
 taskDeleteTone.preload = 'auto';

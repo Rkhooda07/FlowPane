@@ -1,6 +1,6 @@
-import { DUE_BLOCKS, quotes, congratsMessages, ALL_WINDOWS_SIZE, PEEK_SIZE_Y, PEEK_SIZE_X, COLLAPSED_SIZE_Y, COLLAPSED_REMINDER_SIZE_Y, COLLAPSED_SIZE_X, COLLAPSED_SIZE_Y_BUBBLE, COLLAPSED_SIZE_X_BUBBLE, HOVER_PEEK_DELAY_MS, HOVER_PEEK_RETRY_MS, SIDE_NOTIFICATION_BUBBLE_DURATION_MS, BOTTOM_DOCK_MINIMIZE_THRESHOLD, MANUAL_DRAG_EXPAND_DURATION_MS, NATIVE_EDGE_SNAP_THRESHOLD, NATIVE_SIDE_SNAP_MIN_WIDTH_RATIO, NATIVE_TOP_SNAP_MIN_WIDTH_RATIO, NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO, DRAG_GESTURE_IDLE_END_MS, SNAP_THRESHOLD } from './constants.js';
-import { clamp, parseMaskedDate, formatDateTimeHuman, normalizeDueInputValue, normalizeDueBlockValue, getDueBlockFromSelection, setDueBlockValue, formatDueBlockForEditing, capitalizeFirstLetter, tokenizeBubbleHTML, renderBubbleTokens } from './utils.js';
-import { reminderTone, collapseExpandTone, taskCreateTone, taskActivationTone, taskDeleteTone, fallbackDeleteTone, timesUpTone, playReminderTone, playCollapseExpandSound, playTaskCreateSound, playTaskActivationSound, playTaskDeleteSound, playFallbackDeleteSound, playTimesUpSound, playVictorySound } from './audio.js';
+import { DUE_BLOCKS, quotes, congratsMessages, ALL_WINDOWS_SIZE, PEEK_SIZE_Y, PEEK_SIZE_X, COLLAPSED_SIZE_Y, COLLAPSED_REMINDER_SIZE_Y, COLLAPSED_SIZE_X, COLLAPSED_SIZE_Y_BUBBLE, COLLAPSED_SIZE_X_BUBBLE, HOVER_PEEK_DELAY_MS, HOVER_PEEK_RETRY_MS, SIDE_NOTIFICATION_BUBBLE_DURATION_MS, MANUAL_DRAG_EXPAND_DURATION_MS, NATIVE_EDGE_SNAP_THRESHOLD, NATIVE_SIDE_SNAP_MIN_WIDTH_RATIO, NATIVE_TOP_SNAP_MIN_WIDTH_RATIO, NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO, DRAG_GESTURE_IDLE_END_MS, SNAP_THRESHOLD } from './constants.js';
+import { parseMaskedDate, formatDateTimeHuman, normalizeDueInputValue, normalizeDueBlockValue, getDueBlockFromSelection, setDueBlockValue, formatDueBlockForEditing, capitalizeFirstLetter, tokenizeBubbleHTML, renderBubbleTokens } from './utils.js';
+import { playReminderTone, playCollapseExpandSound, playTaskCreateSound, playTaskActivationSound, playTaskDeleteSound, playFallbackDeleteSound, playTimesUpSound, playVictorySound } from './audio.js';
 
 const { getCurrentWindow, currentMonitor, LogicalSize } = window.__TAURI__.window;
 
@@ -105,7 +105,6 @@ function updateReminderBtnState() {
 
 
 const appElement = document.getElementById('app');
-let isWindowFocused = false;
 let isMouseInside = false;
 let isActiveWindow = false;
 let hoveredWindowLabel = '';
@@ -122,7 +121,6 @@ function updateFocusState() {
 }
 
 appWindow.onFocusChanged(({ payload: focused }) => {
-  isWindowFocused = focused;
   if (!focused) {
     isActiveWindow = false;
   }
@@ -146,7 +144,6 @@ appWindow.listen('app-window-hover-changed', ({ payload: hoverLabel }) => {
 });
 
 appElement.addEventListener('pointerdown', () => {
-  isWindowFocused = true;
   isActiveWindow = true;
   updateFocusState();
   window.__TAURI__.core.invoke('mark_app_window_active').catch(error => {
@@ -156,7 +153,6 @@ appElement.addEventListener('pointerdown', () => {
 
 // Initial check
 appWindow.isFocused().then(focused => {
-  isWindowFocused = focused;
   updateFocusState();
 });
 
@@ -532,11 +528,7 @@ async function toggleCollapseY(isManualDrag = false) {
         if (monitor) {
           const currentPos = await appWindow.outerPosition();
           const currentSize = await appWindow.outerSize();
-          const { height: scrH } = monitor.size;
           const { y: offsetY } = monitor.position;
-          const scaleFactor = monitor.scaleFactor;
-
-          const collapsedPhysicalHeight = COLLAPSED_SIZE_Y.height * scaleFactor;
 
           // Calculate distances to top edge from current position
           const newY = offsetY;
@@ -594,12 +586,9 @@ async function toggleCollapseY(isManualDrag = false) {
         if (monitor) {
           const currentPos = await appWindow.outerPosition();
           const currentSize = await appWindow.outerSize();
-          const { height: scrH } = monitor.size;
           const { y: offsetY } = monitor.position;
-          const scale = monitor.scaleFactor;
-          
+
           const targetSize = isPeeking ? PEEK_SIZE_Y : ALL_WINDOWS_SIZE;
-          const expandedPhysicalH = targetSize.height * scale;
 
           // Growing DOWNWARDS from top
           let endY = offsetY;
@@ -786,12 +775,6 @@ async function toggleCollapseX(isManualDrag = false) {
     isAnimating = false;
   }
 }
-
-// Double click defaults moved to dragging behavior
-// (Removed dblclick fold)
-
-
-// No manual drag listener needed when using data-tauri-drag-region
 
 
 // Task functions
@@ -2275,145 +2258,6 @@ Object.entries(dirMap).forEach(([dir, tauriDir]) => {
 // Update countdowns every minute
 setInterval(renderTasks, 60000);
 
-// Edge Snapping Logic
-let moveTimeout;
-
-async function snapToEdges() {
-  if (isAnimating || isDockMinimizing) return;
-
-  const monitor = await currentMonitor();
-  if (!monitor) return;
-
-  const { x: winX, y: winY } = await appWindow.outerPosition();
-  const { width: winW, height: winH } = await appWindow.outerSize();
-  const { full } = getMonitorBounds(monitor);
-  const { x: offsetX, y: offsetY, width: scrW } = full;
-
-  const isCollapsedY = appElement.classList.contains('collapsed-y');
-  const isCollapsedX = appElement.classList.contains('collapsed-x');
-
-  // 3. Regular Snapping (if not collapsing)
-  let newX = winX;
-  let newY = winY;
-
-  if (Math.abs(winX - offsetX) < SNAP_THRESHOLD) newX = offsetX;
-  else if (Math.abs(winX + winW - (offsetX + scrW)) < SNAP_THRESHOLD) newX = offsetX + scrW - winW;
-
-  if (Math.abs(winY - offsetY) < SNAP_THRESHOLD) newY = offsetY;
-
-  if (newX !== winX || newY !== winY) {
-    await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(newX, newY));
-  }
-}
-
-// updateControlIcons removed as fold buttons are gone
-
-
-// Listen for move events to trigger snapping and icon updates
-async function clampToScreen() {
-  if (isAnimating || isDockMinimizing) return;
-  const monitor = await currentMonitor();
-  if (!monitor) return;
-
-  const { x: winX, y: winY } = await appWindow.outerPosition();
-  const { width: winW, height: winH } = await appWindow.outerSize();
-  const { full } = getMonitorBounds(monitor);
-  const { x: offsetX, y: offsetY, width: scrW } = full;
-
-  let newX = winX;
-  let newY = winY;
-
-  // Clamp Y (The "Wall" effect)
-  if (winY < offsetY) newY = offsetY;
-
-  // Clamp X
-  if (winX < offsetX) newX = offsetX;
-  else if (winX + winW > offsetX + scrW) newX = offsetX + scrW - winW;
-
-  if (newX !== winX || newY !== winY) {
-    await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(newX, newY));
-  }
-}
-
-async function checkInstantCollapse() {
-  if (isAnimating || isDockMinimizing) {
-    clearTimeout(collapseTimer);
-    return;
-  }
-  if (Date.now() - lastExpandTime < 800) {
-    clearTimeout(collapseTimer);
-    return; // Prevent flip-flop right after expansion
-  }
-  const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
-  if (isCollapsed) {
-    clearTimeout(collapseTimer);
-    return;
-  }
-
-  const monitor = await currentMonitor();
-  if (!monitor) {
-    clearTimeout(collapseTimer);
-    return;
-  }
-
-  const { x: winX, y: winY } = await appWindow.outerPosition();
-  const { width: winW, height: winH } = await appWindow.outerSize();
-  const { width: scrW, height: scrH } = monitor.size;
-  const { x: offsetX, y: offsetY } = monitor.position;
-
-  // Optimized trigger for instant "genie" capture
-  const TRIGGER_TOP_SIDES = 6; // Reduced from 8 to prevent accidental triggers
-
-  const dTop = Math.abs(winY - offsetY);
-  const dLeft = Math.abs(winX - offsetX);
-  const dRight = Math.abs((offsetX + scrW) - (winX + winW));
-
-  if (isNativeEdgeSnapActive(monitor, { x: winX, y: winY }, { width: winW, height: winH })) {
-    clearTimeout(collapseTimer);
-    return;
-  }
-
-  if (dTop < TRIGGER_TOP_SIDES) {
-    clearTimeout(collapseTimer);
-    collapseTimer = setTimeout(() => {
-      toggleCollapseY();
-    }, 150);
-  } else if (dLeft < TRIGGER_TOP_SIDES || dRight < TRIGGER_TOP_SIDES) {
-    clearTimeout(collapseTimer);
-    collapseTimer = setTimeout(() => {
-      toggleCollapseX();
-    }, 150);
-  } else {
-    clearTimeout(collapseTimer);
-  }
-}
-
-async function checkInstantExpand() {
-  if (isAnimating || isDockMinimizing) return;
-  const isCollapsedY = appElement.classList.contains('collapsed-y');
-  const isCollapsedX = appElement.classList.contains('collapsed-x');
-  if (!isCollapsedY && !isCollapsedX) return;
-
-  const monitor = await currentMonitor();
-  if (!monitor) return;
-
-  const { x: winX, y: winY } = await appWindow.outerPosition();
-  const { width: winW, height: winH } = await appWindow.outerSize();
-  const { width: scrW, height: scrH } = monitor.size;
-  const { x: offsetX, y: offsetY } = monitor.position;
-
-  const EXPAND_THRESHOLD = 30; // Increased from 12 to provide stable "buffer" and prevent flickering
-  const dTop = Math.abs(winY - offsetY);
-  const dLeft = Math.abs(winX - offsetX);
-  const dRight = Math.abs((offsetX + scrW) - (winX + winW));
-
-  if (isCollapsedY && dTop > EXPAND_THRESHOLD) {
-    toggleCollapseY(true); // true = isManualDrag
-  } else if (isCollapsedX && dLeft > EXPAND_THRESHOLD && dRight > EXPAND_THRESHOLD) {
-    toggleCollapseX(true); // true = isManualDrag
-  }
-}
-
 let isMovedProcessing = false;
 let moveProcessingPending = false;
 let moveProcessingLastPos = null;
@@ -2746,8 +2590,6 @@ function toggleTimer() {
   }
 }
 
-let sessionOriginalDuration = 0;
-
 function showTimesUpModal() {
   playTimesUpSound();
   // PERF: timesUpModalEl/collapsedTimesUpPopupEl/collapsedTimesUpTitleEl cached at module level
@@ -2930,7 +2772,6 @@ function startCountdown() {
   if (mins && mins > 0) {
     stopTimer();
     focusSeconds = mins * 60;
-    sessionOriginalDuration = focusSeconds;
     isCountdown = true;
     updateTimerDisplay();
     closeTimerModal();
@@ -2952,7 +2793,6 @@ timerInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') startCountdown();
 });
 
-// Fold buttons removed from Focus mode
 
 
 function renderHistory(completedTasks) {
@@ -3111,8 +2951,6 @@ document.getElementById('clear-history-btn').addEventListener('click', async (e)
     }, Math.max(600, totalDuration));
   }
 });
-
-// Redundant main-home-link listener removed; it is now handled by homeNavLinks.forEach
 
 // Update focus mode complete to handle animation/delay if needed
 document.getElementById('focus-nav-complete-btn').addEventListener('click', async () => {
@@ -3351,10 +3189,6 @@ async function hideEyeMessageOverlay() {
   } catch (e) {
     console.error('Failed to hide eye message overlay:', e);
   }
-}
-
-async function showRightEyeMessageOverlay() {
-  return showRightBubbleMessage('i got my<br>eyes on you', 3000);
 }
 
 async function showRightBubbleMessage(fullHTML, durationMs = 3000) {
@@ -3623,8 +3457,6 @@ async function showEyeMessage() {
   if (isNotificationActive) return;
   await showCollapsedBubbleMessage('i got my<br>eyes on you', 3000);
 }
-
-// PERF: removed non-critical console.log
 
 // Production Release UX Polish
 (function() {
@@ -4119,7 +3951,6 @@ async function showEyeMessage() {
             hasSeen = localStorage.getItem('hasSeenOnboarding') === 'true';
           }
           if (!hasSeen) {
-            console.log('First launch detected. Showing onboarding...');
             startOnboardingTour();
           }
         } catch (e) {

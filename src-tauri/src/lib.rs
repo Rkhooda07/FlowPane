@@ -188,11 +188,6 @@ fn offset_window_position(source_window: &WebviewWindow) -> PhysicalPosition<i32
 }
 
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
-#[tauri::command]
 fn get_cursor_position(app: tauri::AppHandle) -> Result<(f64, f64), String> {
     match app.cursor_position() {
         Ok(pos) => Ok((pos.x, pos.y)),
@@ -384,7 +379,6 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            greet,
             get_cursor_position,
             show_eye_bubble_overlay,
             hide_eye_bubble_overlay,
