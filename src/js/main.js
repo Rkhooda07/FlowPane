@@ -7,6 +7,12 @@ const { getCurrentWindow, currentMonitor, LogicalSize } = window.__TAURI__.windo
 const appWindow = getCurrentWindow();
 const appWindowLabel = appWindow.label;
 const APP_WINDOW_SHORTCUT_COOLDOWN_MS = 700;
+const EDGE_PROXIMITY_PX = 25;
+const MIN_EXPAND_LOCK_MS = 800;
+const REMINDER_POPUP_AUTO_CLOSE_MS = 300_000;
+const BUBBLE_TYPEWRITER_TICK_MS = 30;
+const DOCK_SAFETY_GAP_PX = 20;
+const EYE_PUPIL_MAX_BOUND = 4.0;
 let isCreatingAppWindow = false;
 
 async function createAppWindowFromShortcut(event) {
@@ -54,9 +60,7 @@ let collapseModeAfterCongrats = null; // Stores 'x' or 'y' to know where to coll
 let lastNormalPosition = null;
 let isAnimating = false;
 let lastExpandTime = 0;
-let isPeeking = false;
-let peekTimeout = null;
-let peekMode = null;
+const peek = { active: false, timeout: null, mode: null };
 let isNotificationActive = false; // Track if ANY notification is currently active
 
 function showSideNotification() {
@@ -73,11 +77,7 @@ function clearSideNotification() {
   isNotificationActive = false;
   appElement.classList.remove('side-notification-active');
 }
-let eyeMessageScheduleTimer = null;
-let eyeMessageRevealTimer = null;
-let eyeMessageDismissTimer = null;
-let eyeMessageDismissFadeTimer = null;
-let eyeMessageTypeTimer = null;
+const eyeTimers = { schedule: null, reveal: null, dismiss: null, dismissFade: null, type: null };
 let isHistoryOpen = false;
 let hasUserModifiedDate = false;
 let selectedReminderMinutes = null;
@@ -86,18 +86,16 @@ let collapseTimer = null;
 
 function updateReminderBtnState() {
   if (!taskReminderBtn) return;
-  // taskDueDateBtn is declared later at module level — use getElementById as fallback for early calls
-  const calBtn = (typeof taskDueDateBtn !== 'undefined' && taskDueDateBtn) || document.getElementById('task-due-date-btn');
   if (hasUserModifiedDate) {
     taskReminderBtn.title = "Add reminder";
     taskReminderBtn.style.opacity = "1";
     taskReminderBtn.style.cursor = "pointer";
-    if (calBtn) calBtn.classList.add('has-due');
+    if (taskDueDateBtn) taskDueDateBtn.classList.add('has-due');
   } else {
     taskReminderBtn.title = "Set a deadline first";
     taskReminderBtn.style.opacity = "0.5";
     taskReminderBtn.style.cursor = "default";
-    if (calBtn) calBtn.classList.remove('has-due');
+    if (taskDueDateBtn) taskDueDateBtn.classList.remove('has-due');
   }
 }
 
@@ -105,6 +103,10 @@ function updateReminderBtnState() {
 
 
 const appElement = document.getElementById('app');
+
+function showEl(el) { el.classList.remove('hidden'); el.setAttribute('aria-hidden', 'false'); }
+function hideEl(el) { el.classList.add('hidden'); el.setAttribute('aria-hidden', 'true'); }
+
 let isMouseInside = false;
 let isActiveWindow = false;
 let hoveredWindowLabel = '';
@@ -157,15 +159,11 @@ appWindow.isFocused().then(focused => {
 });
 
 
-let isWindowDragGesture = false;
-let isDockMinimizing = false;
-let windowDragGestureExpiresAt = 0;
-let isRestoringFromDock = false;
-let dragGestureIdleTimer = null;
+const drag = { isGesture: false, isDockMinimizing: false, gestureExpiresAt: 0, isRestoringFromDock: false, idleTimer: null, startMonitor: null, startSize: null };
 
 // Listen for window becoming visible or focused to handle "safe" restoration
 appWindow.onFocusChanged(async ({ payload: focused }) => {
-  if (focused && !isDockMinimizing && !isAnimating) {
+  if (focused && !drag.isDockMinimizing && !isAnimating) {
     // If the window was just restored, move it to a safe position if it's too close to the bottom
     const monitor = await currentMonitor();
     if (!monitor) return;
@@ -178,13 +176,13 @@ appWindow.onFocusChanged(async ({ payload: focused }) => {
 
     // If resting on the bottom edge (common after restoration), move it up slightly
     if (windowBottom >= workBottom - 2) {
-      isRestoringFromDock = true;
-      const safeY = workBottom - winSize.height - 20; // 20px "safety" gap above dock
+      drag.isRestoringFromDock = true;
+      const safeY = workBottom - winSize.height - DOCK_SAFETY_GAP_PX;
       await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(winPos.x, Math.round(safeY)));
       
       // Briefly ignore move events to avoid immediate re-minimization
       setTimeout(() => {
-        isRestoringFromDock = false;
+        drag.isRestoringFromDock = false;
       }, 500);
     }
   }
@@ -212,45 +210,42 @@ function getMonitorBounds(monitor) {
   };
 }
 
-let dragStartMonitor = null;
-let dragStartSize = null;
-
 async function beginWindowDragGesture() {
-  isWindowDragGesture = true;
-  windowDragGestureExpiresAt = Date.now() + DRAG_GESTURE_IDLE_END_MS;
-  if (dragGestureIdleTimer != null) {
-    clearTimeout(dragGestureIdleTimer);
-    dragGestureIdleTimer = null;
+  drag.isGesture = true;
+  drag.gestureExpiresAt = Date.now() + DRAG_GESTURE_IDLE_END_MS;
+  if (drag.idleTimer != null) {
+    clearTimeout(drag.idleTimer);
+    drag.idleTimer = null;
   }
   void suppressEyeMessageBubble();
   
   try {
-    dragStartMonitor = await currentMonitor();
-    dragStartSize = await appWindow.outerSize();
+    drag.startMonitor = await currentMonitor();
+    drag.startSize = await appWindow.outerSize();
   } catch (e) {
     console.error('Failed to cache drag state:', e);
   }
 }
 
 function endWindowDragGesture() {
-  if (dragGestureIdleTimer != null) {
-    clearTimeout(dragGestureIdleTimer);
-    dragGestureIdleTimer = null;
+  if (drag.idleTimer != null) {
+    clearTimeout(drag.idleTimer);
+    drag.idleTimer = null;
   }
-  isWindowDragGesture = false;
-  windowDragGestureExpiresAt = 0;
-  dragStartMonitor = null;
-  dragStartSize = null;
+  drag.isGesture = false;
+  drag.gestureExpiresAt = 0;
+  drag.startMonitor = null;
+  drag.startSize = null;
 }
 
 function refreshWindowDragGesture() {
-  if (!isWindowDragGesture) return;
-  windowDragGestureExpiresAt = Date.now() + DRAG_GESTURE_IDLE_END_MS;
-  if (dragGestureIdleTimer != null) {
-    clearTimeout(dragGestureIdleTimer);
+  if (!drag.isGesture) return;
+  drag.gestureExpiresAt = Date.now() + DRAG_GESTURE_IDLE_END_MS;
+  if (drag.idleTimer != null) {
+    clearTimeout(drag.idleTimer);
   }
-  dragGestureIdleTimer = setTimeout(() => {
-    dragGestureIdleTimer = null;
+  drag.idleTimer = setTimeout(() => {
+    drag.idleTimer = null;
     endWindowDragGesture();
   }, DRAG_GESTURE_IDLE_END_MS);
 }
@@ -286,9 +281,9 @@ async function restoreExpandedStateFromNativeEdgeSnap() {
 
   playCollapseExpandSound();
 
-  isPeeking = false;
+  peek.active = false;
   appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
-  clearTimeout(peekTimeout);
+  clearTimeout(peek.timeout);
 
   clearEyeMessageAnimationTimers();
   await hideEyeMessageOverlay();
@@ -336,16 +331,16 @@ async function moveWindowIntoVisibleWorkArea(providedMonitor, providedPos, provi
 }
 
 async function minimizeIntoDockFromBottomEdge(providedMonitor, providedPos, providedSize) {
-  if (isDockMinimizing || isAnimating) return false;
+  if (drag.isDockMinimizing || isAnimating) return false;
   if (await appWindow.isMinimized()) return true;
 
-  isDockMinimizing = true;
+  drag.isDockMinimizing = true;
   endWindowDragGesture();
 
   try {
-    isPeeking = false;
+    peek.active = false;
     appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
-    clearTimeout(peekTimeout);
+    clearTimeout(peek.timeout);
 
     // Removed moveWindowIntoVisibleWorkArea to allow native macOS genie effect to trigger correctly
     // from the window's actual position towards the dock.
@@ -356,7 +351,7 @@ async function minimizeIntoDockFromBottomEdge(providedMonitor, providedPos, prov
     return false;
   } finally {
     setTimeout(() => {
-      isDockMinimizing = false;
+      drag.isDockMinimizing = false;
     }, 250);
   }
 }
@@ -488,6 +483,70 @@ async function animateWindowSize(startSize, endSize, duration = 350) {
   });
 }
 
+async function collapseToY(isCurrentlyCollapsed) {
+  appElement.classList.remove('collapsed-reminder-active');
+  try {
+    if (!isCurrentlyCollapsed) lastNormalPosition = await appWindow.outerPosition();
+  } catch (e) {
+    console.error('Failed to capture position:', e);
+  }
+
+  appElement.classList.remove('collapsed-x', 'collapsed-left', 'collapsed-right');
+  appElement.classList.add('collapsed-y');
+  updateNavbarTitle(getCurrentViewTitle());
+  if (isInFocusMode) showNavbarTimer();
+
+  try {
+    const monitor = await currentMonitor();
+    if (monitor) {
+      const currentPos = await appWindow.outerPosition();
+      const currentSize = await appWindow.outerSize();
+      const { y: offsetY } = monitor.position;
+      await animateWindowTransform(currentPos, { x: currentPos.x, y: offsetY }, currentSize, COLLAPSED_SIZE_Y, 500);
+      eyeTimers.schedule = setTimeout(() => { eyeTimers.schedule = null; showEyeMessage(); }, 600);
+    }
+  } catch (error) {
+    console.error('Failed to transform window vertically:', error);
+  }
+}
+
+async function expandFromY(isManualDrag) {
+  try {
+    await suppressEyeMessageBubble();
+    appElement.classList.remove('collapsed-y', 'collapsed-left', 'collapsed-right');
+    updateNavbarTitle(getCurrentViewTitle());
+    hideNavbarTimer();
+
+    if (isManualDrag) {
+      const monitor = await currentMonitor();
+      if (monitor) {
+        const currentPos = await appWindow.outerPosition();
+        const currentSize = await appWindow.outerSize();
+        let endY = offsetY;
+        if (lastNormalPosition && !peek.active) endY = lastNormalPosition.y;
+        await animateWindowTransform(currentPos, { x: currentPos.x, y: Math.round(endY) }, currentSize, ALL_WINDOWS_SIZE, 250);
+        lastExpandTime = Date.now();
+        return;
+      }
+    }
+
+    const monitor = await currentMonitor();
+    if (monitor) {
+      const currentPos = await appWindow.outerPosition();
+      const currentSize = await appWindow.outerSize();
+      const { y: offsetY } = monitor.position;
+      const targetSize = peek.active ? PEEK_SIZE_Y : ALL_WINDOWS_SIZE;
+      let endY = offsetY;
+      if (lastNormalPosition && !peek.active) endY = lastNormalPosition.y;
+      await animateWindowTransform(currentPos, { x: currentPos.x, y: Math.round(endY) }, currentSize, targetSize, 500);
+      lastExpandTime = Date.now();
+    }
+  } catch (error) {
+    await appWindow.setSize(ALL_WINDOWS_SIZE);
+    console.error('Failed to expand window vertically:', error);
+  }
+}
+
 async function toggleCollapseY(isManualDrag = false) {
   if (isAnimating) return;
   playCollapseExpandSound();
@@ -495,125 +554,103 @@ async function toggleCollapseY(isManualDrag = false) {
   try {
     const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
     const isCollapsing = !appElement.classList.contains('collapsed-y');
-
-    if (isManualDrag) {
-      isPeeking = false;
-      appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
-    }
-
-    if (isCollapsing) {
-      // COLLAPSE FLOW
-      appElement.classList.remove('collapsed-reminder-active');
-
-      try {
-        if (!isCurrentlyCollapsed) {
-          lastNormalPosition = await appWindow.outerPosition();
-        }
-      } catch (e) {
-        console.error('Failed to capture position:', e);
-      }
-
-      appElement.classList.remove('collapsed-x', 'collapsed-left', 'collapsed-right');
-      appElement.classList.add('collapsed-y');
-
-      // Update UI immediately (fade out content, show title)
-      updateNavbarTitle(getCurrentViewTitle());
-      if (isInFocusMode) {
-        showNavbarTimer();
-      }
-
-      // Start both animations immediately
-      try {
-        const monitor = await currentMonitor();
-        if (monitor) {
-          const currentPos = await appWindow.outerPosition();
-          const currentSize = await appWindow.outerSize();
-          const { y: offsetY } = monitor.position;
-
-          // Calculate distances to top edge from current position
-          const newY = offsetY;
-          const newX = currentPos.x;
-
-          // Animate both size and position simultaneously
-          await animateWindowTransform(
-            currentPos,
-            { x: newX, y: newY },
-            currentSize,
-            COLLAPSED_SIZE_Y,
-            500
-          );
-          
-          // Trigger the "I see you" bubble shortly after collapsing (only if still collapsed; cancelled on hover/drag/expand)
-          eyeMessageScheduleTimer = setTimeout(() => {
-            eyeMessageScheduleTimer = null;
-            showEyeMessage();
-          }, 600);
-        }
-      } catch (error) {
-        console.error('Failed to transform window vertically:', error);
-      }
-    } else {
-      // EXPAND FLOW
-      try {
-        await suppressEyeMessageBubble();
-        // 1. Reveal content immediately
-        appElement.classList.remove('collapsed-y', 'collapsed-left', 'collapsed-right');
-        updateNavbarTitle(getCurrentViewTitle());
-        hideNavbarTimer();
-
-        if (isManualDrag) {
-          const monitor = await currentMonitor();
-          if (monitor) {
-            const currentPos = await appWindow.outerPosition();
-            const currentSize = await appWindow.outerSize();
-            
-            // Growing DOWNWARDS from top
-            let endY = offsetY;
-            if (lastNormalPosition && !isPeeking) {
-              endY = lastNormalPosition.y;
-            }
-
-            const endPos = { x: currentPos.x, y: Math.round(endY) };
-
-            // Use a faster animation for manual drag (150ms) instead of a jump for seamless flow
-            await animateWindowTransform(currentPos, endPos, currentSize, ALL_WINDOWS_SIZE, 250);
-            lastExpandTime = Date.now();
-            return;
-          }
-        }
-
-        const monitor = await currentMonitor();
-        if (monitor) {
-          const currentPos = await appWindow.outerPosition();
-          const currentSize = await appWindow.outerSize();
-          const { y: offsetY } = monitor.position;
-
-          const targetSize = isPeeking ? PEEK_SIZE_Y : ALL_WINDOWS_SIZE;
-
-          // Growing DOWNWARDS from top
-          let endY = offsetY;
-          if (lastNormalPosition && !isPeeking) {
-            endY = lastNormalPosition.y;
-          }
-
-          const endPos = { x: currentPos.x, y: Math.round(endY) };
-
-          await animateWindowTransform(
-            currentPos,
-            endPos,
-            currentSize,
-            targetSize,
-            500
-          );
-          lastExpandTime = Date.now();
-        }
-      } catch (error) {
-        await appWindow.setSize(ALL_WINDOWS_SIZE);
-        console.error('Failed to expand window vertically:', error);
-      }
-    }
+    if (isManualDrag) { peek.active = false; appElement.classList.remove('peeking', 'peeking-y', 'peeking-x'); }
+    if (isCollapsing) await collapseToY(isCurrentlyCollapsed);
+    else await expandFromY(isManualDrag);
   } finally {
     isAnimating = false;
+  }
+}
+
+async function collapseToX(isCurrentlyCollapsed) {
+  try {
+    if (!isCurrentlyCollapsed) lastNormalPosition = await appWindow.outerPosition();
+  } catch (e) {
+    console.error('Failed to capture position:', e);
+  }
+
+  appElement.classList.remove('collapsed-y');
+  appElement.classList.add('collapsed-x');
+  updateNavbarTitle(getCurrentViewTitle());
+  if (isInFocusMode) showNavbarTimer();
+
+  try {
+    const monitor = await currentMonitor();
+    if (monitor) {
+      const currentPos = await appWindow.outerPosition();
+      const currentSize = await appWindow.outerSize();
+      const { width: scrW } = monitor.size;
+      const { x: offsetX } = monitor.position;
+      const collapsedPhysicalWidth = COLLAPSED_SIZE_X.width * monitor.scaleFactor;
+      const distLeft = Math.abs(currentPos.x - offsetX);
+      const distRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width));
+      const newX = (distLeft < distRight) ? offsetX : (offsetX + scrW - collapsedPhysicalWidth);
+
+      if (distLeft < distRight) {
+        appElement.classList.add('collapsed-left');
+        appElement.classList.remove('collapsed-right');
+      } else {
+        appElement.classList.add('collapsed-right');
+        appElement.classList.remove('collapsed-left');
+      }
+
+      await animateWindowTransform(currentPos, { x: newX, y: currentPos.y }, currentSize, COLLAPSED_SIZE_X, 500);
+      eyeTimers.schedule = setTimeout(() => { eyeTimers.schedule = null; showEyeMessage(); }, 600);
+      if (isNotificationActive) showSideNotification();
+    }
+  } catch (error) {
+    console.error('Failed to transform window to side:', error);
+  }
+}
+
+async function expandFromX(isManualDrag) {
+  try {
+    await suppressEyeMessageBubble();
+    appElement.classList.remove('collapsed-x', 'collapsed-left', 'collapsed-right');
+    updateNavbarTitle(getCurrentViewTitle());
+    hideNavbarTimer();
+
+    if (isManualDrag) {
+      try {
+        const monitor = await currentMonitor();
+        if (monitor) {
+          const currentPos = await appWindow.outerPosition();
+          const currentSize = await appWindow.outerSize();
+          const { width: scrW } = monitor.size;
+          const { x: offsetX } = monitor.position;
+          const expandedPhysicalW = ALL_WINDOWS_SIZE.width * monitor.scaleFactor;
+          const isNearRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width)) < EDGE_PROXIMITY_PX;
+          let endX = currentPos.x;
+          if (isNearRight) endX = (offsetX + scrW) - expandedPhysicalW;
+          else if (Math.abs(currentPos.x - offsetX) < EDGE_PROXIMITY_PX) endX = offsetX;
+          await animateWindowTransform(currentPos, { x: Math.round(endX), y: currentPos.y }, currentSize, ALL_WINDOWS_SIZE, 250);
+        }
+      } catch (e) {
+        await appWindow.setSize(ALL_WINDOWS_SIZE);
+      }
+      lastExpandTime = Date.now();
+      return;
+    }
+
+    const monitor = await currentMonitor();
+    if (monitor) {
+      const currentPos = await appWindow.outerPosition();
+      const currentSize = await appWindow.outerSize();
+      const { width: scrW } = monitor.size;
+      const { x: offsetX } = monitor.position;
+      const targetSize = peek.active ? PEEK_SIZE_X : ALL_WINDOWS_SIZE;
+      const expandedPhysicalW = targetSize.width * monitor.scaleFactor;
+      const isNearRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width)) < EDGE_PROXIMITY_PX;
+      let endX = currentPos.x;
+      if (isNearRight) endX = (offsetX + scrW) - expandedPhysicalW;
+      else if (Math.abs(currentPos.x - offsetX) < EDGE_PROXIMITY_PX) endX = offsetX;
+      else if (lastNormalPosition && !peek.active) endX = lastNormalPosition.x;
+      await animateWindowTransform(currentPos, { x: Math.round(endX), y: currentPos.y }, currentSize, targetSize, 500);
+      lastExpandTime = Date.now();
+    }
+  } catch (error) {
+    await appWindow.setSize(ALL_WINDOWS_SIZE);
+    console.error('Failed to expand window horizontally:', error);
   }
 }
 
@@ -624,153 +661,9 @@ async function toggleCollapseX(isManualDrag = false) {
   try {
     const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
     const isCollapsing = !appElement.classList.contains('collapsed-x');
-
-    if (isManualDrag) {
-      isPeeking = false;
-      appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
-    }
-
-    if (isCollapsing) {
-      // COLLAPSE FLOW
-      try {
-        if (!isCurrentlyCollapsed) {
-          lastNormalPosition = await appWindow.outerPosition();
-        }
-      } catch (e) {
-        console.error('Failed to capture position:', e);
-      }
-
-      appElement.classList.remove('collapsed-y');
-      appElement.classList.add('collapsed-x');
-
-      updateNavbarTitle(getCurrentViewTitle());
-      if (isInFocusMode) {
-        showNavbarTimer();
-      }
-
-      try {
-        const monitor = await currentMonitor();
-        if (monitor) {
-          const currentPos = await appWindow.outerPosition();
-          const currentSize = await appWindow.outerSize();
-          const { width: scrW } = monitor.size;
-          const { x: offsetX } = monitor.position;
-          const scaleFactor = monitor.scaleFactor;
-
-          const collapsedPhysicalWidth = COLLAPSED_SIZE_X.width * scaleFactor;
-          const distLeft = Math.abs(currentPos.x - offsetX);
-          const distRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width));
-
-          let newX = (distLeft < distRight) ? offsetX : (offsetX + scrW - collapsedPhysicalWidth);
-
-          // Track which side we are collapsed to for UI adjustments (like title orientation)
-          if (distLeft < distRight) {
-            appElement.classList.add('collapsed-left');
-            appElement.classList.remove('collapsed-right');
-          } else {
-            appElement.classList.add('collapsed-right');
-            appElement.classList.remove('collapsed-left');
-          }
-
-          // Animate both size and position simultaneously
-          await animateWindowTransform(
-            currentPos,
-            { x: newX, y: currentPos.y },
-            currentSize,
-            COLLAPSED_SIZE_X,
-            500
-          );
-
-          // Trigger the "I see you" bubble shortly after collapsing (only if still collapsed; cancelled on hover/drag/expand)
-          eyeMessageScheduleTimer = setTimeout(() => {
-            eyeMessageScheduleTimer = null;
-            showEyeMessage();
-          }, 600);
-
-          if (isNotificationActive) {
-            showSideNotification();
-          }
-        }
-      } catch (error) {
-        console.error('Failed to transform window to side:', error);
-      }
-    } else {
-      // EXPAND FLOW
-      try {
-        await suppressEyeMessageBubble();
-        appElement.classList.remove('collapsed-x', 'collapsed-left', 'collapsed-right');
-        updateNavbarTitle(getCurrentViewTitle());
-        hideNavbarTimer();
-
-        if (isManualDrag) {
-          try {
-            const monitor = await currentMonitor();
-            if (monitor) {
-              const currentPos = await appWindow.outerPosition();
-              const currentSize = await appWindow.outerSize();
-              const { width: scrW } = monitor.size;
-              const { x: offsetX } = monitor.position;
-              const scale = monitor.scaleFactor;
-              const expandedPhysicalW = ALL_WINDOWS_SIZE.width * scale;
-
-              // Smart position: if at right, grow LEFTWARDS; if at left, grow RIGHTWARDS
-              const isNearRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width)) < 25;
-              let endX = currentPos.x;
-              if (isNearRight) {
-                endX = (offsetX + scrW) - expandedPhysicalW;
-              } else if (Math.abs(currentPos.x - offsetX) < 25) {
-                endX = offsetX;
-              }
-
-              const endPos = { x: Math.round(endX), y: currentPos.y };
-              // Use a faster animation for manual drag (150ms) instead of a jump for seamless flow
-              await animateWindowTransform(currentPos, endPos, currentSize, ALL_WINDOWS_SIZE, 250);
-            }
-          } catch (e) {
-            await appWindow.setSize(ALL_WINDOWS_SIZE);
-          }
-          lastExpandTime = Date.now();
-          return;
-        }
-
-        const monitor = await currentMonitor();
-        if (monitor) {
-          const currentPos = await appWindow.outerPosition();
-          const currentSize = await appWindow.outerSize();
-          const { width: scrW } = monitor.size;
-          const { x: offsetX } = monitor.position;
-          const scale = monitor.scaleFactor;
-          
-          const targetSize = isPeeking ? PEEK_SIZE_X : ALL_WINDOWS_SIZE;
-          const expandedPhysicalW = targetSize.width * scale;
-
-          // Smart position: if at right, grow LEFTWARDS; if at left, grow RIGHTWARDS
-          let endX = currentPos.x;
-          const isNearRight = Math.abs((offsetX + scrW) - (currentPos.x + currentSize.width)) < 25;
-          if (isNearRight) {
-            endX = (offsetX + scrW) - expandedPhysicalW;
-          } else if (Math.abs(currentPos.x - offsetX) < 25) {
-            endX = offsetX;
-          } else if (lastNormalPosition && !isPeeking) {
-            endX = lastNormalPosition.x;
-          }
-
-          const endPos = { x: Math.round(endX), y: currentPos.y };
-
-          await animateWindowTransform(
-            currentPos,
-            endPos,
-            currentSize,
-            targetSize,
-            500
-          );
-          lastExpandTime = Date.now();
-        }
-      } catch (error) {
-        await appWindow.setSize(ALL_WINDOWS_SIZE);
-        console.error('Failed to expand window horizontally:', error);
-      }
-    }
+    if (isManualDrag) { peek.active = false; appElement.classList.remove('peeking', 'peeking-y', 'peeking-x'); }
+    if (isCollapsing) await collapseToX(isCurrentlyCollapsed);
+    else await expandFromX(isManualDrag);
   } finally {
     isAnimating = false;
   }
@@ -872,13 +765,11 @@ async function requestDeleteConfirmation(itemType) {
   deleteConfirmTitle.textContent = `Delete ${itemType}?`;
   deleteConfirmText.textContent = `Are you sure you want to remove this ${itemType}?`;
   deleteConfirmNeverAgain.checked = false;
-  deleteConfirmModal.classList.remove('hidden');
-  deleteConfirmModal.setAttribute('aria-hidden', 'false');
+  showEl(deleteConfirmModal);
 
   return new Promise(resolve => {
     const close = (confirmed) => {
-      deleteConfirmModal.classList.add('hidden');
-      deleteConfirmModal.setAttribute('aria-hidden', 'true');
+      hideEl(deleteConfirmModal);
       deleteConfirmCancel.removeEventListener('click', onCancel);
       deleteConfirmYes.removeEventListener('click', onConfirm);
       deleteConfirmModal.removeEventListener('click', onBackdrop);
@@ -919,25 +810,155 @@ async function requestDeleteConfirmation(itemType) {
   });
 }
 
+function buildTaskItem(task) {
+  const taskIndex = tasks.indexOf(task);
+  const li = document.createElement('li');
+  const hasDeadline = task.due !== null;
+  const dueDate = hasDeadline ? new Date(task.due) : null;
+  const now = new Date();
+  const isUrgent = !task.completed && hasDeadline && (dueDate - now < 10 * 60 * 1000);
+  li.className = `task-item ${isUrgent ? 'urgent' : ''}`;
+
+  let dueText = '';
+  if (task.completed) {
+    dueText = 'Completed';
+  } else if (!hasDeadline) {
+    dueText = '<span style="font-size: 1.4em; line-height: 1; margin-right: 2px;">∞</span> Plenty of time';
+  } else {
+    const diffMs = dueDate - now;
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHrs = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHrs / 24);
+    if (diffMs < 0) dueText = 'Overdue';
+    else if (diffDays > 0) dueText = `Due in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
+    else if (diffHrs > 0) dueText = `Due in ${diffHrs} hour${diffHrs > 1 ? 's' : ''}`;
+    else if (diffMins > 0) dueText = `Due in ${diffMins} min${diffMins > 1 ? 's' : ''}`;
+    else dueText = 'Due now';
+  }
+
+  li.innerHTML = `
+    <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} />
+    <div class="task-info">
+      <div class="task-title">${task.title}</div>
+      <div class="task-due">${dueText}</div>
+    </div>
+    <button class="delete-task-btn" title="Delete task">×</button>
+  `;
+
+  const stopBubbling = (e) => e.stopPropagation();
+  li.querySelector('.task-checkbox').addEventListener('click', stopBubbling);
+  li.querySelector('.task-checkbox').addEventListener('dblclick', stopBubbling);
+  li.querySelector('.delete-task-btn').addEventListener('dblclick', stopBubbling);
+
+  li.querySelector('.task-checkbox').addEventListener('change', async (e) => {
+    if (e.target.checked) {
+      li.classList.add('task-completing');
+      setTimeout(() => showCongrats(task.totalWorkTime || 0), 500);
+      setTimeout(async () => {
+        task.completed = true;
+        task.completedAt = Date.now();
+        await saveTasks();
+        renderTasks();
+        const historyBtn = document.getElementById('history-btn');
+        if (historyBtn) {
+          setTimeout(() => {
+            historyBtn.classList.add('history-uplift');
+            setTimeout(() => historyBtn.classList.remove('history-uplift'), 600);
+          }, 50);
+        }
+      }, 700);
+    }
+  });
+
+  li.querySelector('.delete-task-btn').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const shouldDelete = await requestDeleteConfirmation('task');
+    if (!shouldDelete) return;
+    tasks.splice(taskIndex, 1);
+    saveTasks();
+    renderTasks();
+  });
+
+  li.addEventListener('contextmenu', async (e) => {
+    e.preventDefault();
+    const shouldDelete = await requestDeleteConfirmation('task');
+    if (!shouldDelete) return;
+    tasks.splice(taskIndex, 1);
+    saveTasks();
+    renderTasks();
+  });
+
+  li.addEventListener('click', () => {
+    if (!task.completed) enterFocusMode(task);
+  });
+
+  return li;
+}
+
+function buildNoteItem(note, noteId) {
+  const li = document.createElement('li');
+  li.className = `task-item note-entry note-entry-${note.theme || 1}`;
+
+  const swatch = document.createElement('span');
+  swatch.className = 'note-entry-swatch';
+
+  const info = document.createElement('div');
+  info.className = 'task-info';
+
+  const title = document.createElement('div');
+  title.className = 'task-title note-entry-title';
+  title.textContent = (note.title.trim() || 'Untitled note').replace(/\s+/g, ' ').slice(0, 72);
+
+  const subtitle = document.createElement('div');
+  subtitle.className = 'task-due note-entry-subtitle';
+  const bodyPreview = (note.body || '').trim().split('\n')[0];
+  subtitle.textContent = bodyPreview || 'Click to start writing... ✍️';
+
+  const deleteNoteBtn = document.createElement('button');
+  deleteNoteBtn.className = 'delete-note-btn';
+  deleteNoteBtn.title = 'Delete note';
+  deleteNoteBtn.textContent = '×';
+
+  info.appendChild(title);
+  info.appendChild(subtitle);
+  li.appendChild(swatch);
+  li.appendChild(info);
+  li.appendChild(deleteNoteBtn);
+
+  deleteNoteBtn.addEventListener('dblclick', (e) => e.stopPropagation());
+
+  deleteNoteBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const shouldDelete = await requestDeleteConfirmation('note');
+    if (!shouldDelete) return;
+    delete noteDrafts[noteId];
+    await persistNotesDrafts();
+    renderTasks();
+  });
+
+  li.addEventListener('click', () => {
+    const themeId = note.theme || 1;
+    const noteTab = document.querySelector(`.task-note-tab.note-${themeId}`);
+    if (noteTab) openNote(noteTab, noteId);
+  });
+
+  return li;
+}
+
 function renderTasks() {
   const taskList = document.getElementById('task-list');
   taskList.innerHTML = '';
+
   const savedNotes = Object.entries(noteDrafts || {})
     .map(([noteId, entry]) => [noteId, normalizeNoteEntry(entry)])
     .filter(([noteId, note]) => hasNoteContent(note))
-    .sort((a, b) => b[1].updatedAt - a[1].updatedAt); // Newest first
+    .sort((a, b) => b[1].updatedAt - a[1].updatedAt);
 
   const activeTasks = tasks.filter(t => !t.completed);
-  const completedTasks = tasks.filter(t => t.completed)
-                              .sort((a, b) => b.completedAt - a.completedAt);
-
+  const completedTasks = tasks.filter(t => t.completed).sort((a, b) => b.completedAt - a.completedAt);
   renderHistory(completedTasks);
 
-  let renderedCount = 0;
-
-  // Prepare a unified list for the 'all' filter, or specific lists for others
   let displayItems = [];
-
   if (currentFilter === 'tasks') {
     activeTasks.sort((a, b) => {
       if (a.due === null && b.due === null) return 0;
@@ -947,179 +968,21 @@ function renderTasks() {
     });
     displayItems = activeTasks.map(t => ({ type: 'task', data: t }));
   } else if (currentFilter === 'notes') {
-    displayItems = savedNotes.map(n => ({ 
-      type: 'note', 
-      data: n[1], 
-      id: n[0],
-      timestamp: n[1].updatedAt || 0 
-    }));
+    displayItems = savedNotes.map(n => ({ type: 'note', data: n[1], id: n[0], timestamp: n[1].updatedAt || 0 }));
   } else {
-    // 'all' filter: merge and sort by the most recent timestamp
-    const taskItems = activeTasks.map(t => ({ 
-      type: 'task', 
-      data: t, 
-      timestamp: t.createdAt || 0 
-    }));
-    const noteItems = savedNotes.map(n => ({ 
-      type: 'note', 
-      data: n[1], 
-      id: n[0],
-      timestamp: n[1].updatedAt || 0 
-    }));
-    
+    const taskItems = activeTasks.map(t => ({ type: 'task', data: t, timestamp: t.createdAt || 0 }));
+    const noteItems = savedNotes.map(n => ({ type: 'note', data: n[1], id: n[0], timestamp: n[1].updatedAt || 0 }));
     displayItems = [...taskItems, ...noteItems].sort((a, b) => b.timestamp - a.timestamp);
   }
 
   displayItems.forEach((item) => {
-    if (item.type === 'task') {
-      const task = item.data;
-      const taskIndex = tasks.indexOf(task);
-      const li = document.createElement('li');
-      const hasDeadline = task.due !== null;
-      const dueDate = hasDeadline ? new Date(task.due) : null;
-      const now = new Date();
-      const isUrgent = !task.completed && hasDeadline && (dueDate - now < 10 * 60 * 1000);
-      li.className = `task-item ${isUrgent ? 'urgent' : ''}`;
-
-      let dueText = '';
-      if (task.completed) {
-        dueText = 'Completed';
-      } else if (!hasDeadline) {
-        dueText = '<span style="font-size: 1.4em; line-height: 1; margin-right: 2px;">∞</span> Plenty of time';
-      } else {
-        const diffMs = dueDate - now;
-        const diffMins = Math.floor(diffMs / (1000 * 60));
-        const diffHrs = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHrs / 24);
-
-        if (diffMs < 0) dueText = 'Overdue';
-        else if (diffDays > 0) dueText = `Due in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
-        else if (diffHrs > 0) dueText = `Due in ${diffHrs} hour${diffHrs > 1 ? 's' : ''}`;
-        else if (diffMins > 0) dueText = `Due in ${diffMins} min${diffMins > 1 ? 's' : ''}`;
-        else dueText = 'Due now';
-      }
-
-      li.innerHTML = `
-        <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} />
-        <div class="task-info">
-          <div class="task-title">${task.title}</div>
-          <div class="task-due">${dueText}</div>
-        </div>
-        <button class="delete-task-btn" title="Delete task">×</button>
-      `;
-
-      const stopBubbling = (e) => e.stopPropagation();
-      li.querySelector('.task-checkbox').addEventListener('click', stopBubbling);
-      li.querySelector('.task-checkbox').addEventListener('dblclick', stopBubbling);
-      li.querySelector('.delete-task-btn').addEventListener('dblclick', stopBubbling);
-
-      li.querySelector('.task-checkbox').addEventListener('change', async (e) => {
-        if (e.target.checked) {
-          li.classList.add('task-completing');
-          setTimeout(() => showCongrats(task.totalWorkTime || 0), 500);
-          setTimeout(async () => {
-            task.completed = true;
-            task.completedAt = Date.now();
-            await saveTasks();
-            renderTasks();
-            const historyBtn = document.getElementById('history-btn');
-            if (historyBtn) {
-              setTimeout(() => {
-                historyBtn.classList.add('history-uplift');
-                setTimeout(() => historyBtn.classList.remove('history-uplift'), 600);
-              }, 50);
-            }
-          }, 700);
-        }
-      });
-
-      li.querySelector('.delete-task-btn').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const shouldDelete = await requestDeleteConfirmation('task');
-        if (!shouldDelete) return;
-        tasks.splice(taskIndex, 1);
-        saveTasks();
-        renderTasks();
-      });
-
-      // Right click to delete
-      li.addEventListener('contextmenu', async (e) => {
-        e.preventDefault();
-        const shouldDelete = await requestDeleteConfirmation('task');
-        if (!shouldDelete) return;
-        tasks.splice(taskIndex, 1);
-        saveTasks();
-        renderTasks();
-      });
-
-      li.addEventListener('click', () => {
-        if (!task.completed) {
-          enterFocusMode(task);
-        }
-      });
-
-      taskList.appendChild(li);
-    } else {
-      // Note item
-      const noteId = item.id;
-      const note = item.data;
-      const li = document.createElement('li');
-      li.className = `task-item note-entry note-entry-${note.theme || 1}`;
-
-      const swatch = document.createElement('span');
-      swatch.className = 'note-entry-swatch';
-
-      const info = document.createElement('div');
-      info.className = 'task-info';
-
-      const title = document.createElement('div');
-      title.className = 'task-title note-entry-title';
-      title.textContent = (note.title.trim() || 'Untitled note').replace(/\s+/g, ' ').slice(0, 72);
-
-      const subtitle = document.createElement('div');
-      subtitle.className = 'task-due note-entry-subtitle';
-      const bodyPreview = (note.body || '').trim().split('\n')[0];
-      subtitle.textContent = bodyPreview || 'Click to start writing... ✍️';
-
-      const deleteNoteBtn = document.createElement('button');
-      deleteNoteBtn.className = 'delete-note-btn';
-      deleteNoteBtn.title = 'Delete note';
-      deleteNoteBtn.textContent = '×';
-
-      info.appendChild(title);
-      info.appendChild(subtitle);
-      li.appendChild(swatch);
-      li.appendChild(info);
-      li.appendChild(deleteNoteBtn);
-
-      const stopBubbling = (e) => e.stopPropagation();
-      deleteNoteBtn.addEventListener('dblclick', stopBubbling);
-
-      deleteNoteBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const shouldDelete = await requestDeleteConfirmation('note');
-        if (!shouldDelete) return;
-        delete noteDrafts[noteId];
-        await persistNotesDrafts();
-        renderTasks();
-      });
-
-      li.addEventListener('click', () => {
-        const themeId = note.theme || 1;
-        const noteTab = document.querySelector(`.task-note-tab.note-${themeId}`);
-        if (noteTab) openNote(noteTab, noteId);
-      });
-
-      taskList.appendChild(li);
-    }
-    renderedCount++;
+    taskList.appendChild(item.type === 'task' ? buildTaskItem(item.data) : buildNoteItem(item.data, item.id));
   });
 
-  if (renderedCount === 0) {
+  if (displayItems.length === 0) {
     let emptyText = 'No tasks or notes yet.';
     if (currentFilter === 'tasks') emptyText = 'No tasks yet.';
     else if (currentFilter === 'notes') emptyText = 'No saved notes yet.';
-
     taskList.innerHTML = `
       <div class="empty-state">
         <div style="font-size: 32px; margin-bottom: 10px; opacity: 0.3;">✨</div>
@@ -1162,8 +1025,9 @@ const taskTimerStart = document.getElementById('task-timer-start');
 // PERF: module-level DOM cache — query once, reuse everywhere
 const eyes = document.querySelectorAll('.eye'); // RAF loop runs every frame
 const timerDisplay = document.getElementById('timer-display'); // updated every second
-const playIcon = document.getElementById('play-icon'); // updated on toggle
-const pauseIcon = document.getElementById('pause-icon'); // updated on toggle
+const playIcon = document.getElementById('play-icon');
+const pauseIcon = document.getElementById('pause-icon');
+const setTimerRunning = (running) => { playIcon.classList.toggle('hidden', running); pauseIcon.classList.toggle('hidden', !running); };
 const navbarTimers = document.querySelectorAll('.navbar-timer'); // updated every second in focus mode
 const mainTitle = document.getElementById('main-home-link'); // updated on view change
 const focusTitle = document.getElementById('focus-home-link'); // updated on view change
@@ -1405,7 +1269,7 @@ function queueTopCollapsedReminderAnimation(action) {
 async function expandTopCollapsedReminder() {
   if (!isTopCollapsedReminderMode()) return;
 
-  clearTimeout(peekTimeout);
+  clearTimeout(peek.timeout);
   appElement.classList.remove('collapsed-reminder-revealed');
   appElement.classList.add('collapsed-reminder-active');
   void suppressEyeMessageBubble();
@@ -1485,8 +1349,7 @@ function showReminderPopup(task, minutesBefore) {
     showSideNotificationBubble('task due<br>soon');
   }
 
-  popup.classList.remove('hidden');
-  popup.setAttribute('aria-hidden', 'false');
+  showEl(popup);
   playReminderTone();
 
   if (reminderPopupCloseHandler) {
@@ -1498,8 +1361,7 @@ function showReminderPopup(task, minutesBefore) {
   }
 
   const closePopup = () => {
-    popup.classList.add('hidden');
-    popup.setAttribute('aria-hidden', 'true');
+    hideEl(popup);
     closeBtn.removeEventListener('click', closePopup);
     reminderPopupCloseHandler = null;
     clearSideNotification(); // Clear bell and glow when dismissed
@@ -1519,7 +1381,7 @@ function showReminderPopup(task, minutesBefore) {
   closeBtn.addEventListener('click', closePopup);
   
   // Auto-close after 5 minutes if not clicked.
-  reminderPopupAutoCloseTimer = setTimeout(closePopup, 300000);
+  reminderPopupAutoCloseTimer = setTimeout(closePopup, REMINDER_POPUP_AUTO_CLOSE_MS);
 }
 
 function checkReminders() {
@@ -1594,8 +1456,6 @@ function getActiveNoteTab() {
 }
 
 function openNote(tab, noteId, themeIdSuggestion) {
-  if (!notesWorkspace || !notesTitleInput || !notesBodyEditor) return;
-
   const note = normalizeNoteEntry(noteDrafts[noteId]);
   if (themeIdSuggestion) note.theme = themeIdSuggestion;
   
@@ -1636,7 +1496,6 @@ function openNote(tab, noteId, themeIdSuggestion) {
 }
 
 function closeNote(tab) {
-  if (!notesWorkspace) return;
   setNotesRevealOrigin(tab);
   activeNoteId = null;
   clearActiveTabState();
@@ -1688,14 +1547,12 @@ function goToHomeView() {
   if (isHistoryOpen) toggleHistory();
 }
 
-if (notesWorkspace) {
-  notesWorkspace.addEventListener('transitionend', (e) => {
-    if (e.propertyName !== 'clip-path') return;
-    if (!notesWorkspace.classList.contains('active')) {
-      notesWorkspace.classList.add('hidden');
-    }
-  });
-}
+notesWorkspace.addEventListener('transitionend', (e) => {
+  if (e.propertyName !== 'clip-path') return;
+  if (!notesWorkspace.classList.contains('active')) {
+    notesWorkspace.classList.add('hidden');
+  }
+});
 
 noteTabs.forEach(tab => {
   tab.addEventListener('click', (e) => {
@@ -1856,8 +1713,8 @@ window.addEventListener('blur', endWindowDragGesture);
 function scheduleHoverPeek(delay = HOVER_PEEK_DELAY_MS) {
   if (appElement.classList.contains('collapsed-reminder-active')) return;
 
-  clearTimeout(peekTimeout);
-  peekTimeout = setTimeout(async () => {
+  clearTimeout(peek.timeout);
+  peek.timeout = setTimeout(async () => {
     if (appElement.classList.contains('collapsed-reminder-active')) return;
     if (isAnimating) {
       scheduleHoverPeek(HOVER_PEEK_RETRY_MS);
@@ -1866,7 +1723,7 @@ function scheduleHoverPeek(delay = HOVER_PEEK_DELAY_MS) {
 
     const isCollapsedY = appElement.classList.contains('collapsed-y');
     const isCollapsedX = appElement.classList.contains('collapsed-x');
-    if ((!isCollapsedY && !isCollapsedX) || isPeeking) return;
+    if ((!isCollapsedY && !isCollapsedX) || peek.active) return;
 
     await suppressEyeMessageBubble();
 
@@ -1879,10 +1736,10 @@ function scheduleHoverPeek(delay = HOVER_PEEK_DELAY_MS) {
     const stillCollapsedX = appElement.classList.contains('collapsed-x');
     if (!stillCollapsedY && !stillCollapsedX) return;
 
-    isPeeking = true;
-    peekMode = stillCollapsedY ? 'y' : 'x';
-    appElement.classList.add('peeking', peekMode === 'y' ? 'peeking-y' : 'peeking-x');
-    if (peekMode === 'y') toggleCollapseY();
+    peek.active = true;
+    peek.mode = stillCollapsedY ? 'y' : 'x';
+    appElement.classList.add('peeking', peek.mode === 'y' ? 'peeking-y' : 'peeking-x');
+    if (peek.mode === 'y') toggleCollapseY();
     else toggleCollapseX();
   }, delay);
 }
@@ -1894,13 +1751,13 @@ appWindow.listen('mouse-enter', () => {
   const isCollapsedY = appElement.classList.contains('collapsed-y');
   const isCollapsedX = appElement.classList.contains('collapsed-x');
 
-  if ((isCollapsedY || isCollapsedX) && !isPeeking) {
+  if ((isCollapsedY || isCollapsedX) && !peek.active) {
     scheduleHoverPeek();
   }
 });
 
 appWindow.listen('mouse-leave', () => {
-  clearTimeout(peekTimeout);
+  clearTimeout(peek.timeout);
   
   const congratsModal = document.getElementById('congrats-modal');
   if (congratsModal && !congratsModal.classList.contains('hidden')) {
@@ -1918,11 +1775,11 @@ appWindow.listen('mouse-leave', () => {
     if (notesIconsEl) notesIconsEl.classList.remove('hidden');
   }
 
-  if (isPeeking) {
+  if (peek.active) {
     if (!isAnimating) {
-      isPeeking = false;
+      peek.active = false;
       appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
-      if (peekMode === 'y') toggleCollapseY();
+      if (peek.mode === 'y') toggleCollapseY();
       else toggleCollapseX();
     }
   }
@@ -2151,12 +2008,38 @@ function commitActiveDueBlockEdit() {
   activeDueBlockEdit = null;
 }
 
+function resetTaskInputUI() {
+  taskInput.value = '';
+  checkReminders();
+  dueInput.value = formatDateTimeHuman(getDefaultDueDate());
+  hasUserModifiedDate = false;
+  updateReminderBtnState();
+  selectedReminderMinutes = null;
+  selectedTimerSeconds = null;
+  taskReminderBtn.classList.remove('has-reminder');
+  reminderDropdown.querySelectorAll('.reminder-option').forEach(btn => btn.classList.remove('active'));
+  if (taskTimerBtn) taskTimerBtn.classList.remove('active');
+  const customTrigger = document.getElementById('reminder-custom-trigger');
+  const customInputWrap = document.getElementById('reminder-custom-input-wrap');
+  if (customTrigger) customTrigger.classList.remove('hidden');
+  if (customInputWrap) customInputWrap.classList.add('hidden');
+  const unitToggle = document.getElementById('reminder-unit-toggle');
+  if (unitToggle) {
+    unitToggle.dataset.unit = 'm';
+    const textSpan = unitToggle.querySelector('.unit-toggle-text');
+    if (textSpan) textSpan.textContent = 'min';
+  }
+  const unitMenu = document.getElementById('reminder-unit-menu');
+  if (unitMenu) {
+    unitMenu.querySelectorAll('.unit-opt').forEach(btn => btn.classList.remove('active'));
+    const defaultOpt = unitMenu.querySelector('[data-unit="m"]');
+    if (defaultOpt) defaultOpt.classList.add('active');
+  }
+}
+
 function addTask() {
-  // PERF: taskInput/dueInput cached at module level; removed redundant local queries
   if (!taskInput.value.trim()) return;
-
   playTaskCreateSound();
-
   commitActiveDueBlockEdit();
   dueInput.value = normalizeDueInputValue(dueInput.value, { enforceFuture: true });
   let dueDate = parseMaskedDate(dueInput.value);
@@ -2178,54 +2061,19 @@ function addTask() {
 
   if (finalDue) {
     const diffHrs = (new Date(finalDue) - new Date()) / (1000 * 60 * 60);
-    if (diffHrs < 0.1667) newTask.urgent = true; // 10 minutes ≈ 0.1667 hours
+    if (diffHrs < 0.1667) newTask.urgent = true;
   }
 
   tasks.push(newTask);
   saveTasks();
 
-  // If user is on another filter (like Notes), switch to 'All' so they see the new task
   if (currentFilter !== 'all') {
     currentFilter = 'all';
     updateFilterUI('all');
   }
 
   renderTasks();
-
-  taskInput.value = '';
-
-  // Immediately check for reminders in case one was set for 'now'
-  checkReminders();
-
-  // Reset date input and reminder state
-  dueInput.value = formatDateTimeHuman(getDefaultDueDate());
-  hasUserModifiedDate = false;
-  updateReminderBtnState();
-  selectedReminderMinutes = null;
-  selectedTimerSeconds = null;
-
-  taskReminderBtn.classList.remove('has-reminder');
-  reminderDropdown.querySelectorAll('.reminder-option').forEach(btn => btn.classList.remove('active'));
-
-  if (taskTimerBtn) taskTimerBtn.classList.remove('active');
-
-  // Reset custom area if open
-  const customTrigger = document.getElementById('reminder-custom-trigger');
-  const customInputWrap = document.getElementById('reminder-custom-input-wrap');
-  if (customTrigger) customTrigger.classList.remove('hidden');
-  if (customInputWrap) customInputWrap.classList.add('hidden');
-  const unitToggle = document.getElementById('reminder-unit-toggle');
-  if (unitToggle) {
-    unitToggle.dataset.unit = 'm';
-    const textSpan = unitToggle.querySelector('.unit-toggle-text');
-    if (textSpan) textSpan.textContent = 'min';
-  }
-  const unitMenu = document.getElementById('reminder-unit-menu');
-  if (unitMenu) {
-    unitMenu.querySelectorAll('.unit-opt').forEach(btn => btn.classList.remove('active'));
-    const defaultOpt = unitMenu.querySelector('[data-unit="m"]');
-    if (defaultOpt) defaultOpt.classList.add('active');
-  }
+  resetTaskInputUI();
 }
 
 
@@ -2263,14 +2111,14 @@ let moveProcessingPending = false;
 let moveProcessingLastPos = null;
 
 appWindow.onMoved(async (event) => {
-  if (isAnimating || isDockMinimizing || isRestoringFromDock) return;
+  if (isAnimating || drag.isDockMinimizing || drag.isRestoringFromDock) return;
 
   refreshWindowDragGesture();
 
   // If the window is moved manually while peeking (expanding via hover),
   // end the peek state and force it to full size.
-  if (isPeeking) {
-    isPeeking = false;
+  if (peek.active) {
+    peek.active = false;
     appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
     await suppressEyeMessageBubble();
     const monitor = await currentMonitor();
@@ -2294,9 +2142,9 @@ appWindow.onMoved(async (event) => {
 
   const processMoves = async () => {
     try {
-      if (isAnimating || isDockMinimizing) return;
+      if (isAnimating || drag.isDockMinimizing) return;
       
-      const monitor = dragStartMonitor || await currentMonitor();
+      const monitor = drag.startMonitor || await currentMonitor();
       if (!monitor) return;
       
       const winPos = moveProcessingLastPos || await appWindow.outerPosition();
@@ -2328,7 +2176,7 @@ appWindow.onMoved(async (event) => {
           toggleCollapseX(true);
         }
       } else {
-        if (Date.now() - lastExpandTime >= 800) {
+        if (Date.now() - lastExpandTime >= MIN_EXPAND_LOCK_MS) {
           const TRIGGER_TOP_SIDES = 6;
           
           if (dTop < TRIGGER_TOP_SIDES) {
@@ -2337,7 +2185,7 @@ appWindow.onMoved(async (event) => {
           } else if (dLeft < TRIGGER_TOP_SIDES || dRight < TRIGGER_TOP_SIDES) {
             clearTimeout(collapseTimer);
             collapseTimer = setTimeout(() => { toggleCollapseX(); }, 150);
-          } else if (isWindowDragGesture && Date.now() <= windowDragGestureExpiresAt && windowBottom > workBottom) {
+          } else if (drag.isGesture && Date.now() <= drag.gestureExpiresAt && windowBottom > workBottom) {
             clearTimeout(collapseTimer);
             // Increased delay to 150ms to prevent accidental triggers during fast movement
             collapseTimer = setTimeout(() => {
@@ -2557,11 +2405,9 @@ async function exitFocusMode() {
 }
 
 function toggleTimer() {
-  // PERF: playIcon/pauseIcon cached at module level
   if (focusTimerInterval) {
     stopTimer();
-    playIcon.classList.remove('hidden');
-    pauseIcon.classList.add('hidden');
+    setTimerRunning(false);
   } else {
     focusTimerInterval = setInterval(() => {
       if (isCountdown) {
@@ -2570,23 +2416,20 @@ function toggleTimer() {
           updateTimerDisplay();
         } else {
           stopTimer();
-          playIcon.classList.remove('hidden');
-          pauseIcon.classList.add('hidden');
+          setTimerRunning(false);
           isCountdown = false;
-          showTimesUpModal(); // Show completion options
+          showTimesUpModal();
         }
       } else {
         focusSeconds++;
         updateTimerDisplay();
       }
 
-      // Track total work time across sessions
       if (currentFocusTask) {
         currentFocusTask.totalWorkTime = (currentFocusTask.totalWorkTime || 0) + 1;
       }
     }, 1000);
-    playIcon.classList.add('hidden');
-    pauseIcon.classList.remove('hidden');
+    setTimerRunning(true);
   }
 }
 
@@ -2601,8 +2444,7 @@ function showTimesUpModal() {
   if (shouldUseTopCollapsedReminder) {
     if (collapsedTimesUpPopupEl && collapsedTimesUpTitleEl) {
       collapsedTimesUpTitleEl.textContent = currentFocusTask ? currentFocusTask.title : 'Task';
-      collapsedTimesUpPopupEl.classList.remove('hidden');
-      collapsedTimesUpPopupEl.setAttribute('aria-hidden', 'false');
+      showEl(collapsedTimesUpPopupEl);
 
       void expandTopCollapsedReminder().then(() => {
         // Text is revealed earlier via the reveal class
@@ -2627,8 +2469,7 @@ function hideTimesUpModal() {
   clearSideNotification(); // Clear bell and glow when dismissed
 
   if (collapsedTimesUpPopupEl && !collapsedTimesUpPopupEl.classList.contains('hidden')) {
-    collapsedTimesUpPopupEl.classList.add('hidden');
-    collapsedTimesUpPopupEl.setAttribute('aria-hidden', 'true');
+    hideEl(collapsedTimesUpPopupEl);
     appElement.classList.remove('collapsed-reminder-revealed');
     setTimeout(() => {
       void restoreTopCollapsedReminder();
@@ -2667,10 +2508,7 @@ async function handleTimesUpComplete() {
 
       // Manually clean up the island popup state before expanding
       const popup = document.getElementById('collapsed-times-up-popup');
-      if (popup) {
-        popup.classList.add('hidden');
-        popup.setAttribute('aria-hidden', 'true');
-      }
+      if (popup) hideEl(popup);
       appElement.classList.remove('collapsed-reminder-revealed', 'collapsed-reminder-active');
       
       // Now hide the main modal (without triggering automatic restoration)
@@ -2725,9 +2563,7 @@ function resetTimer() {
   focusSeconds = 0;
   isCountdown = false;
   updateTimerDisplay();
-  // PERF: playIcon/pauseIcon cached at module level
-  playIcon.classList.remove('hidden');
-  pauseIcon.classList.add('hidden');
+  setTimerRunning(false);
 }
 
 function stopTimer() {
@@ -2881,14 +2717,12 @@ function toggleHistory() {
   isHistoryOpen = !isHistoryOpen;
 
   if (isHistoryOpen) {
-    historyWorkspaceEl.classList.remove('hidden');
-    historyWorkspaceEl.setAttribute('aria-hidden', 'false');
+    showEl(historyWorkspaceEl);
     appElement.classList.add('history-active');
     // Ensure notes are closed when opening history
     if (activeNoteId) closeActiveNote();
   } else {
-    historyWorkspaceEl.classList.add('hidden');
-    historyWorkspaceEl.setAttribute('aria-hidden', 'true');
+    hideEl(historyWorkspaceEl);
     appElement.classList.remove('history-active');
   }
 }
@@ -2969,7 +2803,7 @@ document.getElementById('focus-nav-complete-btn').addEventListener('click', asyn
     // Stop the timer and show congrats before exiting
     const finalSeconds = currentFocusTask.totalWorkTime || 0;
     const isCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
-    if (!isCollapsed && !isPeeking) {
+    if (!isCollapsed && !peek.active) {
       focusModeEl.classList.add('hidden'); // PERF: cached
       appElement.classList.remove('focus-mode-active');
     }
@@ -3096,68 +2930,51 @@ window.addEventListener('resize', updateFilterPill);
 // Clean up previous event listener if it still exists (not really needed since we replace the code, but conceptually)
 let globalEyeRafId = null;
 
+function updatePseudoHover(logicalX, logicalY) {
+  const hoveredEl = document.elementFromPoint(logicalX, logicalY);
+  document.querySelectorAll('.pseudo-hover').forEach(el => {
+    if (!hoveredEl || !el.contains(hoveredEl)) el.classList.remove('pseudo-hover');
+  });
+  if (hoveredEl) {
+    let curr = hoveredEl;
+    while (curr && curr !== document.body) {
+      if (curr.classList.contains('task-note-tab') ||
+          curr.classList.contains('task-item') ||
+          curr.classList.contains('control-btn') ||
+          curr.classList.contains('filter-btn') ||
+          curr.classList.contains('task-reminder-btn')) {
+        curr.classList.add('pseudo-hover');
+      }
+      curr = curr.parentElement;
+    }
+  }
+}
+
+function updateEyePupils(logicalX, logicalY) {
+  eyes.forEach(eye => {
+    const pupil = eye.querySelector('.pupil');
+    if (!pupil) return;
+    const rect = eye.getBoundingClientRect();
+    const dx = logicalX - (rect.left + rect.width / 2);
+    const dy = logicalY - (rect.top + rect.height / 2);
+    const angle = Math.atan2(dy, dx);
+    const dist = Math.min(Math.sqrt(dx * dx + dy * dy), EYE_PUPIL_MAX_BOUND);
+    pupil.style.transform = `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px)`;
+  });
+}
+
 async function trackCursorGlobally() {
   try {
-    // Fetch physical cursor position from the Rust backend (returns [x, y])
-    const pos = await window.__TAURI__.core.invoke("get_cursor_position"); 
-    
-    // Fetch physical window position (inner window)
-    const winPos = await appWindow.innerPosition(); 
+    const pos = await window.__TAURI__.core.invoke("get_cursor_position");
+    const winPos = await appWindow.innerPosition();
     const scale = await appWindow.scaleFactor();
-
-    // Convert to logical (CSS) coordinates relative to the webview
     const logicalX = (pos[0] - winPos.x) / scale;
     const logicalY = (pos[1] - winPos.y) / scale;
-
-    // Pseudo-hover detection for unfocused states
-    const hoveredEl = document.elementFromPoint(logicalX, logicalY);
-    const prevHovers = document.querySelectorAll('.pseudo-hover');
-    prevHovers.forEach(el => {
-      if (!hoveredEl || !el.contains(hoveredEl)) {
-        el.classList.remove('pseudo-hover');
-      }
-    });
-
-    if (hoveredEl) {
-      let curr = hoveredEl;
-      while (curr && curr !== document.body) {
-        if (curr.classList.contains('task-note-tab') || 
-            curr.classList.contains('task-item') || 
-            curr.classList.contains('control-btn') ||
-            curr.classList.contains('filter-btn') ||
-            curr.classList.contains('task-reminder-btn')) {
-          curr.classList.add('pseudo-hover');
-        }
-        curr = curr.parentElement;
-      }
-    }
-
-    // PERF: eyes cached at module level — no per-frame DOM query
-    eyes.forEach(eye => {
-      const pupil = eye.querySelector('.pupil');
-      if (!pupil) return;
-
-      const rect = eye.getBoundingClientRect();
-      const eyeCenterX = rect.left + rect.width / 2;
-      const eyeCenterY = rect.top + rect.height / 2;
-
-      const dx = logicalX - eyeCenterX;
-      const dy = logicalY - eyeCenterY;
-      const angle = Math.atan2(dy, dx);
-      
-      const maxBound = 4.0;
-      const dist = Math.min(Math.sqrt(dx * dx + dy * dy), maxBound);
-
-      const pupilX = Math.cos(angle) * dist;
-      const pupilY = Math.sin(angle) * dist;
-
-      pupil.style.transform = `translate(${pupilX}px, ${pupilY}px)`;
-    });
+    updatePseudoHover(logicalX, logicalY);
+    updateEyePupils(logicalX, logicalY);
   } catch (err) {
     // Silently continue if something temporarily fails
   }
-  
-  // Continuously track on every frame
   globalEyeRafId = requestAnimationFrame(trackCursorGlobally);
 }
 
@@ -3165,21 +2982,21 @@ async function trackCursorGlobally() {
 trackCursorGlobally();
 
 function clearEyeMessageAnimationTimers() {
-  if (eyeMessageRevealTimer != null) {
-    clearTimeout(eyeMessageRevealTimer);
-    eyeMessageRevealTimer = null;
+  if (eyeTimers.reveal != null) {
+    clearTimeout(eyeTimers.reveal);
+    eyeTimers.reveal = null;
   }
-  if (eyeMessageDismissTimer != null) {
-    clearTimeout(eyeMessageDismissTimer);
-    eyeMessageDismissTimer = null;
+  if (eyeTimers.dismiss != null) {
+    clearTimeout(eyeTimers.dismiss);
+    eyeTimers.dismiss = null;
   }
-  if (eyeMessageDismissFadeTimer != null) {
-    clearTimeout(eyeMessageDismissFadeTimer);
-    eyeMessageDismissFadeTimer = null;
+  if (eyeTimers.dismissFade != null) {
+    clearTimeout(eyeTimers.dismissFade);
+    eyeTimers.dismissFade = null;
   }
-  if (eyeMessageTypeTimer != null) {
-    clearInterval(eyeMessageTypeTimer);
-    eyeMessageTypeTimer = null;
+  if (eyeTimers.type != null) {
+    clearInterval(eyeTimers.type);
+    eyeTimers.type = null;
   }
 }
 
@@ -3205,7 +3022,7 @@ async function showRightBubbleMessage(fullHTML, durationMs = 3000) {
     const overlayX = (currentPos.x + currentSize.width) - overlayWidth;
 
     if (!appElement.classList.contains('collapsed-x') || !appElement.classList.contains('collapsed-right')) return;
-    if (isPeeking || appElement.classList.contains('peeking')) return;
+    if (peek.active || appElement.classList.contains('peeking')) return;
 
     await window.__TAURI__.core.invoke('show_eye_bubble_overlay', {
       x: Math.round(overlayX),
@@ -3214,8 +3031,8 @@ async function showRightBubbleMessage(fullHTML, durationMs = 3000) {
     const payload = JSON.stringify({ html: fullHTML, durationMs });
     await appWindow.eval(`window.showEyeBubbleFromHost && window.showEyeBubbleFromHost(${payload})`);
 
-    eyeMessageDismissFadeTimer = setTimeout(() => {
-      eyeMessageDismissFadeTimer = null;
+    eyeTimers.dismissFade = setTimeout(() => {
+      eyeTimers.dismissFade = null;
       hideEyeMessageOverlay();
     }, durationMs + 1300);
   } catch (e) {
@@ -3223,11 +3040,64 @@ async function showRightBubbleMessage(fullHTML, durationMs = 3000) {
   }
 }
 
+function runBubbleTypewriter(bubble, tokens, durationMs, onDone) {
+  const bubbleText = bubble.querySelector('.bubble-text');
+  if (bubbleText) bubbleText.innerHTML = '';
+
+  eyeTimers.reveal = setTimeout(() => {
+    eyeTimers.reveal = null;
+    bubble.classList.add('visible');
+    if (bubbleText) {
+      let typeIndex = 0;
+      setTimeout(() => {
+        eyeTimers.type = setInterval(() => {
+          if (!bubble.classList.contains('visible')) {
+            clearInterval(eyeTimers.type);
+            eyeTimers.type = null;
+            return;
+          }
+          typeIndex++;
+          bubbleText.innerHTML = renderBubbleTokens(tokens, typeIndex);
+          if (typeIndex >= tokens.length) {
+            clearInterval(eyeTimers.type);
+            eyeTimers.type = null;
+          }
+        }, BUBBLE_TYPEWRITER_TICK_MS);
+      }, 350);
+    }
+  }, 50);
+
+  eyeTimers.dismiss = setTimeout(() => {
+    eyeTimers.dismiss = null;
+    if (bubbleText) {
+      let currentLen = tokens.length;
+      if (eyeTimers.type) clearInterval(eyeTimers.type);
+      eyeTimers.type = setInterval(() => {
+        currentLen--;
+        if (currentLen < 0) {
+          clearInterval(eyeTimers.type);
+          eyeTimers.type = null;
+          bubble.classList.remove('visible');
+          bubble.classList.add('burst-out');
+          eyeTimers.dismissFade = setTimeout(async () => {
+            eyeTimers.dismissFade = null;
+            bubble.classList.add('hidden');
+            bubble.classList.remove('burst-out');
+            await onDone();
+          }, 400);
+          return;
+        }
+        bubbleText.innerHTML = renderBubbleTokens(tokens, currentLen);
+      }, BUBBLE_TYPEWRITER_TICK_MS);
+    }
+  }, durationMs);
+}
+
 async function showCollapsedBubbleMessage(fullHTML, durationMs = 3000) {
   const isCollapsedY = appElement.classList.contains('collapsed-y');
   const isCollapsedX = appElement.classList.contains('collapsed-x');
   if (!isCollapsedY && !isCollapsedX) return;
-  if (isPeeking || appElement.classList.contains('peeking')) return;
+  if (peek.active || appElement.classList.contains('peeking')) return;
 
   if (isCollapsedX && appElement.classList.contains('collapsed-right')) {
     await showRightBubbleMessage(fullHTML, durationMs);
@@ -3249,7 +3119,7 @@ async function showCollapsedBubbleMessage(fullHTML, durationMs = 3000) {
     const { x: offsetX } = monitor.position;
 
     if (!appElement.classList.contains('collapsed-y') && !appElement.classList.contains('collapsed-x')) return;
-    if (isPeeking || appElement.classList.contains('peeking')) return;
+    if (peek.active || appElement.classList.contains('peeking')) return;
 
     const targetSize = isCollapsedY ? COLLAPSED_SIZE_Y_BUBBLE : COLLAPSED_SIZE_X_BUBBLE;
     const pTargetW = targetSize.width * scale;
@@ -3282,116 +3152,48 @@ async function showCollapsedBubbleMessage(fullHTML, durationMs = 3000) {
     }
 
     if (!appElement.classList.contains('collapsed-y') && !appElement.classList.contains('collapsed-x')) return;
-    if (isPeeking || appElement.classList.contains('peeking')) return;
+    if (peek.active || appElement.classList.contains('peeking')) return;
 
-    const bubbleText = bubble.querySelector('.bubble-text');
     const tokens = tokenizeBubbleHTML(fullHTML);
-    if (bubbleText) bubbleText.innerHTML = '';
-
-    eyeMessageRevealTimer = setTimeout(() => {
-      eyeMessageRevealTimer = null;
-      bubble.classList.add('visible');
-
-      if (bubbleText) {
-        let typeIndex = 0;
-
-        setTimeout(() => {
-          eyeMessageTypeTimer = setInterval(() => {
-            if (!bubble.classList.contains('visible')) {
-              clearInterval(eyeMessageTypeTimer);
-              eyeMessageTypeTimer = null;
-              return;
-            }
-
-            typeIndex++;
-            bubbleText.innerHTML = renderBubbleTokens(tokens, typeIndex);
-
-            if (typeIndex >= tokens.length) {
-              clearInterval(eyeMessageTypeTimer);
-              eyeMessageTypeTimer = null;
-            }
-          }, 30);
-        }, 350);
-      }
-    }, 50);
-
-    eyeMessageDismissTimer = setTimeout(() => {
-      eyeMessageDismissTimer = null;
-
-      if (bubbleText) {
-        let currentLen = tokens.length;
-
-        if (eyeMessageTypeTimer) clearInterval(eyeMessageTypeTimer);
-
-        eyeMessageTypeTimer = setInterval(() => {
-          currentLen--;
-          if (currentLen < 0) {
-            clearInterval(eyeMessageTypeTimer);
-            eyeMessageTypeTimer = null;
-
-            bubble.classList.remove('visible');
-            bubble.classList.add('burst-out');
-
-            eyeMessageDismissFadeTimer = setTimeout(async () => {
-              eyeMessageDismissFadeTimer = null;
-              bubble.classList.add('hidden');
-              bubble.classList.remove('burst-out');
-              appElement.classList.remove('bubble-active');
-
-              const stillCollapsedY = appElement.classList.contains('collapsed-y');
-              const stillCollapsedX = appElement.classList.contains('collapsed-x');
-              if (stillCollapsedY || stillCollapsedX) {
-                const restoredSize = stillCollapsedY ? COLLAPSED_SIZE_Y : COLLAPSED_SIZE_X;
-                const restoreMonitor = await currentMonitor();
-                const restoreScale = restoreMonitor ? restoreMonitor.scaleFactor : 1;
-
-                const actualPos = await appWindow.outerPosition();
-                const actualSize = await appWindow.outerSize();
-                let endX = actualPos.x;
-
-                if (stillCollapsedX) {
-                  const isRightSnap = appElement.classList.contains('collapsed-right');
-                  if (isRightSnap && restoreMonitor) {
-                    const pRestoredW = restoredSize.width * restoreScale;
-                    endX = (offsetX + scrW) - pRestoredW;
-                  }
-                }
-
-                if (stillCollapsedX && appElement.classList.contains('collapsed-right')) {
-                  await appWindow.setSize(restoredSize);
-                  await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(endX), actualPos.y));
-                } else {
-                  await animateWindowTransform(
-                    actualPos,
-                    { x: Math.round(endX), y: actualPos.y },
-                    actualSize,
-                    restoredSize,
-                    100
-                  );
-                }
-              }
-            }, 400);
-            return;
+    runBubbleTypewriter(bubble, tokens, durationMs, async () => {
+      appElement.classList.remove('bubble-active');
+      const stillCollapsedY = appElement.classList.contains('collapsed-y');
+      const stillCollapsedX = appElement.classList.contains('collapsed-x');
+      if (stillCollapsedY || stillCollapsedX) {
+        const restoredSize = stillCollapsedY ? COLLAPSED_SIZE_Y : COLLAPSED_SIZE_X;
+        const restoreMonitor = await currentMonitor();
+        const restoreScale = restoreMonitor ? restoreMonitor.scaleFactor : 1;
+        const actualPos = await appWindow.outerPosition();
+        const actualSize = await appWindow.outerSize();
+        let endX = actualPos.x;
+        if (stillCollapsedX) {
+          const isRightSnap = appElement.classList.contains('collapsed-right');
+          if (isRightSnap && restoreMonitor) {
+            const pRestoredW = restoredSize.width * restoreScale;
+            endX = (offsetX + scrW) - pRestoredW;
           }
-
-          bubbleText.innerHTML = renderBubbleTokens(tokens, currentLen);
-        }, 30);
+        }
+        if (stillCollapsedX && appElement.classList.contains('collapsed-right')) {
+          await appWindow.setSize(restoredSize);
+          await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(Math.round(endX), actualPos.y));
+        } else {
+          await animateWindowTransform(actualPos, { x: Math.round(endX), y: actualPos.y }, actualSize, restoredSize, 100);
+        }
       }
-    }, durationMs);
+    });
   } catch (e) {
     console.error('Failed to show collapsed bubble message:', e);
   }
 }
 
 function showSideNotificationBubble(fullHTML) {
-  if (!appElement.classList.contains('collapsed-x')) return;
   void showCollapsedBubbleMessage(fullHTML, SIDE_NOTIFICATION_BUBBLE_DURATION_MS);
 }
 
 async function suppressEyeMessageBubble() {
-  if (eyeMessageScheduleTimer != null) {
-    clearTimeout(eyeMessageScheduleTimer);
-    eyeMessageScheduleTimer = null;
+  if (eyeTimers.schedule != null) {
+    clearTimeout(eyeTimers.schedule);
+    eyeTimers.schedule = null;
   }
   clearEyeMessageAnimationTimers();
   await hideEyeMessageOverlay();
@@ -3619,10 +3421,7 @@ async function showEyeMessage() {
     cleanupStep(9);
     
     const overlay = document.getElementById('onboarding-overlay');
-    if (overlay) {
-      overlay.classList.add('hidden');
-      overlay.setAttribute('aria-hidden', 'true');
-    }
+    if (overlay) hideEl(overlay);
     
     const cursorTooltip = document.getElementById('onboarding-cursor-tooltip');
     if (cursorTooltip) {
@@ -3662,8 +3461,7 @@ async function showEyeMessage() {
     cleanupStep(5);
     cleanupStep(9);
     
-    overlay.classList.remove('hidden');
-    overlay.setAttribute('aria-hidden', 'false');
+    showEl(overlay);
     backdrop.classList.remove('hidden');
     welcomeCard.classList.remove('hidden');
     tooltip.classList.add('hidden');
@@ -3968,8 +3766,7 @@ async function showEyeMessage() {
   if (taskTimerBtn && taskTimerModal) {
     taskTimerBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      taskTimerModal.classList.remove('hidden');
-      taskTimerModal.setAttribute('aria-hidden', 'false');
+      showEl(taskTimerModal);
       if (taskTimerInput) {
         taskTimerInput.value = '25';
         taskTimerInput.focus();
@@ -3978,8 +3775,7 @@ async function showEyeMessage() {
     });
 
     const closeTaskTimerModal = () => {
-      taskTimerModal.classList.add('hidden');
-      taskTimerModal.setAttribute('aria-hidden', 'true');
+      hideEl(taskTimerModal);
       if (taskTimerUnitMenu) taskTimerUnitMenu.classList.add('hidden');
     };
 
@@ -3987,13 +3783,11 @@ async function showEyeMessage() {
       taskTimerCancel.addEventListener('click', closeTaskTimerModal);
     }
 
-    if (taskTimerModal) {
-      taskTimerModal.addEventListener('click', (e) => {
-        if (e.target === taskTimerModal) {
-          closeTaskTimerModal();
-        }
-      });
-    }
+    taskTimerModal.addEventListener('click', (e) => {
+      if (e.target === taskTimerModal) {
+        closeTaskTimerModal();
+      }
+    });
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !taskTimerModal.classList.contains('hidden')) {
