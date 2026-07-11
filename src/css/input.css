@@ -66,6 +66,48 @@
   transform: translateY(1px) scale(0.98);
 }
 
+/* Muted red for the clear deadline ✕ button */
+.task-clear-due-btn {
+  color: rgba(255, 80, 70, 0.72);
+  border-color: rgba(255, 80, 70, 0.2);
+}
+
+.task-clear-due-btn:hover {
+  color: rgba(255, 69, 58, 0.95) !important;
+  background: rgba(255, 59, 48, 0.12) !important;
+  border-color: rgba(255, 59, 48, 0.3) !important;
+}
+
+/* ── Hover tooltips ─────────────────────────────── */
+.task-clear-due-btn::after {
+  content: 'Clear deadline';
+  position: absolute;
+  bottom: calc(100% + 7px);
+  right: 0;
+  transform: translateY(5px);
+  background: rgba(18, 18, 20, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.82);
+  font-family: var(--font-family);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  padding: 3px 7px;
+  border-radius: 5px;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 200;
+}
+
+.task-clear-due-btn:hover::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .task-reminder-btn.shake {
   animation: bellShakeNew 0.4s cubic-bezier(.36,.07,.19,.97) both;
   color: #FF9500 !important;
@@ -79,10 +121,19 @@
     border-color: rgba(0, 0, 0, 0.1);
     color: var(--text-color);
   }
+  .task-clear-due-btn {
+    color: rgba(210, 50, 40, 0.75);
+    border-color: rgba(210, 50, 40, 0.2);
+  }
   .task-reminder-btn:hover,
   .task-clear-due-btn:hover {
     background: rgba(0, 0, 0, 0.08);
     border-color: rgba(0, 0, 0, 0.2);
+  }
+  .task-clear-due-btn::after {
+    background: rgba(240, 240, 242, 0.95);
+    color: rgba(0, 0, 0, 0.75);
+    border-color: rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -128,6 +179,7 @@
   justify-content: center;
   padding: 6px;
   transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: visible;
 }
 
 .task-timer-btn svg,
@@ -139,7 +191,38 @@
 
 .task-due-date-btn:hover {
   color: var(--text-color);
-  transform: translateY(-50%) scale(1.1);
+  transform: translateY(-50%) scale(1.15);
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.25));
+}
+
+/* "Set deadline" tooltip above the calendar icon */
+.task-due-date-btn::after {
+  content: 'Set deadline';
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  background: rgba(18, 18, 20, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.82);
+  font-family: var(--font-family);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  padding: 3px 7px;
+  border-radius: 5px;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 200;
+}
+
+.task-due-date-btn:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .task-due-date-btn.has-due {
@@ -150,6 +233,14 @@
 .input-area.expanded .task-due-date-btn {
   color: rgba(var(--theme-accent-rgb, 0, 122, 255), 1);
   opacity: 1;
+}
+
+@media (prefers-color-scheme: light) {
+  .task-due-date-btn::after {
+    background: rgba(240, 240, 242, 0.95);
+    color: rgba(0, 0, 0, 0.75);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
 }
 
 .reminder-warning {
