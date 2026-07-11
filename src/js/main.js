@@ -1803,7 +1803,9 @@ if (taskDueDateBtn) {
 
   taskDueDateBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    const pickerEl  = document.getElementById('date-picker-popup');
     const isExpanded = inputArea.classList.contains('expanded');
+
     if (!isExpanded) {
       inputArea.classList.add('expanded');
       // Refresh the due input with current live time when user opens the date panel
@@ -1812,19 +1814,174 @@ if (taskDueDateBtn) {
         hasUserModifiedDate = false;
         updateReminderBtnState();
       }
-      // Focus the due input so the user can start editing right away
+      // Open the calendar picker immediately
       requestAnimationFrame(() => {
-        dueInput.focus();
-        setDueSelection(getDueBlockFromCursor(0));
+        if (pickerEl && pickerEl._open) pickerEl._open();
       });
     } else {
-      // Toggle: clicking calendar again collapses the date panel only if no task is typed
-      if (!taskInput.value.trim()) {
-        inputArea.classList.remove('expanded');
+      // Already expanded — toggle the calendar picker
+      if (pickerEl) {
+        if (pickerEl.classList.contains('hidden')) {
+          if (pickerEl._open) pickerEl._open();
+        } else {
+          if (pickerEl._close) pickerEl._close();
+        }
       }
     }
   });
 }
+
+// ── Mini Calendar Date Picker ──────────────────────────────────────────────
+(function initDatePicker() {
+  const pickerEl   = document.getElementById('date-picker-popup');
+  const monthLabel = document.getElementById('dp-month-label');
+  const daysGrid   = document.getElementById('dp-days-grid');
+  const prevBtn    = document.getElementById('dp-prev-btn');
+  const nextBtn    = document.getElementById('dp-next-btn');
+
+  if (!pickerEl || !monthLabel || !daysGrid) return;
+
+  const MONTH_NAMES = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'];
+
+  let dpYear = 0;
+  let dpMonth = 0; // 0-indexed
+  let dpSelectedDate = null; // Date object (year/month/day only)
+
+  function openPicker() {
+    // Seed the view from whatever is already in dueInput, otherwise use today.
+    const parsed = parseMaskedDate(dueInput.value);
+    const seed   = (parsed && !isNaN(parsed)) ? parsed : new Date();
+    dpYear  = seed.getFullYear();
+    dpMonth = seed.getMonth();
+    dpSelectedDate = (parsed && !isNaN(parsed))
+      ? new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+      : null;
+    renderGrid();
+    pickerEl.classList.remove('hidden');
+    pickerEl.setAttribute('aria-hidden', 'false');
+  }
+
+  function closePicker() {
+    pickerEl.classList.add('hidden');
+    pickerEl.setAttribute('aria-hidden', 'true');
+  }
+
+  function renderGrid() {
+    const monthStart = new Date(dpYear, dpMonth, 1);
+    const monthEnd   = new Date(dpYear, dpMonth + 1, 0);
+    const today      = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    monthLabel.textContent = `${MONTH_NAMES[dpMonth]} ${dpYear}`;
+
+    const startOffset = monthStart.getDay(); // 0 = Sunday
+    const totalCells  = Math.ceil((startOffset + monthEnd.getDate()) / 7) * 7;
+
+    daysGrid.innerHTML = '';
+
+    for (let i = 0; i < totalCells; i++) {
+      const dayOffset = i - startOffset;
+      const cellDate  = new Date(dpYear, dpMonth, 1 + dayOffset);
+      cellDate.setHours(0, 0, 0, 0);
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dp-day';
+      btn.textContent = cellDate.getDate();
+
+      const isThisMonth = cellDate.getMonth() === dpMonth;
+      const isPast      = cellDate < today;
+      const isToday     = cellDate.getTime() === today.getTime();
+      const isSelected  = dpSelectedDate && cellDate.getTime() === dpSelectedDate.getTime();
+
+      if (!isThisMonth) btn.classList.add('dp-day-other-month');
+      if (isPast)       btn.classList.add('dp-day-disabled');
+      if (isToday)      btn.classList.add('dp-day-today');
+      if (isSelected)   btn.classList.add('dp-day-selected');
+
+      if (!isPast) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectDate(cellDate);
+        });
+      }
+      daysGrid.appendChild(btn);
+    }
+  }
+
+  function selectDate(date) {
+    dpSelectedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    // Preserve any existing time portion from dueInput; fall back to now + 1 hour
+    let hour, minute, period;
+    const existing = parseMaskedDate(dueInput.value);
+    if (existing && !isNaN(existing)) {
+      let h = existing.getHours();
+      period = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      hour   = String(h).padStart(2, '0');
+      minute = String(existing.getMinutes()).padStart(2, '0');
+    } else {
+      const fallback = new Date(Date.now() + 3600000);
+      let h = fallback.getHours();
+      period = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      hour   = String(h).padStart(2, '0');
+      minute = String(fallback.getMinutes()).padStart(2, '0');
+    }
+
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const y = date.getFullYear();
+    dueInput.value = `${d}/${m}/${y}, ${hour}:${minute} ${period}`;
+
+    // Mark as user-modified (same effect as typing directly in the field)
+    hasUserModifiedDate = true;
+    updateReminderBtnState();
+
+    closePicker();
+
+    // Refocus due input so user can tweak the time if needed
+    requestAnimationFrame(() => { dueInput.focus(); });
+  }
+
+  // Month navigation
+  prevBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dpMonth--;
+    if (dpMonth < 0) { dpMonth = 11; dpYear--; }
+    renderGrid();
+  });
+
+  nextBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dpMonth++;
+    if (dpMonth > 11) { dpMonth = 0; dpYear++; }
+    renderGrid();
+  });
+
+  // Expose open/close on the element so the calendar button handler can call them
+  pickerEl._open  = openPicker;
+  pickerEl._close = closePicker;
+
+  // Close picker when clicking outside (but not on the calendar icon button)
+  document.addEventListener('mousedown', (e) => {
+    if (!pickerEl.classList.contains('hidden') &&
+        !pickerEl.contains(e.target) &&
+        e.target !== taskDueDateBtn &&
+        !taskDueDateBtn.contains(e.target)) {
+      closePicker();
+    }
+  }, true);
+
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !pickerEl.classList.contains('hidden')) {
+      closePicker();
+    }
+  });
+})();
 
 let activeDueBlockEdit = null;
 

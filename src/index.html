@@ -98,6 +98,29 @@
         <input type="text" id="due-input" placeholder="Date & Time (e.g. 01/30 12:00 PM)" />
         <span id="reminder-warning" class="reminder-warning hidden">Set a deadline first</span>
 
+        <!-- Mini Calendar Picker Popup -->
+        <div id="date-picker-popup" class="date-picker-popup hidden" aria-hidden="true">
+          <div class="dp-header">
+            <button class="dp-nav-btn" id="dp-prev-btn" type="button" aria-label="Previous month">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span class="dp-month-label" id="dp-month-label">Jul 2026</span>
+            <button class="dp-nav-btn" id="dp-next-btn" type="button" aria-label="Next month">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <div class="dp-weekdays">
+            <span class="dp-weekday">Su</span>
+            <span class="dp-weekday">Mo</span>
+            <span class="dp-weekday">Tu</span>
+            <span class="dp-weekday">We</span>
+            <span class="dp-weekday">Th</span>
+            <span class="dp-weekday">Fr</span>
+            <span class="dp-weekday">Sa</span>
+          </div>
+          <div class="dp-days" id="dp-days-grid"></div>
+        </div>
+
         <div class="reminder-button-wrapper" id="reminder-button-wrapper">
           <button id="task-reminder-btn" class="task-reminder-btn" title="Add reminder" aria-label="Add reminder" type="button">
             <svg id="reminder-bell-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

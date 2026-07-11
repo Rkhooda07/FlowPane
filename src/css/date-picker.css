@@ -1,0 +1,198 @@
+/* ── Date Picker Calendar Popup ───────────────────────────────── */
+
+.date-picker-popup {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 500;
+  background: rgba(18, 18, 20, 0.92);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.08);
+  width: 216px;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transform-origin: top left;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.date-picker-popup.hidden {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.96);
+  pointer-events: none;
+  display: flex !important; /* keep in layout for animation */
+  visibility: hidden;
+}
+
+/* Header row: nav arrow ◄ Month Year ► */
+.dp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.dp-month-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.2px;
+}
+
+.dp-nav-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1;
+  transition: color 0.15s ease, background 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dp-nav-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dp-nav-btn svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+/* Day-of-week header */
+.dp-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.dp-weekday {
+  font-size: 9.5px;
+  font-weight: 600;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.38);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 2px 0;
+}
+
+/* Day cells grid */
+.dp-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.dp-day {
+  position: relative;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.82);
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  padding: 0;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dp-day:hover:not(.dp-day-disabled):not(.dp-day-selected) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.dp-day-other-month {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.dp-day-disabled {
+  color: rgba(255, 255, 255, 0.14);
+  cursor: default;
+}
+
+.dp-day-today:not(.dp-day-selected) {
+  color: rgba(var(--theme-accent-rgb, 0, 122, 255), 1);
+  font-weight: 700;
+}
+
+.dp-day-today:not(.dp-day-selected)::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(var(--theme-accent-rgb, 0, 122, 255), 0.8);
+}
+
+.dp-day-selected {
+  background: rgba(var(--theme-accent-rgb, 0, 122, 255), 1) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(var(--theme-accent-rgb, 0, 122, 255), 0.45);
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+  .date-picker-popup {
+    background: rgba(245, 245, 247, 0.92);
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  .dp-month-label {
+    color: #1a1a1a;
+  }
+
+  .dp-nav-btn {
+    color: rgba(0, 0, 0, 0.45);
+  }
+
+  .dp-nav-btn:hover {
+    color: #1a1a1a;
+    background: rgba(0, 0, 0, 0.07);
+  }
+
+  .dp-weekday {
+    color: rgba(0, 0, 0, 0.35);
+  }
+
+  .dp-day {
+    color: rgba(0, 0, 0, 0.8);
+  }
+
+  .dp-day:hover:not(.dp-day-disabled):not(.dp-day-selected) {
+    background: rgba(0, 0, 0, 0.06);
+    color: #1a1a1a;
+  }
+
+  .dp-day-other-month {
+    color: rgba(0, 0, 0, 0.2);
+  }
+
+  .dp-day-disabled {
+    color: rgba(0, 0, 0, 0.15);
+  }
+}
