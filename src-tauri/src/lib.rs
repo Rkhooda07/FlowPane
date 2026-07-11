@@ -5,8 +5,8 @@ use tauri::{
     WebviewWindowBuilder,
 };
 
-const APP_WINDOW_WIDTH: f64 = 325.0;
-const APP_WINDOW_HEIGHT: f64 = 395.0;
+const APP_WINDOW_WIDTH: f64 = 335.0;
+const APP_WINDOW_HEIGHT: f64 = 405.0;
 const NEW_WINDOW_OFFSET: i32 = 32;
 const MIN_WINDOW_SPAWN_INTERVAL: Duration = Duration::from_millis(700);
 const MAX_APP_WINDOWS: usize = 8;

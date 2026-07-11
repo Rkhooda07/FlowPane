@@ -7,7 +7,7 @@
 #app.collapsed-y {
   --collapsed-title-timer-gap: 10px;
   height: 42px !important; /* Increased from 38px for better layout and equal thickness */
-  width: 325px !important;
+  width: 335px !important;
 }
 
 #app.collapsed-y.collapsed-reminder-active {

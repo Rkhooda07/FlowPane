@@ -12,11 +12,11 @@
     "windows": [
       {
         "title": "FlowPane",
-        "width": 325,
-        "height": 395,
+        "width": 335,
+        "height": 405,
         "resizable": true,
-        "minWidth": 325,
-        "minHeight": 395,
+        "minWidth": 335,
+        "minHeight": 405,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,

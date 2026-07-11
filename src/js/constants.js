@@ -1,13 +1,13 @@
 const { LogicalSize } = window.__TAURI__.window;
 
-export const ALL_WINDOWS_SIZE = new LogicalSize(325, 375);
-export const PEEK_SIZE_Y = new LogicalSize(325, 270);
-export const PEEK_SIZE_X = new LogicalSize(270, 325);
-export const COLLAPSED_SIZE_Y = new LogicalSize(325, 42); // Match CSS height for bar
-export const COLLAPSED_REMINDER_SIZE_Y = new LogicalSize(325, 112);
-export const COLLAPSED_SIZE_X = new LogicalSize(42, 300); // Match CSS dimensions
-export const COLLAPSED_SIZE_Y_BUBBLE = new LogicalSize(325, 180);
-export const COLLAPSED_SIZE_X_BUBBLE = new LogicalSize(300, 300);
+export const ALL_WINDOWS_SIZE = new LogicalSize(335, 385);
+export const PEEK_SIZE_Y = new LogicalSize(335, 280);
+export const PEEK_SIZE_X = new LogicalSize(280, 335);
+export const COLLAPSED_SIZE_Y = new LogicalSize(335, 42); // Match CSS height for bar
+export const COLLAPSED_REMINDER_SIZE_Y = new LogicalSize(335, 112);
+export const COLLAPSED_SIZE_X = new LogicalSize(42, 310); // Match CSS dimensions
+export const COLLAPSED_SIZE_Y_BUBBLE = new LogicalSize(335, 180);
+export const COLLAPSED_SIZE_X_BUBBLE = new LogicalSize(310, 310);
 export const SIDE_NOTIFICATION_BUBBLE_DURATION_MS = 12000;
 export const BOTTOM_DOCK_MINIMIZE_THRESHOLD = 0;
 export const HOVER_PEEK_DELAY_MS = 150;
