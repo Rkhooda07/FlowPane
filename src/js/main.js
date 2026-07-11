@@ -2139,45 +2139,29 @@ let pickerJustClosed = false;
   periodDown.addEventListener('click', (e) => { e.stopPropagation(); togglePeriod(); });
   periodInput.addEventListener('click', (e) => { e.stopPropagation(); togglePeriod(); });
 
-  // Mouse wheel scroll to adjust values with dynamic velocity-aware accumulation
-  let hourAccum = 0, minAccum = 0, periodAccum = 0;
+  // Mouse wheel scroll to adjust values with immediate-trigger cooldown logic
   let lastHourTick = 0, lastMinTick = 0, lastPeriodTick = 0;
-  let resetTimer = null;
-
-  function resetAccumulators() {
-    hourAccum = 0;
-    minAccum = 0;
-    periodAccum = 0;
-  }
 
   hourInput.addEventListener('wheel', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    clearTimeout(resetTimer);
-    resetTimer = setTimeout(resetAccumulators, 200);
 
-    hourAccum += e.deltaY;
     const now = Date.now();
     const timeDiff = now - lastHourTick;
 
-    // Dynamic threshold: higher (less sensitive) for slow scroll, lower for rapid scroll
-    let threshold = 90;
-    if (timeDiff < 150) {
-      threshold = 35;
-    }
+    // Fast scrolling allows faster updates (70ms cooldown), slow scrolling throttles (140ms cooldown)
+    const isFast = Math.abs(e.deltaY) > 50 || timeDiff < 180;
+    const cooldown = isFast ? 75 : 150;
 
-    if (Math.abs(hourAccum) >= threshold) {
-      const direction = hourAccum < 0 ? 1 : -1;
+    if (timeDiff >= cooldown) {
+      const direction = e.deltaY < 0 ? 1 : -1;
       let val = parseInt(hourInput.value, 10);
       val = isNaN(val) ? 12 : val + direction;
       if (val > 12) val = 1;
       if (val < 1) val = 12;
-      
+
       hourInput.value = String(val).padStart(2, '0');
       updateTime();
-
-      hourAccum = 0;
       lastHourTick = now;
     }
   });
@@ -2186,37 +2170,29 @@ let pickerJustClosed = false;
     e.preventDefault();
     e.stopPropagation();
 
-    clearTimeout(resetTimer);
-    resetTimer = setTimeout(resetAccumulators, 200);
-
-    minAccum += e.deltaY;
     const now = Date.now();
     const timeDiff = now - lastMinTick;
 
-    let threshold = 90;
-    let step = 1;
+    const isFast = Math.abs(e.deltaY) > 50 || timeDiff < 180;
+    const cooldown = isFast ? 65 : 140;
 
-    // Dynamic scaling: scroll faster to increase sensitivity and step size
-    if (timeDiff < 150) {
-      threshold = 30;
-      if (Math.abs(e.deltaY) > 130) {
-        step = 5; // Spin values faster when user scrolls aggressively
+    if (timeDiff >= cooldown) {
+      const direction = e.deltaY < 0 ? 1 : -1;
+      let step = 1;
+
+      // Accelerate step sizing if user scrolls aggressively
+      if (timeDiff < 100 && Math.abs(e.deltaY) > 110) {
+        step = 5;
       }
-    }
 
-    if (Math.abs(minAccum) >= threshold) {
-      const direction = minAccum < 0 ? 1 : -1;
       let val = parseInt(minInput.value, 10);
       val = isNaN(val) ? 0 : val + (direction * step);
 
-      // Loop wraps around [0-59]
       if (val > 59) val = val - 60;
       if (val < 0) val = val + 60;
 
       minInput.value = String(val).padStart(2, '0');
       updateTime();
-
-      minAccum = 0;
       lastMinTick = now;
     }
   });
@@ -2225,22 +2201,12 @@ let pickerJustClosed = false;
     e.preventDefault();
     e.stopPropagation();
 
-    clearTimeout(resetTimer);
-    resetTimer = setTimeout(resetAccumulators, 200);
-
-    periodAccum += e.deltaY;
     const now = Date.now();
     const timeDiff = now - lastPeriodTick;
+    const cooldown = 180;
 
-    // AM/PM is a binary toggle, require a clean scrolling intent
-    let threshold = 110;
-    if (timeDiff < 200) {
-      threshold = 55;
-    }
-
-    if (Math.abs(periodAccum) >= threshold) {
+    if (timeDiff >= cooldown) {
       togglePeriod();
-      periodAccum = 0;
       lastPeriodTick = now;
     }
   });
