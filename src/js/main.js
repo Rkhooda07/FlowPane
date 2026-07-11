@@ -1444,6 +1444,7 @@ function normalizeNoteEntry(rawEntry) {
       title: typeof rawEntry.title === 'string' ? rawEntry.title : '',
       body: typeof rawEntry.body === 'string' ? rawEntry.body : '',
       theme: rawEntry.theme || 1,
+      customColor: rawEntry.customColor || null,
       updatedAt: rawEntry.updatedAt || Date.now()
     };
   }
@@ -1452,10 +1453,10 @@ function normalizeNoteEntry(rawEntry) {
     const lines = rawEntry.split(/\r?\n/);
     const title = lines[0] || '';
     const body = lines.slice(1).join('\n');
-    return { title, body, theme: 1, updatedAt: Date.now() };
+    return { title, body, theme: 1, customColor: null, updatedAt: Date.now() };
   }
 
-  return { title: '', body: '', theme: 1, updatedAt: Date.now() };
+  return { title: '', body: '', theme: 1, customColor: null, updatedAt: Date.now() };
 }
 
 function hasNoteContent(note) {
@@ -1483,6 +1484,7 @@ function openNote(tab, noteId, themeIdSuggestion) {
   notesWorkspace.classList.add(`theme-${themeId}`);
   appElement.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4');
   appElement.classList.add(`theme-${themeId}`);
+  if (note.customColor) applyNoteColor(note.customColor);
   notesWorkspace.classList.remove('hidden');
   setNotesRevealOrigin(tab);
 
@@ -1520,6 +1522,12 @@ function closeNote(tab) {
   notesWorkspace.classList.remove('active');
   appElement.classList.remove('notes-active');
   appElement.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4');
+  notesWorkspace.style.removeProperty('--note-bg');
+  notesWorkspace.style.removeProperty('--note-fg');
+  notesWorkspace.style.removeProperty('--note-caret');
+  appElement.style.removeProperty('--theme-accent-rgb');
+  appElement.style.removeProperty('--theme-text');
+  closePalettePopup();
 
   // Reset title to FlowPane when closing note
   updateNavbarTitle('FlowPane');
@@ -1544,6 +1552,7 @@ function autoSaveActiveNote() {
       title,
       body,
       theme: currentTheme,
+      customColor: noteDrafts[activeNoteId] ? noteDrafts[activeNoteId].customColor : null,
       updatedAt: Date.now()
     };
   }
@@ -4353,5 +4362,280 @@ async function showEyeMessage() {
 
   initOnboarding();
   initSnowyStars();
+
+  // ── Palette popup ──────────────────────────────────────────────
+
+  const PALETTE_PRESETS = [
+    { name: 'Yellow',  hex: '#eff226' },
+    { name: 'Orange',  hex: '#ffc928' },
+    { name: 'Green',   hex: '#ace322' },
+    { name: 'Pink',    hex: '#f3a8d5' },
+    { name: 'Blue',    hex: '#6eb5ff' },
+    { name: 'Purple',  hex: '#c084fc' },
+    { name: 'Red',     hex: '#fb7185' },
+    { name: 'Teal',    hex: '#5eead4' },
+    { name: 'Cyan',    hex: '#67e8f9' },
+    { name: 'Amber',   hex: '#fbbf24' },
+    { name: 'Magenta', hex: '#f0abfc' },
+    { name: 'Brown',   hex: '#d4a574' },
+    { name: 'White',   hex: '#f8fafc' },
+  ];
+
+  let paletteIsOpen = false;
+  let paletteActiveTab = 'wheel';
+  let paletteH = 0, paletteS = 0, paletteV = 100;
+  let paletteDragging = false;
+
+  const paletteBtn          = document.getElementById('palette-btn');
+  const palettePopup        = document.getElementById('palette-popup');
+  const paletteCanvas       = document.getElementById('palette-canvas');
+  const paletteCursorEl     = document.getElementById('palette-cursor');
+  const paletteBrightness   = document.getElementById('palette-brightness');
+  const paletteSearch       = document.getElementById('palette-search');
+  const paletteListEl       = document.getElementById('palette-list');
+  const paletteTabWheel     = document.getElementById('palette-tab-wheel');
+  const paletteTabPresets   = document.getElementById('palette-tab-presets');
+  const palettePanelWheel   = document.getElementById('palette-panel-wheel');
+  const palettePanelPresets = document.getElementById('palette-panel-presets');
+
+  function hsvToRgb(h, s, v) {
+    s /= 100; v /= 100;
+    const i = Math.floor(h / 60) % 6;
+    const f = h / 60 - Math.floor(h / 60);
+    const p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
+    let r, g, b;
+    switch (i) {
+      case 0: r=v; g=t; b=p; break; case 1: r=q; g=v; b=p; break;
+      case 2: r=p; g=v; b=t; break; case 3: r=p; g=q; b=v; break;
+      case 4: r=t; g=p; b=v; break; default: r=v; g=p; b=q;
+    }
+    return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+  }
+
+  function rgbToHex(r, g, b) {
+    return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('');
+  }
+
+  function hexToHsv(hex) {
+    const r = parseInt(hex.slice(1,3),16)/255;
+    const g = parseInt(hex.slice(3,5),16)/255;
+    const b = parseInt(hex.slice(5,7),16)/255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max - min;
+    let h = 0, s = max === 0 ? 0 : (d/max)*100;
+    if (d) {
+      if (max===r) h = ((g-b)/d%6)*60;
+      else if (max===g) h = ((b-r)/d+2)*60;
+      else h = ((r-g)/d+4)*60;
+      if (h < 0) h += 360;
+    }
+    return [h, s, max*100];
+  }
+
+  function computeFg(hex) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return (r*299 + g*587 + b*114) / 1000 > 140 ? '#1a1a1a' : '#f0f0f0';
+  }
+
+  function applyNoteColor(hex) {
+    const fg = computeFg(hex);
+    notesWorkspace.style.setProperty('--note-bg', hex);
+    notesWorkspace.style.setProperty('--note-fg', fg);
+    notesWorkspace.style.setProperty('--note-caret', fg);
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    appElement.style.setProperty('--theme-accent-rgb', `${r},${g},${b}`);
+    appElement.style.setProperty('--theme-text', fg);
+    if (activeNoteId) {
+      if (!noteDrafts[activeNoteId]) noteDrafts[activeNoteId] = { title:'', body:'', theme:1, customColor:null, updatedAt:Date.now() };
+      noteDrafts[activeNoteId].customColor = hex;
+      if (noteAutoSaveTimeout) clearTimeout(noteAutoSaveTimeout);
+      noteAutoSaveTimeout = setTimeout(persistNotesDrafts, 500);
+    }
+  }
+
+  function drawPaletteWheel() {
+    if (!paletteCanvas) return;
+    const ctx = paletteCanvas.getContext('2d');
+    const dpr = Math.ceil(window.devicePixelRatio || 1);
+    const cssSize = 130;
+    const phys = cssSize * dpr;
+
+    // Resize to physical pixels only when needed (avoids clearing mid-drag)
+    if (paletteCanvas.width !== phys) {
+      paletteCanvas.width  = phys;
+      paletteCanvas.height = phys;
+      paletteCanvas.style.width  = cssSize + 'px';
+      paletteCanvas.style.height = cssSize + 'px';
+    }
+
+    const cx = phys / 2, cy = phys / 2;
+    const r = cx - dpr; // 1 CSS-pixel border in physical space
+    const img = ctx.createImageData(phys, phys);
+    const d = img.data;
+
+    for (let y = 0; y < phys; y++) {
+      for (let x = 0; x < phys; x++) {
+        const dx = x - cx, dy = y - cy, dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist > r) continue;
+        const hue = ((Math.atan2(dy, dx) * 180 / Math.PI) + 360) % 360;
+        const sat = (dist / r) * 100;
+        const [rr, gg, bb] = hsvToRgb(hue, sat, paletteV);
+        // Soft 1-physical-pixel anti-aliased edge
+        const alpha = dist > r - dpr ? Math.max(0, (r - dist) / dpr) : 1;
+        const i = (y * phys + x) * 4;
+        d[i] = rr; d[i+1] = gg; d[i+2] = bb; d[i+3] = Math.round(alpha * 255);
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    updatePaletteCursor();
+    updateSliderGradient();
+  }
+
+  function updatePaletteCursor() {
+    if (!paletteCursorEl || !paletteCanvas) return;
+    // Always use CSS size (130px), not physical canvas size
+    const cssSize = 130;
+    const cx = cssSize / 2, cy = cssSize / 2;
+    const r = cx - 1;
+    const angle = paletteH * Math.PI / 180;
+    paletteCursorEl.style.left = (cx + Math.cos(angle)*(paletteS/100)*r) + 'px';
+    paletteCursorEl.style.top  = (cy + Math.sin(angle)*(paletteS/100)*r) + 'px';
+    const [rr,gg,bb] = hsvToRgb(paletteH, paletteS, paletteV);
+    const lum = (rr*299+gg*587+bb*114)/1000;
+    paletteCursorEl.style.borderColor = lum > 128 ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)';
+  }
+
+  function updateSliderGradient() {
+    if (!paletteBrightness) return;
+    const [rr,gg,bb] = hsvToRgb(paletteH, paletteS, 100);
+    paletteBrightness.style.background = `linear-gradient(to right, #000, ${rgbToHex(rr,gg,bb)})`;
+  }
+
+  function getPaletteHex() {
+    const [r,g,b] = hsvToRgb(paletteH, paletteS, paletteV);
+    return rgbToHex(r,g,b);
+  }
+
+  function onWheelPick(e) {
+    if (!paletteCanvas) return;
+    const rect = paletteCanvas.getBoundingClientRect();
+    // Use CSS dimensions (getBoundingClientRect is always in CSS pixels)
+    const cx = rect.width / 2, cy = rect.height / 2;
+    const r = cx - 1;
+    const dx = e.clientX - rect.left - cx;
+    const dy = e.clientY - rect.top  - cy;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    paletteH = ((Math.atan2(dy,dx)*180/Math.PI)+360)%360;
+    paletteS = Math.min(dist/r, 1)*100;
+    updatePaletteCursor();
+    updateSliderGradient();
+    applyNoteColor(getPaletteHex());
+  }
+
+  function renderPresetList(filter) {
+    if (!paletteListEl) return;
+    const q = (filter||'').toLowerCase();
+    paletteListEl.innerHTML = '';
+    const currentColor = activeNoteId && noteDrafts[activeNoteId] && noteDrafts[activeNoteId].customColor;
+    PALETTE_PRESETS.filter(p => p.name.toLowerCase().includes(q)).forEach(preset => {
+      const li = document.createElement('li');
+      li.className = 'palette-list-item';
+      if (currentColor && currentColor.toLowerCase() === preset.hex.toLowerCase()) li.classList.add('active');
+      li.innerHTML = `<span class="palette-swatch" style="background:${preset.hex}"></span><span class="palette-color-name">${preset.name}</span>`;
+      li.addEventListener('click', () => {
+        paletteListEl.querySelectorAll('.palette-list-item').forEach(el => el.classList.remove('active'));
+        li.classList.add('active');
+        const [h,s,v] = hexToHsv(preset.hex);
+        paletteH=h; paletteS=s; paletteV=v;
+        paletteBrightness.value = v;
+        drawPaletteWheel();
+        applyNoteColor(preset.hex);
+      });
+      paletteListEl.appendChild(li);
+    });
+  }
+
+  function switchPaletteTab(tab) {
+    paletteActiveTab = tab;
+    if (paletteTabWheel) paletteTabWheel.classList.toggle('active', tab === 'wheel');
+    if (paletteTabPresets) paletteTabPresets.classList.toggle('active', tab === 'presets');
+    if (palettePanelWheel) palettePanelWheel.classList.toggle('hidden', tab !== 'wheel');
+    if (palettePanelPresets) palettePanelPresets.classList.toggle('hidden', tab !== 'presets');
+    if (tab === 'wheel') drawPaletteWheel();
+    if (tab === 'presets') renderPresetList(paletteSearch ? paletteSearch.value : '');
+  }
+
+  function openPalettePopup() {
+    if (!palettePopup) return;
+    paletteIsOpen = true;
+    paletteBtn && paletteBtn.classList.add('palette-open');
+    palettePopup.classList.remove('hidden');
+    palettePopup.setAttribute('aria-hidden', 'false');
+    void palettePopup.offsetHeight; // force reflow so transition fires
+    palettePopup.classList.add('open');
+    const current = activeNoteId && noteDrafts[activeNoteId] && noteDrafts[activeNoteId].customColor;
+    if (current) {
+      const [h,s,v] = hexToHsv(current);
+      paletteH=h; paletteS=s; paletteV=v;
+      if (paletteBrightness) paletteBrightness.value = v;
+    } else {
+      paletteH=0; paletteS=0; paletteV=100;
+      if (paletteBrightness) paletteBrightness.value = 100;
+    }
+    if (paletteSearch) paletteSearch.value = '';
+    switchPaletteTab('wheel');
+  }
+
+  function closePalettePopup() {
+    if (!palettePopup || !paletteIsOpen) return;
+    paletteIsOpen = false;
+    paletteBtn && paletteBtn.classList.remove('palette-open');
+    palettePopup.classList.remove('open');
+    palettePopup.setAttribute('aria-hidden', 'true');
+    setTimeout(() => { if (!paletteIsOpen) palettePopup.classList.add('hidden'); }, 260);
+  }
+
+  if (paletteBtn) {
+    paletteBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      paletteIsOpen ? closePalettePopup() : openPalettePopup();
+    });
+  }
+
+  if (paletteTabWheel) paletteTabWheel.addEventListener('click', () => switchPaletteTab('wheel'));
+  if (paletteTabPresets) paletteTabPresets.addEventListener('click', () => switchPaletteTab('presets'));
+
+  if (paletteCanvas) {
+    paletteCanvas.addEventListener('mousedown', e => { paletteDragging=true; onWheelPick(e); });
+  }
+  document.addEventListener('mousemove', e => { if (paletteDragging) onWheelPick(e); });
+  document.addEventListener('mouseup', () => { paletteDragging=false; });
+
+  if (paletteBrightness) {
+    paletteBrightness.addEventListener('input', () => {
+      paletteV = Number(paletteBrightness.value);
+      drawPaletteWheel();
+      applyNoteColor(getPaletteHex());
+    });
+  }
+
+  if (paletteSearch) {
+    paletteSearch.addEventListener('input', () => renderPresetList(paletteSearch.value));
+  }
+
+  document.addEventListener('click', e => {
+    if (!paletteIsOpen) return;
+    if (palettePopup && !palettePopup.contains(e.target) && e.target !== paletteBtn && !(paletteBtn && paletteBtn.contains(e.target))) {
+      closePalettePopup();
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && paletteIsOpen) closePalettePopup();
+  });
+
 })();
 

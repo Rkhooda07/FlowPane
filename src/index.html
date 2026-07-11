@@ -212,15 +212,62 @@
     </div>
 
     <div id="notes-workspace" class="notes-workspace hidden" aria-hidden="true">
+      <!-- Palette popup: positioned absolutely within the workspace -->
+      <div id="palette-popup" class="palette-popup hidden" aria-hidden="true">
+        <div class="palette-tabs">
+          <button class="palette-tab active" id="palette-tab-wheel" title="Color wheel" type="button">
+            <span class="palette-tab-wheel-icon"></span>
+            <span class="palette-tab-label">Color Wheel</span>
+          </button>
+          <button class="palette-tab" id="palette-tab-presets" title="Color palette" type="button">
+            <svg viewBox="0 0 16 16" width="18" height="18" fill="none" flex-shrink="0">
+              <rect x="1" y="1" width="6" height="6" rx="1.5" fill="#eff226"/>
+              <rect x="9" y="1" width="6" height="6" rx="1.5" fill="#fb7185"/>
+              <rect x="1" y="9" width="6" height="6" rx="1.5" fill="#ace322"/>
+              <rect x="9" y="9" width="6" height="6" rx="1.5" fill="#c084fc"/>
+            </svg>
+            <span class="palette-tab-label">Color Palette</span>
+          </button>
+        </div>
+        <div class="palette-panel" id="palette-panel-wheel">
+          <div class="palette-wheel-wrap">
+            <canvas id="palette-canvas" width="130" height="130"></canvas>
+            <div id="palette-cursor" class="palette-cursor"></div>
+          </div>
+          <div class="palette-slider-wrap">
+            <input type="range" id="palette-brightness" class="palette-brightness" min="0" max="100" value="100" />
+          </div>
+        </div>
+        <div class="palette-panel hidden" id="palette-panel-presets">
+          <div class="palette-presets">
+            <div class="palette-search-row">
+              <svg class="palette-search-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="palette-search" class="palette-search-input" placeholder="Search" autocomplete="off" />
+            </div>
+            <ul id="palette-list" class="palette-list"></ul>
+          </div>
+        </div>
+      </div>
       <div class="notes-editor-shell">
-        <input
-          type="text"
-          id="notes-title-input"
-          class="notes-title-input"
-          placeholder="Note title"
-          autocomplete="off"
-          autocapitalize="sentences"
-        />
+        <div class="notes-title-row">
+          <input
+            type="text"
+            id="notes-title-input"
+            class="notes-title-input"
+            placeholder="Note title"
+            autocomplete="off"
+            autocapitalize="sentences"
+          />
+          <button id="palette-btn" class="palette-btn" title="Change note color" aria-label="Change note color" type="button">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2C17.52 2 22 6.5 22 12C22 13.38 21.38 14.75 20.25 15.75C19.58 16.38 18.92 16.7 18.25 16.7H16.25C15.25 16.7 14.5 17.38 14.5 18.5C14.5 18.88 14.62 19.25 14.88 19.5C15.12 19.75 15.25 20.12 15.25 20.5C15.25 21.38 14.25 22 12 22Z"/>
+              <circle class="pd" cx="8.5" cy="7" r="1.4" fill="currentColor" stroke="none"/>
+              <circle class="pd" cx="13.5" cy="6.5" r="1.4" fill="currentColor" stroke="none"/>
+              <circle class="pd" cx="17.5" cy="10.5" r="1.4" fill="currentColor" stroke="none"/>
+              <circle class="pd" cx="6.5" cy="12" r="1.4" fill="currentColor" stroke="none"/>
+            </svg>
+          </button>
+        </div>
         <textarea
           id="notes-body-editor"
           class="notes-body-editor"
