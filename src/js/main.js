@@ -1965,12 +1965,13 @@ if (taskDueDateBtn) {
   pickerEl._open  = openPicker;
   pickerEl._close = closePicker;
 
-  // Close picker when clicking outside (but not on the calendar icon button)
+  // Close picker when clicking outside (but not on the calendar icon button or the input field itself)
   document.addEventListener('mousedown', (e) => {
     if (!pickerEl.classList.contains('hidden') &&
         !pickerEl.contains(e.target) &&
         e.target !== taskDueDateBtn &&
-        !taskDueDateBtn.contains(e.target)) {
+        !taskDueDateBtn.contains(e.target) &&
+        e.target !== dueInput) {
       closePicker();
     }
   }, true);
@@ -2145,6 +2146,12 @@ dueInput.addEventListener('click', () => {
   dueInputFocusFromPointer = false;
   commitActiveDueBlockEdit();
   setDueSelection(getDueBlockFromCursor(dueInput.selectionStart ?? 0));
+
+  // Also open the calendar picker if it exists and is hidden
+  const pickerEl = document.getElementById('date-picker-popup');
+  if (pickerEl && pickerEl._open && pickerEl.classList.contains('hidden')) {
+    pickerEl._open();
+  }
 });
 
 function selectNextDueBlock(block) {
