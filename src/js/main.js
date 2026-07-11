@@ -4311,5 +4311,33 @@ async function showEyeMessage() {
     }
   }
 
+  function initSnowyStars() {
+    const container = document.querySelector('.navbar-stars-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const numStars = 32;
+    const animations = ['twinkle-snow-slow', 'twinkle-snow-mid', 'twinkle-snow-fast'];
+
+    for (let i = 0; i < numStars; i++) {
+      const star = document.createElement('div');
+      star.className = `snowy-star ${animations[i % animations.length]}`;
+      star.textContent = '✳'; // Eight-spoked asterisk matching user's image reference
+
+      const left = Math.random() * 100;
+      const top = Math.random() * 100;
+      const size = 6 + Math.random() * 6; // Random size from 6px to 12px
+      const delay = Math.random() * -12; // Stagger animation start times
+
+      star.style.left = `${left}%`;
+      star.style.top = `${top}%`;
+      star.style.fontSize = `${size}px`;
+      star.style.animationDelay = `${delay}s`;
+
+      container.appendChild(star);
+    }
+  }
+
   initOnboarding();
+  initSnowyStars();
 })();
