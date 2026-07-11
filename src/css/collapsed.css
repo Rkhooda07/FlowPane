@@ -259,7 +259,6 @@
 }
 
 /* Faster interior transition when peeking for seamless feel */
-#app.peeking .input-area,
 #app.peeking .task-container,
 #app.peeking .focus-content,
 #app.peeking .focus-bottom-controls,
@@ -268,6 +267,15 @@
   transition-delay: 0s !important;
   transition-duration: 0.3s !important;
   transform: scale(0.95) !important;
+}
+
+/* Input area fills the full window width even when peeking */
+#app.peeking .input-area {
+  transition-delay: 0s !important;
+  transition-duration: 0.3s !important;
+  transform: scale(1) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 #app.peeking .notes-editor-shell {
