@@ -160,44 +160,24 @@
 /* ── Snowy Star Styles ───────────────────────────────────────── */
 .snowy-star {
   position: absolute;
-  font-family: var(--font-family);
-  font-weight: normal;
   pointer-events: none;
   user-select: none;
   line-height: 1;
-  text-shadow: 0 0 3px rgba(255, 255, 255, 0.4);
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.92);
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.75));
   will-change: opacity, transform;
+  animation-name: star-appear;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
 }
 
-@keyframes twinkle-snow-slow {
-  0%, 100% { opacity: 0.15; transform: scale(0.9); }
-  50% { opacity: 0.5; transform: scale(1.05); }
-}
-@keyframes twinkle-snow-mid {
-  0%, 100% { opacity: 0.48; transform: scale(1.05); }
-  50% { opacity: 0.18; transform: scale(0.9); }
-}
-@keyframes twinkle-snow-fast {
-  0%, 100% { opacity: 0.22; transform: scale(0.95); }
-  50% { opacity: 0.56; transform: scale(1.1); }
-}
-
-.twinkle-snow-slow {
-  animation: twinkle-snow-slow 10s ease-in-out infinite alternate;
-}
-.twinkle-snow-mid {
-  animation: twinkle-snow-mid 7s ease-in-out infinite alternate;
-}
-.twinkle-snow-fast {
-  animation: twinkle-snow-fast 4s ease-in-out infinite alternate;
-}
-
-@media (prefers-color-scheme: light) {
-  .snowy-star {
-    color: rgba(0, 90, 200, 0.35);
-    text-shadow: 0 0 3px rgba(0, 90, 200, 0.15);
-  }
+@keyframes star-appear {
+  0%   { opacity: 0;    transform: scale(0.4) rotate(0deg);   }
+  10%  { opacity: 0.58; transform: scale(1.08) rotate(12deg); }
+  42%  { opacity: 0.52; transform: scale(1)    rotate(-8deg); }
+  72%  { opacity: 0.08; transform: scale(0.7)  rotate(4deg);  }
+  100% { opacity: 0;    transform: scale(0.4)  rotate(0deg);  }
 }
 
 

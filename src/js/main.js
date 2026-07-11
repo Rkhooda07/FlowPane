@@ -4316,23 +4316,36 @@ async function showEyeMessage() {
     if (!container) return;
     container.innerHTML = '';
 
-    const numStars = 32;
-    const animations = ['twinkle-snow-slow', 'twinkle-snow-mid', 'twinkle-snow-fast'];
+    const NUM_STARS = 20;
 
-    for (let i = 0; i < numStars; i++) {
+    function randPos() {
+      return { left: Math.random() * 100, top: Math.random() * 100 };
+    }
+
+    for (let i = 0; i < NUM_STARS; i++) {
       const star = document.createElement('div');
-      star.className = `snowy-star ${animations[i % animations.length]}`;
-      star.textContent = '✳'; // Eight-spoked asterisk matching user's image reference
+      star.className = 'snowy-star';
+      star.textContent = '✦'; // Sharp four-pointed star — crisp, shiny, minimal
 
-      const left = Math.random() * 100;
-      const top = Math.random() * 100;
-      const size = 6 + Math.random() * 6; // Random size from 6px to 12px
-      const delay = Math.random() * -12; // Stagger animation start times
+      const pos = randPos();
+      const size = 5.5 + Math.random() * 5.5; // 5.5px – 11px
+      const duration = 8 + Math.random() * 12; // 8s – 20s per cycle
+      const delay = -(Math.random() * duration); // start mid-cycle so they don't all appear at once
 
-      star.style.left = `${left}%`;
-      star.style.top = `${top}%`;
-      star.style.fontSize = `${size}px`;
-      star.style.animationDelay = `${delay}s`;
+      star.style.left   = `${pos.left}%`;
+      star.style.top    = `${pos.top}%`;
+      star.style.fontSize        = `${size}px`;
+      star.style.animationDuration  = `${duration.toFixed(2)}s`;
+      star.style.animationDelay     = `${delay.toFixed(2)}s`;
+
+      // When a full cycle ends (star is at opacity 0), teleport to a new random spot
+      star.addEventListener('animationiteration', () => {
+        const next = randPos();
+        const nextSize = 5.5 + Math.random() * 5.5;
+        star.style.left     = `${next.left}%`;
+        star.style.top      = `${next.top}%`;
+        star.style.fontSize = `${nextSize}px`;
+      });
 
       container.appendChild(star);
     }
@@ -4341,3 +4354,4 @@ async function showEyeMessage() {
   initOnboarding();
   initSnowyStars();
 })();
+
