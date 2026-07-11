@@ -76,6 +76,43 @@
   transform: translate(-120%, -50%); /* Shift left while fading out */
 }
 
+.navbar-note-title {
+  display: none; /* hidden by default; shown via #app.notes-active below */
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: 'Outfit', -apple-system, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-color);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  width: 130px;
+  padding: 0;
+  cursor: text;
+  -webkit-app-region: no-drag;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.navbar-note-title::placeholder {
+  color: rgba(255, 255, 255, 0.28);
+  font-weight: 400;
+}
+
+#app.notes-active .navbar-note-title {
+  display: block;
+}
+
+#app.notes-active .navbar-title-text {
+  display: none;
+}
+
+#app.notes-active .navbar-home-link {
+  max-width: 160px;
+}
+
 .navbar-timer {
   margin-left: 12px;
   font-size: 11px;

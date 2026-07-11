@@ -909,7 +909,7 @@ function buildNoteItem(note, noteId) {
 
   const title = document.createElement('div');
   title.className = 'task-title note-entry-title';
-  title.textContent = (note.title.trim() || 'Untitled note').replace(/\s+/g, ' ').slice(0, 72);
+  title.textContent = ((note.navbarTitle || '').trim() || note.title.trim() || 'Untitled note').replace(/\s+/g, ' ').slice(0, 72);
 
   const subtitle = document.createElement('div');
   subtitle.className = 'task-due note-entry-subtitle';
@@ -1058,6 +1058,7 @@ const eyeBubblesAll = document.querySelectorAll('.eye-bubble');
 const NOTES_STORAGE_KEY = 'flowpane-notes-drafts';
 const DELETE_CONFIRM_PREF_KEY = 'flowpane-skip-delete-confirm';
 let activeNoteId = null;
+let navbarTitleSynced = true; // true = navbar mirrors body title; false = user set it independently
 let currentFilter = 'all';
 let noteDrafts = {};
 let skipDeleteConfirm = false;
@@ -1447,6 +1448,7 @@ function normalizeNoteEntry(rawEntry) {
       body: typeof rawEntry.body === 'string' ? rawEntry.body : '',
       theme: rawEntry.theme || 1,
       customColor: rawEntry.customColor || null,
+      navbarTitle: typeof rawEntry.navbarTitle === 'string' ? rawEntry.navbarTitle : '',
       updatedAt: rawEntry.updatedAt || Date.now()
     };
   }
@@ -1455,10 +1457,10 @@ function normalizeNoteEntry(rawEntry) {
     const lines = rawEntry.split(/\r?\n/);
     const title = lines[0] || '';
     const body = lines.slice(1).join('\n');
-    return { title, body, theme: 1, customColor: null, updatedAt: Date.now() };
+    return { title, body, theme: 1, customColor: null, navbarTitle: '', updatedAt: Date.now() };
   }
 
-  return { title: '', body: '', theme: 1, customColor: null, updatedAt: Date.now() };
+  return { title: '', body: '', theme: 1, customColor: null, navbarTitle: '', updatedAt: Date.now() };
 }
 
 function hasNoteContent(note) {
@@ -1474,6 +1476,22 @@ function getActiveNoteTab() {
   if (!activeNoteId || !noteDrafts[activeNoteId]) return null;
   const themeId = noteDrafts[activeNoteId].theme || 1;
   return document.querySelector(`.task-note-tab.note-${themeId}`);
+}
+
+function isNotesViewActive() {
+  return Boolean(activeNoteId && appElement.classList.contains('notes-active'));
+}
+
+function resetNavbarNoteTitle() {
+  navbarTitleSynced = true;
+  const navbarNoteTitleEl = document.getElementById('navbar-note-title');
+  if (navbarNoteTitleEl) navbarNoteTitleEl.value = '';
+}
+
+function restoreHomeNavbarTitle() {
+  if (isInFocusMode || isNotesViewActive()) return;
+  resetNavbarNoteTitle();
+  updateNavbarTitle('FlowPane');
 }
 
 function openNote(tab, noteId, themeIdSuggestion) {
@@ -1513,13 +1531,27 @@ function openNote(tab, noteId, themeIdSuggestion) {
     notesBodyEditor.setSelectionRange(bodyEnd, bodyEnd);
   }
 
-  // Sync navbar title immediately when opening note
+  // Swap static title text for editable input
+  const navbarNoteTitleEl = document.getElementById('navbar-note-title');
+  if (navbarNoteTitleEl) {
+    if (note.navbarTitle) {
+      navbarTitleSynced = false;
+      navbarNoteTitleEl.value = note.navbarTitle;
+    } else {
+      navbarTitleSynced = true;
+      navbarNoteTitleEl.value = note.title; // mirror body title; placeholder shows if empty
+    }
+    // CSS via #app.notes-active handles visibility
+  }
+
+  // Sync navbar title after the notes navbar input has the current value.
   updateNavbarTitle(getCurrentViewTitle());
 }
 
 function closeNote(tab) {
   setNotesRevealOrigin(tab);
   activeNoteId = null;
+  resetNavbarNoteTitle();
   clearActiveTabState();
   notesWorkspace.classList.remove('active');
   appElement.classList.remove('notes-active');
@@ -1531,13 +1563,12 @@ function closeNote(tab) {
   appElement.style.removeProperty('--theme-text');
   closePalettePopup();
 
-  // Reset title to FlowPane when closing note
   updateNavbarTitle('FlowPane');
 }
 
 function closeActiveNote() {
   const activeTab = getActiveNoteTab();
-  if (activeTab) closeNote(activeTab);
+  closeNote(activeTab);
 }
 
 let noteAutoSaveTimeout = null;
@@ -1555,6 +1586,7 @@ function autoSaveActiveNote() {
       body,
       theme: currentTheme,
       customColor: noteDrafts[activeNoteId] ? noteDrafts[activeNoteId].customColor : null,
+      navbarTitle: navbarTitleSynced ? '' : (noteDrafts[activeNoteId] && noteDrafts[activeNoteId].navbarTitle || ''),
       updatedAt: Date.now()
     };
   }
@@ -1574,7 +1606,12 @@ function goToHomeView() {
   if (activeNoteId) closeActiveNote();
   if (isInFocusMode) exitFocusMode();
   if (isHistoryOpen) toggleHistory();
+  restoreHomeNavbarTitle();
 }
+
+new MutationObserver(() => {
+  restoreHomeNavbarTitle();
+}).observe(appElement, { attributes: true, attributeFilter: ['class'] });
 
 notesWorkspace.addEventListener('transitionend', (e) => {
   if (e.propertyName !== 'clip-path') return;
@@ -1650,6 +1687,10 @@ filterBtns.forEach(btn => {
 if (notesTitleInput && notesBodyEditor) {
   notesTitleInput.addEventListener('input', (e) => {
     capitalizeFirstLetter(e);
+    if (navbarTitleSynced) {
+      const navbarEl = document.getElementById('navbar-note-title');
+      if (navbarEl) navbarEl.value = notesTitleInput.value;
+    }
     autoSaveActiveNote();
   });
   notesBodyEditor.addEventListener('input', (e) => {
@@ -1727,6 +1768,28 @@ homeNavLinks.forEach(link => {
     }
   });
 });
+
+const navbarNoteTitleInput = document.getElementById('navbar-note-title');
+if (navbarNoteTitleInput) {
+  // Prevent clicks/mousedowns from bubbling to the h1 home-nav handlers
+  navbarNoteTitleInput.addEventListener('mousedown', e => e.stopPropagation());
+  navbarNoteTitleInput.addEventListener('click', e => e.stopPropagation());
+  navbarNoteTitleInput.addEventListener('input', () => {
+    if (!activeNoteId || !noteDrafts[activeNoteId]) return;
+    if (navbarNoteTitleInput.value === '') {
+      // User cleared it — revert to synced, mirror body title
+      navbarTitleSynced = true;
+      navbarNoteTitleInput.value = notesTitleInput ? notesTitleInput.value : '';
+      noteDrafts[activeNoteId].navbarTitle = '';
+    } else {
+      navbarTitleSynced = false;
+      noteDrafts[activeNoteId].navbarTitle = navbarNoteTitleInput.value;
+    }
+    renderTasks();
+    if (noteAutoSaveTimeout) clearTimeout(noteAutoSaveTimeout);
+    noteAutoSaveTimeout = setTimeout(persistNotesDrafts, 500);
+  });
+}
 
 document.querySelectorAll('.title-bar').forEach(titleBar => {
   titleBar.addEventListener('mousedown', (e) => {
@@ -3277,15 +3340,21 @@ document.getElementById('focus-nav-exit-btn').addEventListener('click', exitFocu
 function getCurrentViewTitle() {
   if (isInFocusMode && currentFocusTask) {
     return currentFocusTask.title;
-  } else if (activeNoteId) {
-    const rawTitle = notesTitleInput ? notesTitleInput.value.trim() : '';
-    return rawTitle || 'Untitled Note';
+  } else if (isNotesViewActive()) {
+    const navbarNoteTitleEl = document.getElementById('navbar-note-title');
+    const navbarName = navbarNoteTitleEl ? navbarNoteTitleEl.value.trim() : '';
+    const bodyTitle = notesTitleInput ? notesTitleInput.value.trim() : '';
+    return navbarName || bodyTitle || 'Untitled Note';
   }
   return 'FlowPane';
 }
 
 // Helper function to update navbar title
 function updateNavbarTitle(title) {
+  if (!isNotesViewActive()) {
+    resetNavbarNoteTitle();
+  }
+
   // Update both main navbar and focus mode navbar
   // PERF: mainTitle/focusTitle cached at module level
   const setNodeText = (element, text) => {
@@ -4642,4 +4711,3 @@ async function showEyeMessage() {
   });
 
 })();
-
