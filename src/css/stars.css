@@ -36,7 +36,7 @@
     radial-gradient(1px 1px at 30% 60%, rgba(255, 255, 255, 0.4), rgba(255,255,255,0)),
     radial-gradient(1.2px 1.2px at 60% 40%, rgba(255, 255, 255, 0.6), rgba(255,255,255,0)),
     radial-gradient(1px 1px at 90% 80%, rgba(255, 255, 255, 0.5), rgba(255,255,255,0));
-  opacity: 0.25;
+  opacity: 0.45; /* Increased from 0.25 */
   filter: blur(0.4px);
   pointer-events: none;
   animation: pulse-sky-a 12s ease-in-out infinite alternate;
@@ -54,7 +54,7 @@
     radial-gradient(1px 1px at 65% 85%, rgba(255, 255, 255, 0.4), rgba(255,255,255,0)),
     radial-gradient(1.3px 1.3px at 80% 50%, rgba(255, 255, 255, 0.65), rgba(255,255,255,0)),
     radial-gradient(1px 1px at 10% 75%, rgba(255, 255, 255, 0.35), rgba(255,255,255,0));
-  opacity: 0.2;
+  opacity: 0.35; /* Increased from 0.2 */
   filter: blur(0.6px);
   pointer-events: none;
   animation: pulse-sky-b 16s ease-in-out infinite alternate;
@@ -80,13 +80,13 @@
 }
 
 @keyframes pulse-sky-a {
-  0% { opacity: 0.12; }
-  100% { opacity: 0.32; }
+  0% { opacity: 0.18; }
+  100% { opacity: 0.48; }
 }
 
 @keyframes pulse-sky-b {
-  0% { opacity: 0.3; }
-  100% { opacity: 0.1; }
+  0% { opacity: 0.42; }
+  100% { opacity: 0.18; }
 }
 
 /* Ensure title remains elevated above stars while fully maintaining its absolute positioning */
@@ -121,10 +121,10 @@
     opacity: 0;
   }
   2% {
-    opacity: 0.22; /* Dimmed */
+    opacity: 0.56; /* Increased peak opacity for visibility */
   }
   15% {
-    opacity: 0.22;
+    opacity: 0.56;
   }
   22% {
     transform: rotate(35deg) translate3d(650px, 0, 0);
@@ -142,10 +142,10 @@
     opacity: 0;
   }
   2% {
-    opacity: 0.25; /* Dimmed */
+    opacity: 0.56; /* Increased peak opacity for visibility */
   }
   15% {
-    opacity: 0.25;
+    opacity: 0.56;
   }
   22% {
     transform: rotate(30deg) translate3d(750px, 0, 0);
