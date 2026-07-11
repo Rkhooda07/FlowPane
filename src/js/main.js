@@ -3766,6 +3766,22 @@ async function showEyeMessage() {
   if (taskTimerBtn && taskTimerModal) {
     taskTimerBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+
+      // Guard: require a task name before opening the timer modal
+      if (!taskInput.value.trim()) {
+        taskTimerBtn.classList.add('shake');
+        if (nameWarningEl) {
+          nameWarningEl.classList.remove('hidden');
+          if (taskInputShellEl) taskInputShellEl.classList.add('warning');
+          setTimeout(() => {
+            nameWarningEl.classList.add('hidden');
+            if (taskInputShellEl) taskInputShellEl.classList.remove('warning');
+          }, 2000);
+        }
+        setTimeout(() => taskTimerBtn.classList.remove('shake'), 400);
+        return;
+      }
+
       showEl(taskTimerModal);
       if (taskTimerInput) {
         taskTimerInput.value = '25';
