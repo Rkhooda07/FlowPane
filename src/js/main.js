@@ -1248,25 +1248,26 @@ if (taskReminderBtn && reminderDropdown) {
       });
     });
   }
+}
 
-  if (taskClearDueBtn) {
-    taskClearDueBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      dueInput.value = formatDateTimeHuman(getDefaultDueDate());
-      hasUserModifiedDate = false;
-      updateReminderBtnState();
-      selectedReminderMinutes = null;
-      taskReminderBtn.classList.remove('has-reminder');
-      reminderDropdown.querySelectorAll('.reminder-option').forEach(btn => btn.classList.remove('active'));
-      const pickerEl = document.getElementById('date-picker-popup');
-      if (pickerEl && pickerEl._close) {
-        pickerEl._close();
-      }
-      inputArea.classList.remove('expanded');
-    });
-  }
+if (taskClearDueBtn) {
+  taskClearDueBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dueInput.value = formatDateTimeHuman(getDefaultDueDate());
+    hasUserModifiedDate = false;
+    updateReminderBtnState();
+    selectedReminderMinutes = null;
+    taskReminderBtn.classList.remove('has-reminder');
+    reminderDropdown.querySelectorAll('.reminder-option').forEach(btn => btn.classList.remove('active'));
+    const pickerEl = document.getElementById('date-picker-popup');
+    if (pickerEl && pickerEl._close) {
+      pickerEl._close();
+    }
+    inputArea.classList.remove('expanded');
+  });
+}
 
-  let reminderPopupAutoCloseTimer = null;
+let reminderPopupAutoCloseTimer = null;
 let reminderPopupCloseHandler = null;
 let topCollapsedReminderAnimation = Promise.resolve();
 
@@ -1994,7 +1995,6 @@ if (taskDueDateBtn) {
         !taskDueDateBtn.contains(e.target) &&
         e.target !== dueInput) {
       closePicker();
-      e.stopPropagation();
     }
   }, true);
 
