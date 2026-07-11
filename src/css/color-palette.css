@@ -110,6 +110,33 @@
   pointer-events: all;
 }
 
+/* Arrow pointing up toward palette button */
+.palette-popup::before,
+.palette-popup::after {
+  content: '';
+  position: absolute;
+  left: auto;
+  border-left: solid transparent;
+  border-right: solid transparent;
+  border-top: none;
+}
+
+.palette-popup::before {
+  top: -9px;
+  right: 10px;
+  border-left-width: 9px;
+  border-right-width: 9px;
+  border-bottom: 9px solid rgba(255, 255, 255, 0.14);
+}
+
+.palette-popup::after {
+  top: -7px;
+  right: 12px;
+  border-left-width: 7px;
+  border-right-width: 7px;
+  border-bottom: 7px solid rgba(16, 16, 18, 0.92);
+}
+
 /* ── Color wheel ── */
 
 .palette-wheel-wrap {
@@ -175,13 +202,13 @@
 /* ── Tab bar ── */
 
 .palette-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 6px;
   margin-bottom: 12px;
 }
 
 .palette-tab {
-  flex: 1;
   height: 38px;
   border-radius: 10px;
   border: none;

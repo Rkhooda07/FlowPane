@@ -898,9 +898,11 @@ function buildTaskItem(task) {
 function buildNoteItem(note, noteId) {
   const li = document.createElement('li');
   li.className = `task-item note-entry note-entry-${note.theme || 1}`;
+  li.dataset.noteId = noteId;
 
   const swatch = document.createElement('span');
   swatch.className = 'note-entry-swatch';
+  if (note.customColor) swatch.style.background = note.customColor;
 
   const info = document.createElement('div');
   info.className = 'task-info';
@@ -4451,6 +4453,8 @@ async function showEyeMessage() {
     if (activeNoteId) {
       if (!noteDrafts[activeNoteId]) noteDrafts[activeNoteId] = { title:'', body:'', theme:1, customColor:null, updatedAt:Date.now() };
       noteDrafts[activeNoteId].customColor = hex;
+      const liveSwatch = document.querySelector(`[data-note-id="${activeNoteId}"] .note-entry-swatch`);
+      if (liveSwatch) liveSwatch.style.background = hex;
       if (noteAutoSaveTimeout) clearTimeout(noteAutoSaveTimeout);
       noteAutoSaveTimeout = setTimeout(persistNotesDrafts, 500);
     }
