@@ -2139,6 +2139,37 @@ let pickerJustClosed = false;
   periodDown.addEventListener('click', (e) => { e.stopPropagation(); togglePeriod(); });
   periodInput.addEventListener('click', (e) => { e.stopPropagation(); togglePeriod(); });
 
+  // Mouse wheel scroll to adjust values
+  hourInput.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const direction = e.deltaY < 0 ? 1 : -1;
+    let val = parseInt(hourInput.value, 10);
+    val = isNaN(val) ? 12 : val + direction;
+    if (val > 12) val = 1;
+    if (val < 1) val = 12;
+    hourInput.value = String(val).padStart(2, '0');
+    updateTime();
+  });
+
+  minInput.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const direction = e.deltaY < 0 ? 1 : -1;
+    let val = parseInt(minInput.value, 10);
+    val = isNaN(val) ? 0 : val + direction;
+    if (val > 59) val = 0;
+    if (val < 0) val = 59;
+    minInput.value = String(val).padStart(2, '0');
+    updateTime();
+  });
+
+  periodInput.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    togglePeriod();
+  });
+
   pickerEl._open = openPicker;
   pickerEl._close = closePicker;
 
