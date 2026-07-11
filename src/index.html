@@ -121,6 +121,49 @@
           <div class="dp-days" id="dp-days-grid"></div>
         </div>
 
+        <!-- Mini Time Picker Popup -->
+        <div id="time-picker-popup" class="time-picker-popup hidden" aria-hidden="true">
+          <div class="tp-container">
+            <!-- Hour Box -->
+            <div class="tp-col">
+              <button class="tp-arrow-btn" id="tp-hour-up" type="button" aria-label="Increment hour">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <input type="text" class="tp-input" id="tp-hour-input" maxlength="2" value="12" />
+              <button class="tp-arrow-btn" id="tp-hour-down" type="button" aria-label="Decrement hour">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            
+            <div class="tp-separator">:</div>
+            
+            <!-- Minute Box -->
+            <div class="tp-col">
+              <button class="tp-arrow-btn" id="tp-min-up" type="button" aria-label="Increment minute">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <input type="text" class="tp-input" id="tp-min-input" maxlength="2" value="00" />
+              <button class="tp-arrow-btn" id="tp-min-down" type="button" aria-label="Decrement minute">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            
+            <div class="tp-separator">&nbsp;</div>
+            
+            <!-- Period Box -->
+            <div class="tp-col">
+              <button class="tp-arrow-btn" id="tp-period-up" type="button" aria-label="Toggle AM PM">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <input type="text" class="tp-input period" id="tp-period-input" maxlength="2" value="PM" readonly />
+              <button class="tp-arrow-btn" id="tp-period-down" type="button" aria-label="Toggle AM PM">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+
         <div class="reminder-button-wrapper" id="reminder-button-wrapper">
           <button id="task-reminder-btn" class="task-reminder-btn" title="Add reminder" aria-label="Add reminder" type="button">
             <svg id="reminder-bell-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

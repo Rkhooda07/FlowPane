@@ -1822,7 +1822,10 @@ if (taskDueDateBtn) {
   taskDueDateBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     const pickerEl  = document.getElementById('date-picker-popup');
+    const timePicker = document.getElementById('time-picker-popup');
     const isExpanded = inputArea.classList.contains('expanded');
+
+    if (timePicker && timePicker._close) timePicker._close();
 
     if (!isExpanded) {
       inputArea.classList.add('expanded');
@@ -1848,6 +1851,9 @@ if (taskDueDateBtn) {
     }
   });
 }
+
+// Shared state variable to prevent collapse when closing any picker
+let pickerJustClosed = false;
 
 // ── Mini Calendar Date Picker ──────────────────────────────────────────────
 (function initDatePicker() {
@@ -1883,9 +1889,9 @@ if (taskDueDateBtn) {
   function closePicker() {
     pickerEl.classList.add('hidden');
     pickerEl.setAttribute('aria-hidden', 'true');
-    pickerEl._justClosed = true;
+    pickerJustClosed = true;
     setTimeout(() => {
-      pickerEl._justClosed = false;
+      pickerJustClosed = false;
     }, 250);
   }
 
@@ -2006,6 +2012,151 @@ if (taskDueDateBtn) {
   });
 })();
 
+// ── Mini Time Picker ────────────────────────────────────────────────────────
+(function initTimePicker() {
+  const pickerEl = document.getElementById('time-picker-popup');
+  const hourInput = document.getElementById('tp-hour-input');
+  const minInput = document.getElementById('tp-min-input');
+  const periodInput = document.getElementById('tp-period-input');
+  
+  const hourUp = document.getElementById('tp-hour-up');
+  const hourDown = document.getElementById('tp-hour-down');
+  const minUp = document.getElementById('tp-min-up');
+  const minDown = document.getElementById('tp-min-down');
+  const periodUp = document.getElementById('tp-period-up');
+  const periodDown = document.getElementById('tp-period-down');
+
+  if (!pickerEl || !hourInput || !minInput || !periodInput) return;
+
+  function openPicker() {
+    // Parse time from dueInput (e.g. "DD/MM/YYYY, HH:MM AM/PM")
+    const val = dueInput.value;
+    const regex = /, (\d{2}):(\d{2}) (AM|PM)/;
+    const match = val.match(regex);
+    
+    if (match) {
+      hourInput.value = match[1];
+      minInput.value = match[2];
+      periodInput.value = match[3];
+    } else {
+      hourInput.value = "12";
+      minInput.value = "00";
+      periodInput.value = "PM";
+    }
+    
+    pickerEl.classList.remove('hidden');
+    pickerEl.setAttribute('aria-hidden', 'false');
+  }
+
+  function closePicker() {
+    pickerEl.classList.add('hidden');
+    pickerEl.setAttribute('aria-hidden', 'true');
+    pickerJustClosed = true;
+    setTimeout(() => {
+      pickerJustClosed = false;
+    }, 250);
+  }
+
+  function updateTime() {
+    let h = parseInt(hourInput.value, 10);
+    let m = parseInt(minInput.value, 10);
+    let p = periodInput.value.toUpperCase();
+
+    if (isNaN(h) || h < 1 || h > 12) h = 12;
+    if (isNaN(m) || m < 0 || m > 59) m = 0;
+    if (p !== 'AM' && p !== 'PM') p = 'PM';
+
+    // Format back to dueInput
+    const val = dueInput.value;
+    // Keep date portion (first 12 chars e.g. "DD/MM/YYYY, ")
+    const datePart = val.substring(0, 12);
+    dueInput.value = `${datePart}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${p}`;
+    
+    hasUserModifiedDate = true;
+    updateReminderBtnState();
+  }
+
+  function validateHour() {
+    let val = parseInt(hourInput.value, 10);
+    if (isNaN(val) || val < 1 || val > 12) val = 12;
+    hourInput.value = String(val).padStart(2, '0');
+    updateTime();
+  }
+
+  function validateMin() {
+    let val = parseInt(minInput.value, 10);
+    if (isNaN(val) || val < 0 || val > 59) val = 0;
+    minInput.value = String(val).padStart(2, '0');
+    updateTime();
+  }
+
+  hourInput.addEventListener('blur', validateHour);
+  minInput.addEventListener('blur', validateMin);
+
+  // Up/down buttons
+  hourUp.addEventListener('click', (e) => {
+    e.stopPropagation();
+    let val = parseInt(hourInput.value, 10);
+    val = isNaN(val) ? 12 : val + 1;
+    if (val > 12) val = 1;
+    hourInput.value = String(val).padStart(2, '0');
+    updateTime();
+  });
+
+  hourDown.addEventListener('click', (e) => {
+    e.stopPropagation();
+    let val = parseInt(hourInput.value, 10);
+    val = isNaN(val) ? 12 : val - 1;
+    if (val < 1) val = 12;
+    hourInput.value = String(val).padStart(2, '0');
+    updateTime();
+  });
+
+  minUp.addEventListener('click', (e) => {
+    e.stopPropagation();
+    let val = parseInt(minInput.value, 10);
+    val = isNaN(val) ? 0 : val + 1;
+    if (val > 59) val = 0;
+    minInput.value = String(val).padStart(2, '0');
+    updateTime();
+  });
+
+  minDown.addEventListener('click', (e) => {
+    e.stopPropagation();
+    let val = parseInt(minInput.value, 10);
+    val = isNaN(val) ? 0 : val - 1;
+    if (val < 0) val = 59;
+    minInput.value = String(val).padStart(2, '0');
+    updateTime();
+  });
+
+  function togglePeriod() {
+    periodInput.value = periodInput.value === 'AM' ? 'PM' : 'AM';
+    updateTime();
+  }
+
+  periodUp.addEventListener('click', (e) => { e.stopPropagation(); togglePeriod(); });
+  periodDown.addEventListener('click', (e) => { e.stopPropagation(); togglePeriod(); });
+  periodInput.addEventListener('click', (e) => { e.stopPropagation(); togglePeriod(); });
+
+  pickerEl._open = openPicker;
+  pickerEl._close = closePicker;
+
+  document.addEventListener('mousedown', (e) => {
+    if (!pickerEl.classList.contains('hidden') &&
+        !pickerEl.contains(e.target) &&
+        e.target !== dueInput) {
+      closePicker();
+    }
+  }, true);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !pickerEl.classList.contains('hidden')) {
+      closePicker();
+    }
+  });
+})();
+
 let activeDueBlockEdit = null;
 
 function setDueSelection(block) {
@@ -2023,8 +2174,7 @@ document.addEventListener('mousedown', (e) => {
   if (inputArea.classList.contains('expanded') && !taskInput.value.trim()) {
     const isTopSection = inputArea.contains(e.target) || e.target.closest('.title-bar');
     if (!isTopSection) {
-      const pickerEl = document.getElementById('date-picker-popup');
-      if (pickerEl && pickerEl._justClosed) {
+      if (pickerJustClosed) {
         return;
       }
       inputArea.classList.remove('expanded');
@@ -2034,8 +2184,7 @@ document.addEventListener('mousedown', (e) => {
 
 inputArea.addEventListener('focusout', (e) => {
   setTimeout(() => {
-    const pickerEl = document.getElementById('date-picker-popup');
-    if (pickerEl && pickerEl._justClosed) {
+    if (pickerJustClosed) {
       return;
     }
     if (!inputArea.contains(document.activeElement) && document.activeElement !== document.body && !taskInput.value.trim()) {
@@ -2175,12 +2324,24 @@ dueInput.addEventListener('focus', () => {
 dueInput.addEventListener('click', () => {
   dueInputFocusFromPointer = false;
   commitActiveDueBlockEdit();
-  setDueSelection(getDueBlockFromCursor(dueInput.selectionStart ?? 0));
+  const cursor = dueInput.selectionStart ?? 0;
+  setDueSelection(getDueBlockFromCursor(cursor));
 
-  // Also open the calendar picker if it exists and is hidden
-  const pickerEl = document.getElementById('date-picker-popup');
-  if (pickerEl && pickerEl._open && pickerEl.classList.contains('hidden')) {
-    pickerEl._open();
+  const datePicker = document.getElementById('date-picker-popup');
+  const timePicker = document.getElementById('time-picker-popup');
+
+  if (cursor < 12) {
+    // Clicked on the date part (indices 0 to 11) - open calendar picker
+    if (timePicker && timePicker._close) timePicker._close();
+    if (datePicker && datePicker._open && datePicker.classList.contains('hidden')) {
+      datePicker._open();
+    }
+  } else {
+    // Clicked on the time part (indices 12 onwards) - open time picker
+    if (datePicker && datePicker._close) datePicker._close();
+    if (timePicker && timePicker._open && timePicker.classList.contains('hidden')) {
+      timePicker._open();
+    }
   }
 });
 
