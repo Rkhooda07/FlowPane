@@ -3840,6 +3840,18 @@ async function showEyeMessage() {
         taskTimerBtn.classList.remove('active');
       }
       closeTaskTimerModal();
+
+      // If the user already has a task name typed, auto-create the task
+      // and jump straight into focus mode with the timer running.
+      if (taskInput.value.trim()) {
+        addTask();
+        inputArea.classList.remove('expanded');
+        taskInput.blur();
+        const justAddedTask = tasks[tasks.length - 1];
+        if (justAddedTask) {
+          enterFocusMode(justAddedTask);
+        }
+      }
     };
 
     if (taskTimerStart) {
