@@ -1012,6 +1012,7 @@ const deleteConfirmYes = document.getElementById('delete-confirm-yes');
 const filterBtns = document.querySelectorAll('.filter-btn');
 const filterPill = document.getElementById('filter-pill');
 const taskReminderBtn = document.getElementById('task-reminder-btn');
+const taskClearDueBtn = document.getElementById('task-clear-due-btn');
 const reminderDropdown = document.getElementById('reminder-dropdown');
 const taskDueDateBtn = document.getElementById('task-due-date-btn');
 const taskTimerBtn = document.getElementById('task-timer-btn');
@@ -1247,9 +1248,25 @@ if (taskReminderBtn && reminderDropdown) {
       });
     });
   }
-}
 
-let reminderPopupAutoCloseTimer = null;
+  if (taskClearDueBtn) {
+    taskClearDueBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dueInput.value = formatDateTimeHuman(getDefaultDueDate());
+      hasUserModifiedDate = false;
+      updateReminderBtnState();
+      selectedReminderMinutes = null;
+      taskReminderBtn.classList.remove('has-reminder');
+      reminderDropdown.querySelectorAll('.reminder-option').forEach(btn => btn.classList.remove('active'));
+      const pickerEl = document.getElementById('date-picker-popup');
+      if (pickerEl && pickerEl._close) {
+        pickerEl._close();
+      }
+      inputArea.classList.remove('expanded');
+    });
+  }
+
+  let reminderPopupAutoCloseTimer = null;
 let reminderPopupCloseHandler = null;
 let topCollapsedReminderAnimation = Promise.resolve();
 
@@ -1865,6 +1882,10 @@ if (taskDueDateBtn) {
   function closePicker() {
     pickerEl.classList.add('hidden');
     pickerEl.setAttribute('aria-hidden', 'true');
+    pickerEl._justClosed = true;
+    setTimeout(() => {
+      pickerEl._justClosed = false;
+    }, 250);
   }
 
   function renderGrid() {
@@ -1973,6 +1994,7 @@ if (taskDueDateBtn) {
         !taskDueDateBtn.contains(e.target) &&
         e.target !== dueInput) {
       closePicker();
+      e.stopPropagation();
     }
   }, true);
 
@@ -2001,6 +2023,10 @@ document.addEventListener('mousedown', (e) => {
   if (inputArea.classList.contains('expanded') && !taskInput.value.trim()) {
     const isTopSection = inputArea.contains(e.target) || e.target.closest('.title-bar');
     if (!isTopSection) {
+      const pickerEl = document.getElementById('date-picker-popup');
+      if (pickerEl && pickerEl._justClosed) {
+        return;
+      }
       inputArea.classList.remove('expanded');
     }
   }
@@ -2008,6 +2034,10 @@ document.addEventListener('mousedown', (e) => {
 
 inputArea.addEventListener('focusout', (e) => {
   setTimeout(() => {
+    const pickerEl = document.getElementById('date-picker-popup');
+    if (pickerEl && pickerEl._justClosed) {
+      return;
+    }
     if (!inputArea.contains(document.activeElement) && document.activeElement !== document.body && !taskInput.value.trim()) {
       inputArea.classList.remove('expanded');
     }

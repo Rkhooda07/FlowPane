@@ -34,7 +34,8 @@
   transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.task-reminder-btn {
+.task-reminder-btn,
+.task-clear-due-btn {
   position: relative;
   background: rgba(255, 255, 255, 0.06);
   border: 0.5px solid rgba(255, 255, 255, 0.1);
@@ -52,14 +53,16 @@
   backdrop-filter: blur(10px);
 }
 
-.task-reminder-btn:hover {
+.task-reminder-btn:hover,
+.task-clear-due-btn:hover {
   color: var(--text-color);
   background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.3);
   transform: scale(1.05);
 }
 
-.task-reminder-btn:active {
+.task-reminder-btn:active,
+.task-clear-due-btn:active {
   transform: translateY(1px) scale(0.98);
 }
 
@@ -70,12 +73,14 @@
 }
 
 @media (prefers-color-scheme: light) {
-  .task-reminder-btn {
+  .task-reminder-btn,
+  .task-clear-due-btn {
     background: rgba(0, 0, 0, 0.04);
     border-color: rgba(0, 0, 0, 0.1);
     color: var(--text-color);
   }
-  .task-reminder-btn:hover {
+  .task-reminder-btn:hover,
+  .task-clear-due-btn:hover {
     background: rgba(0, 0, 0, 0.08);
     border-color: rgba(0, 0, 0, 0.2);
   }
@@ -667,6 +672,7 @@
 .reminder-button-wrapper {
   display: flex;
   align-items: center;
+  gap: 6px;
   position: relative;
   opacity: 0;
   pointer-events: none;
