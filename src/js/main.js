@@ -4316,7 +4316,7 @@ async function showEyeMessage() {
     if (!container) return;
     container.innerHTML = '';
 
-    const NUM_STARS = 20;
+    const NUM_STARS = 13;
 
     function randPos() {
       return { left: Math.random() * 100, top: Math.random() * 100 };
@@ -4328,17 +4328,17 @@ async function showEyeMessage() {
       star.textContent = '✦'; // Sharp four-pointed star — crisp, shiny, minimal
 
       const pos = randPos();
-      const size = 5.5 + Math.random() * 5.5; // 5.5px – 11px
-      const duration = 8 + Math.random() * 12; // 8s – 20s per cycle
-      const delay = -(Math.random() * duration); // start mid-cycle so they don't all appear at once
+      const size = 5.5 + Math.random() * 5.5;     // 5.5px – 11px
+      const duration = 4 + Math.random() * 5;     // 4s – 9s: fast cycles
+      const delay = -(Math.random() * duration);  // start mid-cycle so they don't all pop at once
 
-      star.style.left   = `${pos.left}%`;
-      star.style.top    = `${pos.top}%`;
-      star.style.fontSize        = `${size}px`;
-      star.style.animationDuration  = `${duration.toFixed(2)}s`;
-      star.style.animationDelay     = `${delay.toFixed(2)}s`;
+      star.style.left              = `${pos.left}%`;
+      star.style.top               = `${pos.top}%`;
+      star.style.fontSize          = `${size}px`;
+      star.style.animationDuration = `${duration.toFixed(2)}s`;
+      star.style.animationDelay    = `${delay.toFixed(2)}s`;
 
-      // When a full cycle ends (star is at opacity 0), teleport to a new random spot
+      // Star is at opacity 0 at 100% — teleport silently before next cycle starts
       star.addEventListener('animationiteration', () => {
         const next = randPos();
         const nextSize = 5.5 + Math.random() * 5.5;
