@@ -6,6 +6,8 @@ const { getCurrentWindow, currentMonitor, LogicalSize } = window.__TAURI__.windo
 
 const appWindow = getCurrentWindow();
 const appWindowLabel = appWindow.label;
+const IS_WINDOWS = navigator.userAgentData?.platform === 'Windows' ||
+  navigator.platform === 'Win32';
 const APP_WINDOW_SHORTCUT_COOLDOWN_MS = 700;
 const EDGE_PROXIMITY_PX = 25;
 const MIN_EXPAND_LOCK_MS = 800;
@@ -212,6 +214,7 @@ function getMonitorBounds(monitor) {
 
 async function beginWindowDragGesture() {
   drag.isGesture = true;
+  drag.isDragging = true;
   drag.gestureExpiresAt = Date.now() + DRAG_GESTURE_IDLE_END_MS;
   if (drag.idleTimer != null) {
     clearTimeout(drag.idleTimer);
@@ -233,6 +236,7 @@ function endWindowDragGesture() {
     drag.idleTimer = null;
   }
   drag.isGesture = false;
+  drag.isDragging = false;
   drag.gestureExpiresAt = 0;
   drag.startMonitor = null;
   drag.startSize = null;
@@ -1839,6 +1843,9 @@ function scheduleHoverPeek(delay = HOVER_PEEK_DELAY_MS) {
 // Hover peek logic for collapsed windows - bridges from Rust polling for inactive window support
 appWindow.listen('mouse-enter', () => {
   if (appElement.classList.contains('collapsed-reminder-active')) return;
+  // Windows: suppress peek during drags — the hover tracker fires mouse-enter
+  // as the dragged window crosses its own boundary, which would falsely trigger peek.
+  if (IS_WINDOWS && drag.isDragging) return;
 
   const isCollapsedY = appElement.classList.contains('collapsed-y');
   const isCollapsedX = appElement.classList.contains('collapsed-x');
@@ -2614,6 +2621,11 @@ let moveProcessingLastPos = null;
 appWindow.onMoved(async (event) => {
   if (isAnimating || drag.isDockMinimizing || drag.isRestoringFromDock) return;
 
+  // Windows: stamp move time in Rust so the hover tracker can back off during drags.
+  if (IS_WINDOWS) {
+    window.__TAURI__.core.invoke('notify_window_moved').catch(() => {});
+  }
+
   refreshWindowDragGesture();
 
   // If the window is moved manually while peeking (expanding via hover),
@@ -2677,23 +2689,28 @@ appWindow.onMoved(async (event) => {
           toggleCollapseX(true);
         }
       } else {
-        if (Date.now() - lastExpandTime >= MIN_EXPAND_LOCK_MS) {
-          const TRIGGER_TOP_SIDES = 6;
-          
-          if (dTop < TRIGGER_TOP_SIDES) {
-            clearTimeout(collapseTimer);
-            collapseTimer = setTimeout(() => { toggleCollapseY(); }, 150);
-          } else if (dLeft < TRIGGER_TOP_SIDES || dRight < TRIGGER_TOP_SIDES) {
-            clearTimeout(collapseTimer);
-            collapseTimer = setTimeout(() => { toggleCollapseX(); }, 150);
-          } else if (drag.isGesture && Date.now() <= drag.gestureExpiresAt && windowBottom > workBottom) {
-            clearTimeout(collapseTimer);
-            // Increased delay to 150ms to prevent accidental triggers during fast movement
-            collapseTimer = setTimeout(() => {
-              minimizeIntoDockFromBottomEdge(monitor, winPos, winSize);
-            }, 150);
-          } else {
-            clearTimeout(collapseTimer);
+        // Windows: skip collapse trigger while actively dragging — AeroSnap is already
+        // suppressed in Rust, but onMoved still fires at high frequency. Skipping here
+        // prevents the 150ms collapse debounce from firing spuriously mid-drag.
+        if (!IS_WINDOWS || !drag.isDragging) {
+          if (Date.now() - lastExpandTime >= MIN_EXPAND_LOCK_MS) {
+            const TRIGGER_TOP_SIDES = 6;
+
+            if (dTop < TRIGGER_TOP_SIDES) {
+              clearTimeout(collapseTimer);
+              collapseTimer = setTimeout(() => { toggleCollapseY(); }, 150);
+            } else if (dLeft < TRIGGER_TOP_SIDES || dRight < TRIGGER_TOP_SIDES) {
+              clearTimeout(collapseTimer);
+              collapseTimer = setTimeout(() => { toggleCollapseX(); }, 150);
+            } else if (drag.isGesture && Date.now() <= drag.gestureExpiresAt && windowBottom > workBottom) {
+              clearTimeout(collapseTimer);
+              // Increased delay to 150ms to prevent accidental triggers during fast movement
+              collapseTimer = setTimeout(() => {
+                minimizeIntoDockFromBottomEdge(monitor, winPos, winSize);
+              }, 150);
+            } else {
+              clearTimeout(collapseTimer);
+            }
           }
         }
       }
@@ -2707,7 +2724,14 @@ appWindow.onMoved(async (event) => {
     }
   };
 
-  processMoves();
+  // Windows: gate the first processMoves call behind a RAF so that multiple onMoved
+  // events landing in the same frame are coalesced into one evaluation cycle.
+  // macOS: call immediately (unchanged behavior).
+  if (IS_WINDOWS) {
+    requestAnimationFrame(() => processMoves());
+  } else {
+    processMoves();
+  }
 });
 
 // Focus Mode Logic

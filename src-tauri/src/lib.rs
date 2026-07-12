@@ -1,9 +1,35 @@
-use std::sync::Mutex;
+#[cfg(target_os = "windows")]
+use std::sync::atomic::Ordering;
+use std::sync::atomic::AtomicU64;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, State, WebviewUrl, WebviewWindow,
     WebviewWindowBuilder,
 };
+
+#[cfg(target_os = "windows")]
+use {
+    tauri::raw_window_handle::{HasWindowHandle, RawWindowHandle},
+    windows_sys::Win32::UI::WindowsAndMessaging::{
+        GetWindowLongPtrW, SetWindowLongPtrW, GWL_STYLE, WS_THICKFRAME,
+    },
+};
+
+/// Clears WS_THICKFRAME from the window style so Windows Snap Assist (AeroSnap)
+/// treats FlowPane as non-resizable from OS perspective and won't intercept edge drags.
+#[cfg(target_os = "windows")]
+fn suppress_aero_snap(window: &WebviewWindow) {
+    if let Ok(handle) = window.window_handle() {
+        if let RawWindowHandle::Win32(h) = handle.as_raw() {
+            let hwnd = h.hwnd.get() as isize;
+            unsafe {
+                let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
+                SetWindowLongPtrW(hwnd, GWL_STYLE, style & !(WS_THICKFRAME as isize));
+            }
+        }
+    }
+}
 
 const APP_WINDOW_WIDTH: f64 = 335.0;
 const APP_WINDOW_HEIGHT: f64 = 405.0;
@@ -21,6 +47,11 @@ struct HoverTrackerState {
     hovered_label: Mutex<Option<String>>,
     active_label: Mutex<Option<String>>,
     app_window_order: Mutex<Vec<String>>,
+    // Milliseconds since UNIX_EPOCH of the last window-move event (Windows only).
+    // Written by notify_window_moved IPC; read by hover tracker to skip polls
+    // during high-frequency drag events and avoid CPU contention with AeroSnap.
+    #[allow(dead_code)]
+    last_move_ms: Arc<AtomicU64>,
 }
 
 fn is_app_window_label(label: &str) -> bool {
@@ -98,9 +129,25 @@ fn app_window_under_cursor(
 fn spawn_hover_tracker(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         let state = app.state::<HoverTrackerState>();
+        #[cfg(target_os = "windows")]
+        let last_move_ms = Arc::clone(&state.last_move_ms);
 
         loop {
             tokio::time::sleep(Duration::from_millis(150)).await;
+
+            // Windows: skip this poll cycle when a move event arrived < 100ms ago.
+            // Prevents the hover tracker from racing with AeroSnap during drags.
+            #[cfg(target_os = "windows")]
+            {
+                let now_ms = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64;
+                let moved_ms = last_move_ms.load(Ordering::Relaxed);
+                if moved_ms > 0 && now_ms.saturating_sub(moved_ms) < 100 {
+                    continue;
+                }
+            }
 
             let hovered_window = app_window_under_cursor(&app, &state);
             let hovered_label = hovered_window.as_ref().map(|(label, _)| label.clone());
@@ -232,6 +279,20 @@ fn get_app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+/// Called by JS `onMoved` on Windows to stamp when the last move event fired.
+/// The hover tracker uses this to skip poll cycles during active drags.
+#[tauri::command]
+fn notify_window_moved(#[allow(unused_variables)] hover_state: State<HoverTrackerState>) {
+    #[cfg(target_os = "windows")]
+    {
+        let now_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
+        hover_state.last_move_ms.store(now_ms, Ordering::Relaxed);
+    }
+}
+
 #[tauri::command]
 fn create_app_window(
     app: AppHandle,
@@ -280,6 +341,9 @@ fn create_app_window(
     let _ = new_window.set_focus();
     remember_app_window_order(&hover_state, &label)?;
 
+    #[cfg(target_os = "windows")]
+    suppress_aero_snap(&new_window);
+
     Ok(Some(label))
 }
 
@@ -313,6 +377,14 @@ pub fn run() {
             let window = app.get_webview_window("main").unwrap();
             let hover_state = app.state::<HoverTrackerState>();
             remember_app_window_order(&hover_state, window.label())?;
+
+            // Windows: remove WS_THICKFRAME to suppress AeroSnap (Windows Snap Assist).
+            // FlowPane manages its own edge-snap; letting the OS also snap creates a
+            // feedback loop between onMoved events and the AeroSnap position/resize that
+            // spikes CPU. decorations:false removes the caption but not WS_THICKFRAME on
+            // all WebView2 versions, so we clear it explicitly.
+            #[cfg(target_os = "windows")]
+            suppress_aero_snap(&window);
 
             // Onboarding check could also be done here or in frontend
 
@@ -383,6 +455,7 @@ pub fn run() {
             show_eye_bubble_overlay,
             hide_eye_bubble_overlay,
             get_app_version,
+            notify_window_moved,
             create_app_window,
             mark_app_window_active,
             close_app_window
