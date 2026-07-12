@@ -1,7 +1,7 @@
 export const reminderTone = new Audio('assets/due_reminder_tone.mp3');
 reminderTone.preload = 'auto';
 
-export const collapseExpandTone = new Audio('assets/collapse:expand_tone.mp3');
+export const collapseExpandTone = new Audio('assets/collapse_expand_tone.mp3');
 collapseExpandTone.preload = 'auto';
 
 export const taskCreateTone = new Audio('assets/task_create_tone.mp3');
