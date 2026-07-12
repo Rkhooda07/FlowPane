@@ -23,7 +23,7 @@ use {
 fn suppress_aero_snap(window: &WebviewWindow) {
     if let Ok(handle) = window.window_handle() {
         if let RawWindowHandle::Win32(h) = handle.as_raw() {
-            let hwnd = h.hwnd.get() as isize;
+            let hwnd = h.hwnd.as_ptr();
             unsafe {
                 let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
                 SetWindowLongPtrW(hwnd, GWL_STYLE, style & !(WS_THICKFRAME as isize));
