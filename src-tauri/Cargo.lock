@@ -3510,6 +3510,7 @@ name = "tauri-app"
 version = "0.1.0"
 dependencies = [
  "dirs",
+ "raw-window-handle",
  "serde",
  "serde_json",
  "tauri",

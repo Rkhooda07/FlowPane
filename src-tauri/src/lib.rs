@@ -10,7 +10,7 @@ use tauri::{
 
 #[cfg(target_os = "windows")]
 use {
-    tauri::raw_window_handle::{HasWindowHandle, RawWindowHandle},
+    raw_window_handle::{HasWindowHandle, RawWindowHandle},
     window_vibrancy::apply_acrylic,
     windows_sys::Win32::UI::WindowsAndMessaging::{
         GetWindowLongPtrW, SetWindowLongPtrW, GWL_STYLE, WS_THICKFRAME,
