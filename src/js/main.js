@@ -8,6 +8,8 @@ const appWindow = getCurrentWindow();
 const appWindowLabel = appWindow.label;
 const IS_WINDOWS = navigator.userAgentData?.platform === 'Windows' ||
   navigator.platform === 'Win32';
+// WINDOWS-COMPAT: data-platform lets CSS apply platform-specific overrides without JS style setting.
+document.body.dataset.platform = IS_WINDOWS ? 'windows' : 'macos';
 const APP_WINDOW_SHORTCUT_COOLDOWN_MS = 700;
 const EDGE_PROXIMITY_PX = 25;
 const MIN_EXPAND_LOCK_MS = 800;

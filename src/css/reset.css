@@ -8,6 +8,10 @@
 ::-webkit-scrollbar {
   display: none;
 }
+/* WINDOWS-COMPAT: WebView2 (Chromium) uses standard scrollbar properties */
+* {
+  scrollbar-width: none;
+}
 
 html, body {
   margin: 0;

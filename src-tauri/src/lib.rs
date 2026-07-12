@@ -11,6 +11,7 @@ use tauri::{
 #[cfg(target_os = "windows")]
 use {
     tauri::raw_window_handle::{HasWindowHandle, RawWindowHandle},
+    window_vibrancy::apply_acrylic,
     windows_sys::Win32::UI::WindowsAndMessaging::{
         GetWindowLongPtrW, SetWindowLongPtrW, GWL_STYLE, WS_THICKFRAME,
     },
@@ -386,6 +387,12 @@ pub fn run() {
             #[cfg(target_os = "windows")]
             suppress_aero_snap(&window);
 
+            // WINDOWS-COMPAT: transparent:true alone gives opaque white on WebView2.
+            // apply_acrylic enables DWM composition so the glass blur is visible.
+            // None = let the system pick the tint colour; works on Win10 and Win11.
+            #[cfg(target_os = "windows")]
+            let _ = apply_acrylic(&window, None);
+
             // Onboarding check could also be done here or in frontend
 
             let bubble_window = WebviewWindowBuilder::new(
@@ -406,6 +413,8 @@ pub fn run() {
             .focusable(false)
             .visible(false)
             .build()?;
+            #[cfg(target_os = "windows")]
+            let _ = apply_acrylic(&bubble_window, None);
             let _ = bubble_window.set_ignore_cursor_events(true);
 
             // Background task to track mouse hover for inactive windows.
