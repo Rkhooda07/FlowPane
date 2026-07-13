@@ -3803,7 +3803,6 @@ async function showEyeMessage() {
   const menuPrivacy = document.getElementById('menu-privacy');
   const menuQuit = document.getElementById('menu-quit');
   const menuReplayGuide = document.getElementById('menu-replay-guide');
-
   if (contextMenu) {
     document.addEventListener('contextmenu', (e) => {
       e.preventDefault();
@@ -3859,18 +3858,10 @@ async function showEyeMessage() {
   if (menuPrivacy) {
     menuPrivacy.addEventListener('click', () => {
       contextMenu.classList.add('hidden');
-      try {
-        const { WebviewWindow } = window.__TAURI__.window;
-        new WebviewWindow('privacy-policy', {
-          url: '/assets/privacy_policy.html',
-          title: 'FlowPane - Privacy Policy',
-          width: 600,
-          height: 800,
-          resizable: true,
-          center: true
-        });
-      } catch (e) {
-        console.error('Failed to open privacy policy window:', e);
+      const privacyModal = document.getElementById('privacy-modal');
+      if (privacyModal) {
+        privacyModal.classList.remove('hidden');
+        privacyModal.setAttribute('aria-hidden', 'false');
       }
     });
   }
@@ -3887,6 +3878,27 @@ async function showEyeMessage() {
   if (aboutCloseBtn) {
     aboutCloseBtn.addEventListener('click', () => {
       if (aboutModal) aboutModal.classList.add('hidden');
+    });
+  }
+
+  const privacyModalEl = document.getElementById('privacy-modal');
+  const privacyCloseBtn = document.getElementById('privacy-close-btn');
+  if (privacyCloseBtn && privacyModalEl) {
+    privacyCloseBtn.addEventListener('click', () => {
+      privacyModalEl.classList.add('hidden');
+      privacyModalEl.setAttribute('aria-hidden', 'true');
+    });
+    privacyModalEl.addEventListener('click', (e) => {
+      if (e.target === privacyModalEl) {
+        privacyModalEl.classList.add('hidden');
+        privacyModalEl.setAttribute('aria-hidden', 'true');
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !privacyModalEl.classList.contains('hidden')) {
+        privacyModalEl.classList.add('hidden');
+        privacyModalEl.setAttribute('aria-hidden', 'true');
+      }
     });
   }
 

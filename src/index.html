@@ -458,6 +458,36 @@
       </div>
     </div>
 
+    <!-- Privacy Policy Modal -->
+    <div id="privacy-modal" class="modal-overlay hidden" aria-hidden="true">
+      <div class="resume-card privacy-card" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+        <div class="resume-icon privacy-icon">🔒</div>
+        <h3 id="privacy-title">Privacy Policy</h3>
+        <p class="privacy-updated">Last updated: May 24, 2026</p>
+        <div class="privacy-body">
+          <p class="privacy-lead">FlowPane is a desktop utility designed with privacy in mind.</p>
+
+          <h4>1. Data Collection</h4>
+          <p>FlowPane <strong>does not collect any personal data</strong>. All information you enter or tasks you create are stored locally on your device.</p>
+
+          <h4>2. Data Transmission</h4>
+          <p>No data leaves your device. FlowPane does not have a backend server and does not transmit your data to any third party.</p>
+
+          <h4>3. Analytics and Crash Reports</h4>
+          <p>FlowPane does not use any third-party analytics or crash reporting services that collect identifying information.</p>
+
+          <h4>4. Local Storage</h4>
+          <p>FlowPane uses local storage (JSON file via <code>tauri-plugin-store</code>) to persist your settings, tasks, and notes. This data remains on your machine.</p>
+
+          <h4>5. Contact</h4>
+          <p>If you have questions about this Privacy Policy, reach out via GitHub Issues on our repository.</p>
+        </div>
+        <div class="resume-actions">
+          <button id="privacy-close-btn" class="resume-btn continue">Close</button>
+        </div>
+      </div>
+    </div>
+
     <div id="focus-mode" class="focus-mode hidden">
       <header class="title-bar focus-header-bar" data-tauri-drag-region>
         <div class="window-controls" aria-hidden="true">
