@@ -3910,79 +3910,34 @@ async function showEyeMessage() {
 
   // Onboarding Logic
   let currentOnboardingStep = 0;
-  let onboardingExpandedInput = false;
-  let onboardingExpandedFilter = false;
   let onboardingPositionInterval = null;
 
   const onboardingSteps = [
     {
       selector: null,
-      copy: "Welcome to FlowPane! Your translucent, always-on-top companion designed to keep you in your flow state. Let's take a quick 1-minute tour."
+      copy: "Quick tour. FlowPane is a floating task manager — always on top, never in the way."
     },
     {
-      selector: ".googly-eyes",
-      copy: "FlowPane floats above your other windows. These eyes track your cursor to keep your focus centered!"
+      selector: "#task-input",
+      copy: "Type a task here and press Enter to add it. Set a deadline or timer right below."
     },
     {
       selector: ".guide-icon",
-      copy: "Drag the pane to screen edges to snap and collapse it into a minimal floating indicator."
-    },
-    {
-      selector: "#task-input",
-      copy: "Type a task description or note title here, then press Enter to quickly add it."
-    },
-    {
-      selector: "#task-due-date-btn",
-      copy: "Click the calendar to set a deadline or due date for the task you are adding."
-    },
-    {
-      selector: "#task-reminder-btn",
-      copy: "Schedule a reminder notification to alert you before your task deadline."
-    },
-    {
-      selector: "#task-timer-btn",
-      copy: "Set a focus duration to launch a Pomodoro-style timer in Focus Mode."
+      copy: "Drag this corner to the edge of your screen to snap-collapse. Hover to peek back."
     },
     {
       selector: ".task-notes-icons",
-      copy: "Select a color tab to create separate, color-coded workspaces for notes."
+      copy: "Click a color tab to open a dedicated, color-coded note workspace."
     },
     {
-      selector: ".filter-icon",
-      copy: "Click this funnel to toggle the visibility of the filter controls."
-    },
-    {
-      selector: ".filter-options",
-      copy: "Switch between viewing everything, just active tasks, or note pages."
-    },
-    {
-      selector: "#history-btn",
-      copy: "Open the completed tasks history to review your finished items or restore them."
-    },
-    {
-      selector: "#task-input",
-      copy: "You're all set! Start typing your first task above to begin."
+      selector: null,
+      copy: "You're all set. Right-click anywhere anytime for menus. Have a good flow."
     }
   ];
 
-  function cleanupStep(stepIndex) {
-    // Step 5 (Bell Icon) Cleanup
-    if (stepIndex === 5 && onboardingExpandedInput) {
-      const inputArea = document.querySelector('.input-area');
-      if (inputArea) {
-        inputArea.classList.remove('expanded');
-      }
-      onboardingExpandedInput = false;
-    }
-    // Step 9 (Filter Options) Cleanup
-    if (stepIndex === 9 && onboardingExpandedFilter) {
-      const filterOptions = document.querySelector('.filter-options');
-      if (filterOptions) {
-        filterOptions.classList.add('hidden');
-        filterOptions.style.display = '';
-      }
-      onboardingExpandedFilter = false;
-    }
+  function cleanupStep() {
+    // No-op: stripped-down 5-step tour has no per-step DOM mutations to undo.
+    // Kept as a hook for future steps that need cleanup.
   }
 
   function endOnboarding() {
@@ -3990,9 +3945,8 @@ async function showEyeMessage() {
       clearInterval(onboardingPositionInterval);
       onboardingPositionInterval = null;
     }
-    // Clean up both states to be safe
-    cleanupStep(5);
-    cleanupStep(9);
+    // Clean up any transient onboarding state
+    cleanupStep();
     
     const overlay = document.getElementById('onboarding-overlay');
     if (overlay) hideEl(overlay);
@@ -4032,8 +3986,7 @@ async function showEyeMessage() {
     if (!overlay) return;
     
     // Reset layout states
-    cleanupStep(5);
-    cleanupStep(9);
+    cleanupStep();
     
     showEl(overlay);
     backdrop.classList.remove('hidden');
@@ -4148,7 +4101,7 @@ async function showEyeMessage() {
       clearInterval(onboardingPositionInterval);
       onboardingPositionInterval = null;
     }
-    cleanupStep(currentOnboardingStep);
+    cleanupStep();
     currentOnboardingStep = stepIndex;
     
     const welcomeCard = document.getElementById('onboarding-welcome-card');
@@ -4168,30 +4121,6 @@ async function showEyeMessage() {
     
     const step = onboardingSteps[stepIndex];
     if (!step) return;
-    
-    // Setup dynamic workspace expansions
-    if (stepIndex === 5) {
-      const inputArea = document.querySelector('.input-area');
-      if (inputArea) {
-        const isExpanded = inputArea.classList.contains('expanded');
-        if (!isExpanded) {
-          inputArea.classList.add('expanded');
-          onboardingExpandedInput = true;
-        }
-      }
-    }
-    
-    if (stepIndex === 9) {
-      const filterOptions = document.querySelector('.filter-options');
-      if (filterOptions) {
-        const isVisible = getComputedStyle(filterOptions).display !== 'none' && !filterOptions.classList.contains('hidden');
-        if (!isVisible) {
-          filterOptions.classList.remove('hidden');
-          filterOptions.style.display = 'flex';
-          onboardingExpandedFilter = true;
-        }
-      }
-    }
     
     textEl.textContent = step.copy;
     progressEl.textContent = `${stepIndex} / ${onboardingSteps.length - 1}`;
