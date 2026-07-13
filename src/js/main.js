@@ -3807,8 +3807,35 @@ async function showEyeMessage() {
   if (contextMenu) {
     document.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      contextMenu.style.top = `${e.clientY}px`;
-      contextMenu.style.left = `${e.clientX}px`;
+
+      // Get menu dimensions (force layout to measure)
+      contextMenu.classList.remove('hidden');
+      const menuWidth = contextMenu.offsetWidth;
+      const menuHeight = contextMenu.offsetHeight;
+      contextMenu.classList.add('hidden');
+
+      // Calculate position keeping menu within viewport
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const padding = 8; // Small padding from edge
+
+      let left = e.clientX;
+      let top = e.clientY;
+
+      // Flip horizontally if would go off right edge
+      if (left + menuWidth + padding > viewportWidth) {
+        left = viewportWidth - menuWidth - padding;
+      }
+      // Flip vertically if would go off bottom edge
+      if (top + menuHeight + padding > viewportHeight) {
+        top = viewportHeight - menuHeight - padding;
+      }
+      // Ensure not off left/top edges
+      left = Math.max(padding, left);
+      top = Math.max(padding, top);
+
+      contextMenu.style.left = `${left}px`;
+      contextMenu.style.top = `${top}px`;
       contextMenu.classList.remove('hidden');
     });
 

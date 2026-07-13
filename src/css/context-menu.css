@@ -5,14 +5,13 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   padding: 6px;
-  min-width: 180px;
+  min-width: 140px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   z-index: 10000;
   display: flex;
   flex-direction: column;
   gap: 2px;
   animation: contextMenuAppear 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  isolation: isolate;
   contain: layout style;
 }
 
@@ -51,5 +50,15 @@
   height: 1px;
   background: rgba(255, 255, 255, 0.1);
   margin: 4px 0;
+}
+
+/* Dim context menu when app is unfocused (inherits from #app:not(.focused) but explicit for fixed positioning) */
+#app:not(.focused) .context-menu .context-item {
+  opacity: 0.4;
+  filter: saturate(0.6) grayscale(0.3) brightness(0.8);
+}
+
+#app:not(.focused) .context-menu .context-divider {
+  opacity: 0.4;
 }
 
