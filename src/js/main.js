@@ -1,6 +1,6 @@
 import { DUE_BLOCKS, quotes, congratsMessages, ALL_WINDOWS_SIZE, PEEK_SIZE_Y, PEEK_SIZE_X, COLLAPSED_SIZE_Y, COLLAPSED_REMINDER_SIZE_Y, COLLAPSED_SIZE_X, COLLAPSED_SIZE_Y_BUBBLE, COLLAPSED_SIZE_X_BUBBLE, HOVER_PEEK_DELAY_MS, HOVER_PEEK_RETRY_MS, SIDE_NOTIFICATION_BUBBLE_DURATION_MS, MANUAL_DRAG_EXPAND_DURATION_MS, NATIVE_EDGE_SNAP_THRESHOLD, NATIVE_SIDE_SNAP_MIN_WIDTH_RATIO, NATIVE_TOP_SNAP_MIN_WIDTH_RATIO, NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO, DRAG_GESTURE_IDLE_END_MS, SNAP_THRESHOLD } from './constants.js';
 import { parseMaskedDate, formatDateTimeHuman, normalizeDueInputValue, normalizeDueBlockValue, getDueBlockFromSelection, setDueBlockValue, formatDueBlockForEditing, capitalizeFirstLetter, tokenizeBubbleHTML, renderBubbleTokens } from './utils.js';
-import { initAudio, playReminderTone, playSnapSound, playTaskCreateSound, playTaskDeleteSound, playFallbackDeleteSound, playTimesUpSound, playVictorySound } from './audio.js';
+import { warmAudio, playReminderTone, playCollapseExpandSound, playTaskCreateSound, playTaskDeleteSound, playFallbackDeleteSound, playTimesUpSound, playVictorySound } from './audio.js';
 
 const { getCurrentWindow, currentMonitor, LogicalSize } = window.__TAURI__.window;
 
@@ -285,7 +285,7 @@ async function restoreExpandedStateFromNativeEdgeSnap() {
   const wasCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
   if (!wasCollapsed) return;
 
-  playSnapSound(true);
+  playCollapseExpandSound();
 
   peek.active = false;
   appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
@@ -555,11 +555,11 @@ async function expandFromY(isManualDrag) {
 
 async function toggleCollapseY(isManualDrag = false) {
   if (isAnimating) return;
-  const isCollapsing = !appElement.classList.contains('collapsed-y');
-  playSnapSound(!isCollapsing);
+  playCollapseExpandSound();
   isAnimating = true;
   try {
     const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
+    const isCollapsing = !appElement.classList.contains('collapsed-y');
     if (isManualDrag) { peek.active = false; appElement.classList.remove('peeking', 'peeking-y', 'peeking-x'); }
     if (isCollapsing) await collapseToY(isCurrentlyCollapsed);
     else await expandFromY(isManualDrag);
@@ -662,11 +662,11 @@ async function expandFromX(isManualDrag) {
 
 async function toggleCollapseX(isManualDrag = false) {
   if (isAnimating) return;
-  const isCollapsing = !appElement.classList.contains('collapsed-x');
-  playSnapSound(!isCollapsing);
+  playCollapseExpandSound();
   isAnimating = true;
   try {
     const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
+    const isCollapsing = !appElement.classList.contains('collapsed-x');
     if (isManualDrag) { peek.active = false; appElement.classList.remove('peeking', 'peeking-y', 'peeking-x'); }
     if (isCollapsing) await collapseToX(isCurrentlyCollapsed);
     else await expandFromX(isManualDrag);
@@ -3458,10 +3458,11 @@ setTimeout(updateFilterPill, 300);
 window.addEventListener('load', updateFilterPill);
 window.addEventListener('resize', updateFilterPill);
 
-// Audio warm-up: pre-create AudioContext + resume on the very first user gesture
-// so subsequent synthesized tones have zero cold-start latency in macOS WebView.
+// Audio warm-up: pre-decode each tone on the very first user gesture so the
+// first collapse/expand/victory click doesn't pay the WebView's media decoder
+// latency cost.
 ['pointerdown', 'keydown'].forEach((evt) => {
-  document.addEventListener(evt, initAudio, { once: true, passive: true });
+  document.addEventListener(evt, warmAudio, { once: true, passive: true });
 });
 
 // Googly Eyes Cursor Tracking

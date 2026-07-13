@@ -1,86 +1,95 @@
-let audioReady = false;
-let audioCtx = null;
-let ctxMasterGain = null;
+export const reminderTone = new Audio('assets/due_reminder_tone.mp3');
+reminderTone.preload = 'auto';
 
-function ensureCtx() {
-  if (audioCtx) return audioCtx;
-  const Ctor = window.AudioContext || window.webkitAudioContext;
-  if (!Ctor) return null;
-  audioCtx = new Ctor();
-  ctxMasterGain = audioCtx.createGain();
-  ctxMasterGain.gain.value = 0.6;
-  ctxMasterGain.connect(audioCtx.destination);
-  return audioCtx;
-}
+export const collapseExpandTone = new Audio('assets/collapse_expand_tone.mp3');
+collapseExpandTone.preload = 'auto';
 
-export function initAudio() {
-  if (audioReady) return;
-  ensureCtx();
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume().catch(() => {});
-  }
-  audioReady = true;
-}
+export const taskCreateTone = new Audio('assets/task_create_tone.mp3');
+taskCreateTone.preload = 'auto';
 
-function scheduleTone({ freq, type = 'triangle', start = 0, peak = 0.18, attack = 0.005, duration = 0.18, freqEnd = null }) {
-  const ctx = ensureCtx();
-  if (!ctx) return;
-  const now = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, now + start);
-  if (freqEnd != null) {
-    osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqEnd), now + start + duration);
-  }
-  gain.gain.setValueAtTime(0, now + start);
-  gain.gain.linearRampToValueAtTime(peak, now + start + attack);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + start + duration);
-  osc.connect(gain);
-  gain.connect(ctxMasterGain);
-  osc.start(now + start);
-  osc.stop(now + start + duration + 0.02);
-}
+export const taskDeleteTone = new Audio('assets/task_delete_tone.mp3');
+taskDeleteTone.preload = 'auto';
 
-export function playSnapSound(isExpanding) {
-  if (isExpanding) {
-    scheduleTone({ freq: 880, type: 'triangle', start: 0.0, peak: 0.22, attack: 0.002, duration: 0.07 });
-    scheduleTone({ freq: 1760, type: 'square', start: 0.005, peak: 0.08, attack: 0.001, duration: 0.03, freqEnd: 1200 });
-  } else {
-    scheduleTone({ freq: 1320, type: 'triangle', start: 0.0, peak: 0.22, attack: 0.002, duration: 0.06, freqEnd: 880 });
-    scheduleTone({ freq: 660, type: 'square', start: 0.0, peak: 0.08, attack: 0.001, duration: 0.025, freqEnd: 440 });
+export const fallbackDeleteTone = new Audio('assets/fallback_delete_tone.mp3');
+fallbackDeleteTone.preload = 'auto';
+
+export const timesUpTone = new Audio('assets/times_up_tone.mp3');
+timesUpTone.preload = 'auto';
+
+let audioWarm = false;
+
+// Pre-decode / warm-up on first user gesture so the first click doesn't pay
+// the WebView's media decoder latency cost.
+export async function warmAudio() {
+  if (audioWarm) return;
+  audioWarm = true;
+  const tones = [reminderTone, collapseExpandTone, taskCreateTone, taskDeleteTone, fallbackDeleteTone, timesUpTone];
+  for (const t of tones) {
+    try {
+      t.muted = true;
+      await t.play();
+      t.pause();
+      t.currentTime = 0;
+      t.muted = false;
+    } catch (_) { /* ignore autoplay blocks etc. */ }
   }
 }
 
 export function playReminderTone() {
-  scheduleTone({ freq: 880, type: 'sine', start: 0.0, peak: 0.22, attack: 0.005, duration: 0.6 });
-  scheduleTone({ freq: 1320, type: 'sine', start: 0.18, peak: 0.18, attack: 0.005, duration: 0.4 });
+  reminderTone.currentTime = 0;
+  reminderTone.play().catch(() => {});
+}
+
+export function playCollapseExpandSound() {
+  collapseExpandTone.currentTime = 0;
+  collapseExpandTone.play().catch(() => {});
 }
 
 export function playTaskCreateSound() {
-  scheduleTone({ freq: 660, type: 'triangle', start: 0.0, peak: 0.22, attack: 0.003, duration: 0.09, freqEnd: 990 });
-  scheduleTone({ freq: 1320, type: 'sine', start: 0.04, peak: 0.16, attack: 0.003, duration: 0.12 });
+  taskCreateTone.currentTime = 0;
+  taskCreateTone.play().catch(() => {});
 }
 
 export function playTaskDeleteSound() {
-  scheduleTone({ freq: 990, type: 'triangle', start: 0.0, peak: 0.22, attack: 0.003, duration: 0.07, freqEnd: 660 });
-  scheduleTone({ freq: 495, type: 'sine', start: 0.025, peak: 0.14, attack: 0.003, duration: 0.09 });
+  taskDeleteTone.currentTime = 0;
+  taskDeleteTone.play().catch(() => {});
 }
 
 export function playFallbackDeleteSound() {
-  scheduleTone({ freq: 220, type: 'square', start: 0.0, peak: 0.16, attack: 0.002, duration: 0.08, freqEnd: 110 });
+  fallbackDeleteTone.currentTime = 0;
+  fallbackDeleteTone.play().catch(() => {});
 }
 
 export function playTimesUpSound() {
-  for (let i = 0; i < 3; i++) {
-    scheduleTone({ freq: 1000, type: 'square', start: 0.0 + i * 0.18, peak: 0.22, attack: 0.002, duration: 0.13 });
-    scheduleTone({ freq: 1300, type: 'sine', start: 0.0 + i * 0.18, peak: 0.14, attack: 0.002, duration: 0.16 });
-  }
+  timesUpTone.currentTime = 0;
+  timesUpTone.play().catch(() => {});
 }
 
 export function playVictorySound() {
-  scheduleTone({ freq: 523.25, type: 'triangle', start: 0.0,  peak: 0.22, attack: 0.005, duration: 0.15 });
-  scheduleTone({ freq: 659.25, type: 'triangle', start: 0.04, peak: 0.22, attack: 0.005, duration: 0.15 });
-  scheduleTone({ freq: 783.99, type: 'triangle', start: 0.08, peak: 0.22, attack: 0.005, duration: 0.15 });
-  scheduleTone({ freq: 1046.50, type: 'triangle', start: 0.12, peak: 0.26, attack: 0.005, duration: 0.5 });
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  const ctx = new AudioContext();
+
+  const playNote = (freq, startTime, duration) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
+
+    gain.gain.setValueAtTime(0, ctx.currentTime + startTime);
+    gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + startTime + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + startTime + duration);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(ctx.currentTime + startTime);
+    osc.stop(ctx.currentTime + startTime + duration);
+  };
+
+  // Triumphant fast arpeggio
+  playNote(523.25, 0.0, 0.15); // C5
+  playNote(659.25, 0.1, 0.15); // E5
+  playNote(783.99, 0.2, 0.15); // G5
+  playNote(1046.50, 0.3, 0.5); // C6
 }
