@@ -3922,8 +3922,8 @@ async function showEyeMessage() {
       copy: "Type a task here and press Enter to add it. Set a deadline or timer right below."
     },
     {
-      selector: ".guide-icon",
-      copy: "Drag this corner to the edge of your screen to snap-collapse. Hover to peek back."
+      selector: ".title-bar",
+      copy: "Drag the top navbar to the edge of your screen to snap-collapse. Hover to peek back."
     },
     {
       selector: ".task-notes-icons",
@@ -4127,6 +4127,11 @@ async function showEyeMessage() {
     
     if (stepIndex === onboardingSteps.length - 1) {
       nextBtn.textContent = 'Finish';
+      // On the closing step, leave focus at the task input so the user can start typing immediately
+      setTimeout(() => {
+        const taskInputEl = document.getElementById('task-input');
+        if (taskInputEl) taskInputEl.focus();
+      }, 250);
     } else {
       nextBtn.textContent = 'Next';
     }
