@@ -3878,7 +3878,9 @@ async function showEyeMessage() {
   if (menuQuit) {
     menuQuit.addEventListener('click', () => {
       contextMenu.classList.add('hidden');
-      window.__TAURI__.process.exit(0);
+      window.__TAURI__.core.invoke('quit_app').catch(err => {
+        console.error('Failed to quit app:', err);
+      });
     });
   }
 

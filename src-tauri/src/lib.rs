@@ -280,6 +280,11 @@ fn get_app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
 /// Called by JS `onMoved` on Windows to stamp when the last move event fired.
 /// The hover tracker uses this to skip poll cycles during active drags.
 #[tauri::command]
@@ -464,6 +469,7 @@ pub fn run() {
             show_eye_bubble_overlay,
             hide_eye_bubble_overlay,
             get_app_version,
+            quit_app,
             notify_window_moved,
             create_app_window,
             mark_app_window_active,
