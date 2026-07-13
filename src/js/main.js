@@ -3858,17 +3858,16 @@ async function showEyeMessage() {
 
   if (menuPrivacy) {
     menuPrivacy.addEventListener('click', () => {
-      // Open privacy policy in a new window or default browser
-      // For simplicity, we use the opener plugin to open the GitHub link or local file
-      // Since it's production prep, let's try to open the local file in a new window
+      contextMenu.classList.add('hidden');
       try {
         const { WebviewWindow } = window.__TAURI__.window;
         new WebviewWindow('privacy-policy', {
-          url: 'assets/privacy_policy.html',
+          url: '/assets/privacy_policy.html',
           title: 'FlowPane - Privacy Policy',
           width: 600,
           height: 800,
-          resizable: true
+          resizable: true,
+          center: true
         });
       } catch (e) {
         console.error('Failed to open privacy policy window:', e);
@@ -3878,6 +3877,7 @@ async function showEyeMessage() {
 
   if (menuQuit) {
     menuQuit.addEventListener('click', () => {
+      contextMenu.classList.add('hidden');
       window.__TAURI__.process.exit(0);
     });
   }
