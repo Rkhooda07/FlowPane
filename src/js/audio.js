@@ -7,9 +7,6 @@ collapseExpandTone.preload = 'auto';
 export const taskCreateTone = new Audio('assets/task_create_tone.mp3');
 taskCreateTone.preload = 'auto';
 
-export const taskActivationTone = new Audio('assets/task_activation.mp3');
-taskActivationTone.preload = 'auto';
-
 export const taskDeleteTone = new Audio('assets/task_delete_tone.mp3');
 taskDeleteTone.preload = 'auto';
 
@@ -32,11 +29,6 @@ export function playCollapseExpandSound() {
 export function playTaskCreateSound() {
   taskCreateTone.currentTime = 0;
   taskCreateTone.play().catch(() => {});
-}
-
-export function playTaskActivationSound() {
-  taskActivationTone.currentTime = 0;
-  taskActivationTone.play().catch(() => {});
 }
 
 export function playTaskDeleteSound() {

@@ -1,6 +1,6 @@
 import { DUE_BLOCKS, quotes, congratsMessages, ALL_WINDOWS_SIZE, PEEK_SIZE_Y, PEEK_SIZE_X, COLLAPSED_SIZE_Y, COLLAPSED_REMINDER_SIZE_Y, COLLAPSED_SIZE_X, COLLAPSED_SIZE_Y_BUBBLE, COLLAPSED_SIZE_X_BUBBLE, HOVER_PEEK_DELAY_MS, HOVER_PEEK_RETRY_MS, SIDE_NOTIFICATION_BUBBLE_DURATION_MS, MANUAL_DRAG_EXPAND_DURATION_MS, NATIVE_EDGE_SNAP_THRESHOLD, NATIVE_SIDE_SNAP_MIN_WIDTH_RATIO, NATIVE_TOP_SNAP_MIN_WIDTH_RATIO, NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO, DRAG_GESTURE_IDLE_END_MS, SNAP_THRESHOLD } from './constants.js';
 import { parseMaskedDate, formatDateTimeHuman, normalizeDueInputValue, normalizeDueBlockValue, getDueBlockFromSelection, setDueBlockValue, formatDueBlockForEditing, capitalizeFirstLetter, tokenizeBubbleHTML, renderBubbleTokens } from './utils.js';
-import { playReminderTone, playCollapseExpandSound, playTaskCreateSound, playTaskActivationSound, playTaskDeleteSound, playFallbackDeleteSound, playTimesUpSound, playVictorySound } from './audio.js';
+import { playReminderTone, playCollapseExpandSound, playTaskCreateSound, playTaskDeleteSound, playFallbackDeleteSound, playTimesUpSound, playVictorySound } from './audio.js';
 
 const { getCurrentWindow, currentMonitor, LogicalSize } = window.__TAURI__.window;
 
@@ -2549,7 +2549,6 @@ function resetTaskInputUI() {
 
 function addTask() {
   if (!taskInput.value.trim()) return;
-  playTaskCreateSound();
   commitActiveDueBlockEdit();
   dueInput.value = normalizeDueInputValue(dueInput.value, { enforceFuture: true });
   let dueDate = parseMaskedDate(dueInput.value);
@@ -2860,7 +2859,7 @@ function startFocusSession(task, resume = false) {
   updateTimerDisplay();
 
   // Play sound immediately upon entering focus mode
-  playTaskActivationSound();
+  playTaskCreateSound();
 
   // Start timer after a short delay for better transition
   setTimeout(() => {
