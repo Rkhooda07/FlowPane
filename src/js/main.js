@@ -1,6 +1,6 @@
 import { DUE_BLOCKS, quotes, congratsMessages, ALL_WINDOWS_SIZE, PEEK_SIZE_Y, PEEK_SIZE_X, COLLAPSED_SIZE_Y, COLLAPSED_REMINDER_SIZE_Y, COLLAPSED_SIZE_X, COLLAPSED_SIZE_Y_BUBBLE, COLLAPSED_SIZE_X_BUBBLE, HOVER_PEEK_DELAY_MS, HOVER_PEEK_RETRY_MS, SIDE_NOTIFICATION_BUBBLE_DURATION_MS, MANUAL_DRAG_EXPAND_DURATION_MS, NATIVE_EDGE_SNAP_THRESHOLD, NATIVE_SIDE_SNAP_MIN_WIDTH_RATIO, NATIVE_TOP_SNAP_MIN_WIDTH_RATIO, NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO, DRAG_GESTURE_IDLE_END_MS, SNAP_THRESHOLD } from './constants.js';
 import { parseMaskedDate, formatDateTimeHuman, normalizeDueInputValue, normalizeDueBlockValue, getDueBlockFromSelection, setDueBlockValue, formatDueBlockForEditing, capitalizeFirstLetter, tokenizeBubbleHTML, renderBubbleTokens } from './utils.js';
-import { playReminderTone, playCollapseExpandSound, playTaskCreateSound, playTaskDeleteSound, playFallbackDeleteSound, playTimesUpSound, playVictorySound } from './audio.js';
+import { initAudio, playReminderTone, playSnapSound, playTaskCreateSound, playTaskDeleteSound, playFallbackDeleteSound, playTimesUpSound, playVictorySound } from './audio.js';
 
 const { getCurrentWindow, currentMonitor, LogicalSize } = window.__TAURI__.window;
 
@@ -285,7 +285,7 @@ async function restoreExpandedStateFromNativeEdgeSnap() {
   const wasCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
   if (!wasCollapsed) return;
 
-  playCollapseExpandSound();
+  playSnapSound(true);
 
   peek.active = false;
   appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
@@ -555,11 +555,11 @@ async function expandFromY(isManualDrag) {
 
 async function toggleCollapseY(isManualDrag = false) {
   if (isAnimating) return;
-  playCollapseExpandSound();
+  const isCollapsing = !appElement.classList.contains('collapsed-y');
+  playSnapSound(!isCollapsing);
   isAnimating = true;
   try {
     const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
-    const isCollapsing = !appElement.classList.contains('collapsed-y');
     if (isManualDrag) { peek.active = false; appElement.classList.remove('peeking', 'peeking-y', 'peeking-x'); }
     if (isCollapsing) await collapseToY(isCurrentlyCollapsed);
     else await expandFromY(isManualDrag);
@@ -662,11 +662,11 @@ async function expandFromX(isManualDrag) {
 
 async function toggleCollapseX(isManualDrag = false) {
   if (isAnimating) return;
-  playCollapseExpandSound();
+  const isCollapsing = !appElement.classList.contains('collapsed-x');
+  playSnapSound(!isCollapsing);
   isAnimating = true;
   try {
     const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
-    const isCollapsing = !appElement.classList.contains('collapsed-x');
     if (isManualDrag) { peek.active = false; appElement.classList.remove('peeking', 'peeking-y', 'peeking-x'); }
     if (isCollapsing) await collapseToX(isCurrentlyCollapsed);
     else await expandFromX(isManualDrag);
@@ -859,20 +859,18 @@ function buildTaskItem(task) {
   li.querySelector('.task-checkbox').addEventListener('change', async (e) => {
     if (e.target.checked) {
       li.classList.add('task-completing');
-      setTimeout(() => showCongrats(task.totalWorkTime || 0), 500);
-      setTimeout(async () => {
-        task.completed = true;
-        task.completedAt = Date.now();
-        await saveTasks();
-        renderTasks();
-        const historyBtn = document.getElementById('history-btn');
-        if (historyBtn) {
-          setTimeout(() => {
-            historyBtn.classList.add('history-uplift');
-            setTimeout(() => historyBtn.classList.remove('history-uplift'), 600);
-          }, 50);
-        }
-      }, 700);
+      task.completed = true;
+      task.completedAt = Date.now();
+      await saveTasks();
+      renderTasks();
+      showCongrats(task.totalWorkTime || 0);
+      const historyBtn = document.getElementById('history-btn');
+      if (historyBtn) {
+        setTimeout(() => {
+          historyBtn.classList.add('history-uplift');
+          setTimeout(() => historyBtn.classList.remove('history-uplift'), 600);
+        }, 50);
+      }
     }
   });
 
@@ -2804,13 +2802,15 @@ function showCongrats(seconds) {
   if (congratsTimerValEl) congratsTimerValEl.textContent = `${m}:${s}`;
   if (congratsFunTextEl) congratsFunTextEl.textContent = congratsMessages[Math.floor(Math.random() * congratsMessages.length)];
 
+  // Make the modal visible immediately, then start the sound at the same frame.
+  // Confetti is scheduled on the next paint so it doesn't block the visual reveal.
   congratsModalEl.classList.remove('hidden');
   // Hide task input and notes icons during congrats modal
   if (inputArea) inputArea.classList.add('hidden');
   if (notesIconsEl) notesIconsEl.classList.add('hidden');
 
   playVictorySound();
-  startConfetti();
+  requestAnimationFrame(() => startConfetti());
 }
 let isCountdown = false;
 
@@ -3457,6 +3457,12 @@ setTimeout(updateFilterPill, 50);
 setTimeout(updateFilterPill, 300);
 window.addEventListener('load', updateFilterPill);
 window.addEventListener('resize', updateFilterPill);
+
+// Audio warm-up: pre-create AudioContext + resume on the very first user gesture
+// so subsequent synthesized tones have zero cold-start latency in macOS WebView.
+['pointerdown', 'keydown'].forEach((evt) => {
+  document.addEventListener(evt, initAudio, { once: true, passive: true });
+});
 
 // Googly Eyes Cursor Tracking
 // Clean up previous event listener if it still exists (not really needed since we replace the code, but conceptually)
