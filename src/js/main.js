@@ -4035,19 +4035,25 @@ async function showEyeMessage() {
     }
     
     arrow.style.display = 'block';
-    const HIGHLIGHT_PADDING = 4;
+    const HIGHLIGHT_PADDING = 0;
     highlight.style.left = (rect.left - HIGHLIGHT_PADDING) + 'px';
     highlight.style.top = (rect.top - HIGHLIGHT_PADDING) + 'px';
     highlight.style.width = (rect.width + HIGHLIGHT_PADDING * 2) + 'px';
     highlight.style.height = (rect.height + HIGHLIGHT_PADDING * 2) + 'px';
-    
-    const targetRadius = window.getComputedStyle(targetEl).borderRadius;
-    const radiusVal = parseFloat(targetRadius);
-    if (!isNaN(radiusVal) && radiusVal > 0) {
-      highlight.style.borderRadius = (radiusVal + HIGHLIGHT_PADDING) + 'px';
-    } else {
-      highlight.style.borderRadius = '8px';
-    }
+
+    // Parse every corner's radius so the highlight precisely mirrors the target's
+    // shape (e.g. .title-bar is rounded on top only — a single uniform radius
+    // leaves a visible gap at the squared corners). parseFloat of the shorthand
+    // "24px 24px 0 0" only returns 24 → that's why the highlight was misaligned.
+    const parsed = (window.getComputedStyle(targetEl).borderRadius || '0px').trim().split(/\s+/).map(parseFloat);
+    const tl = parsed[0] || 0;
+    const tr = parsed[1] !== undefined ? parsed[1] : tl;
+    const br = parsed[2] !== undefined ? parsed[2] : tl;
+    const bl = parsed[3] !== undefined ? parsed[3] : (parsed[1] !== undefined ? parsed[1] : tl);
+    highlight.style.borderTopLeftRadius     = (tl + HIGHLIGHT_PADDING) + 'px';
+    highlight.style.borderTopRightRadius    = (tr + HIGHLIGHT_PADDING) + 'px';
+    highlight.style.borderBottomRightRadius = (br + HIGHLIGHT_PADDING) + 'px';
+    highlight.style.borderBottomLeftRadius  = (bl + HIGHLIGHT_PADDING) + 'px';
     highlight.classList.remove('hidden');
     
     // 2. Decide placement: above or below
@@ -4403,7 +4409,7 @@ async function showEyeMessage() {
     if (!container) return;
     container.innerHTML = '';
 
-    const NUM_STARS = 13;
+    const NUM_STARS = 14;
 
     function randPos() {
       return { left: Math.random() * 100, top: Math.random() * 100 };
@@ -4415,9 +4421,9 @@ async function showEyeMessage() {
       star.textContent = '✦'; // Sharp four-pointed star — crisp, shiny, minimal
 
       const pos = randPos();
-      const size = 5.5 + Math.random() * 5.5;     // 5.5px – 11px
-      const duration = 4 + Math.random() * 5;     // 4s – 9s: fast cycles
-      const delay = -(Math.random() * duration);  // start mid-cycle so they don't all pop at once
+      const size = 5.5 + Math.random() * 5.5;        // 5.5px – 11px
+      const duration = 1.5 + Math.random() * 1.5;    // 1.5s – 3s: snappy, considerably fast
+      const delay = -(Math.random() * duration);     // start mid-cycle so they don't all pop at once
 
       star.style.left              = `${pos.left}%`;
       star.style.top               = `${pos.top}%`;
@@ -4425,7 +4431,7 @@ async function showEyeMessage() {
       star.style.animationDuration = `${duration.toFixed(2)}s`;
       star.style.animationDelay    = `${delay.toFixed(2)}s`;
 
-      // Star is at opacity 0 at 100% — teleport silently before next cycle starts
+      // Star is invisible at the keyframe boundaries — reposition silently before the next cycle starts
       star.addEventListener('animationiteration', () => {
         const next = randPos();
         const nextSize = 5.5 + Math.random() * 5.5;
