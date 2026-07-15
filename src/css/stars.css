@@ -173,11 +173,12 @@
 }
 
 @keyframes star-appear {
-  0%   { opacity: 0;    transform: scale(0.5)  rotate(0deg);  }
-  4%   { opacity: 0.7;  transform: scale(1.15) rotate(12deg); }
-  10%  { opacity: 0.65; transform: scale(1)    rotate(-6deg); }
-  18%  { opacity: 0;    transform: scale(0.5)  rotate(0deg);  }
-  100% { opacity: 0;    transform: scale(0.5)  rotate(0deg);  }
+  0%   { opacity: 0;    transform: scale(0.55) rotate(0deg);  }
+  4%   { opacity: 0.78; transform: scale(1.12) rotate(8deg);  }
+  18%  { opacity: 0.74; transform: scale(1)    rotate(-4deg); }
+  30%  { opacity: 0.55; transform: scale(0.95) rotate(2deg);  }
+  55%  { opacity: 0;    transform: scale(0.6)  rotate(0deg);  }
+  100% { opacity: 0;    transform: scale(0.55) rotate(0deg);  }
 }
 
 

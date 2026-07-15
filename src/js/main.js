@@ -4409,7 +4409,7 @@ async function showEyeMessage() {
     if (!container) return;
     container.innerHTML = '';
 
-    const NUM_STARS = 14;
+    const NUM_STARS = 11;
 
     function randPos() {
       return { left: Math.random() * 100, top: Math.random() * 100 };
@@ -4422,7 +4422,7 @@ async function showEyeMessage() {
 
       const pos = randPos();
       const size = 5.5 + Math.random() * 5.5;        // 5.5px – 11px
-      const duration = 1.5 + Math.random() * 1.5;    // 1.5s – 3s: snappy, considerably fast
+      const duration = 5 + Math.random() * 3;        // 5s – 8s: calm, slow drift
       const delay = -(Math.random() * duration);     // start mid-cycle so they don't all pop at once
 
       star.style.left              = `${pos.left}%`;
