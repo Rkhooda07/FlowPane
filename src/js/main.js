@@ -65,6 +65,8 @@ let lastNormalPosition = null;
 let isAnimating = false;
 let lastExpandTime = 0;
 let lastCollapseTime = 0;
+let animationRunId = 0; // bumped to cancel an in-flight window animation
+let activeAnimEndSize = null; // physical end size of the in-flight animation
 const peek = { active: false, timeout: null, mode: null };
 let isNotificationActive = false; // Track if ANY notification is currently active
 
@@ -222,6 +224,7 @@ function getMonitorBounds(monitor) {
 }
 
 async function beginWindowDragGesture() {
+  cancelWindowAnimation();
   drag.isGesture = true;
   drag.isDragging = true;
   drag.gestureExpiresAt = Date.now() + DRAG_GESTURE_IDLE_END_MS;
@@ -369,9 +372,24 @@ async function minimizeIntoDockFromBottomEdge(providedMonitor, providedPos, prov
   }
 }
 
+// Cancels any in-flight window animation so an OS drag can take over smoothly.
+// The RAF loop stops issuing setPosition (which would fight the drag); the
+// window snaps once to the animation's final size and position stays with the cursor.
+function cancelWindowAnimation() {
+  if (!isAnimating) return;
+  animationRunId++;
+  isAnimating = false;
+  if (activeAnimEndSize) {
+    const { PhysicalSize } = window.__TAURI__.window;
+    appWindow.setSize(new PhysicalSize(Math.round(activeAnimEndSize.width), Math.round(activeAnimEndSize.height))).catch(() => {});
+    activeAnimEndSize = null;
+  }
+}
+
 // Animation Helper - Animates both position and size simultaneously
 async function animateWindowTransform(startPos, endPos, startSize, endSize, duration = 350) {
   isAnimating = true;
+  const runId = ++animationRunId;
   const startTime = performance.now();
   const { LogicalSize, PhysicalPosition, PhysicalSize } = window.__TAURI__.window;
 
@@ -387,6 +405,7 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
     width: endSize.width * (endSize instanceof LogicalSize ? scale : 1),
     height: endSize.height * (endSize instanceof LogicalSize ? scale : 1)
   };
+  activeAnimEndSize = pEndSize;
 
   return new Promise(resolve => {
     let lastW = Math.round(pStartSize.width);
@@ -396,6 +415,7 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
     let isApplying = false;
 
     function step() {
+      if (runId !== animationRunId) { resolve(); return; } // cancelled — a drag took over
       const now = performance.now();
       const progress = Math.min((now - startTime) / duration, 1);
 
@@ -432,6 +452,7 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
         }
       } else {
         // Final frame guarantee
+        activeAnimEndSize = null;
         Promise.all([
           appWindow.setSize(new PhysicalSize(Math.round(pEndSize.width), Math.round(pEndSize.height))),
           appWindow.setPosition(new PhysicalPosition(Math.round(endPos.x), Math.round(endPos.y)))
@@ -447,6 +468,7 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
 
 async function animateWindowSize(startSize, endSize, duration = 350) {
   isAnimating = true;
+  const runId = ++animationRunId;
   const startTime = performance.now();
   const { LogicalSize, PhysicalSize } = window.__TAURI__.window;
 
@@ -462,12 +484,15 @@ async function animateWindowSize(startSize, endSize, duration = 350) {
     height: endSize.height * (endSize instanceof LogicalSize ? scale : 1)
   };
 
+  activeAnimEndSize = pEndSize;
+
   return new Promise(resolve => {
     let lastW = Math.round(pStartSize.width);
     let lastH = Math.round(pStartSize.height);
     let isApplying = false;
 
     function step() {
+      if (runId !== animationRunId) { resolve(); return; } // cancelled — a drag took over
       const now = performance.now();
       const progress = Math.min((now - startTime) / duration, 1);
       const ease = 1 - Math.pow(1 - progress, 4);
@@ -485,6 +510,7 @@ async function animateWindowSize(startSize, endSize, duration = 350) {
           isApplying = false;
         });
       } else {
+        activeAnimEndSize = null;
         appWindow.setSize(new PhysicalSize(Math.round(pEndSize.width), Math.round(pEndSize.height))).catch(() => {}).finally(() => {
           isAnimating = false;
           resolve();
@@ -1751,6 +1777,7 @@ homeNavLinks.forEach(link => {
       cleanup();
 
       try {
+        cancelWindowAnimation();
         await appWindow.startDragging();
       } catch (err) {
         console.error('Failed to start dragging from title link:', err);
