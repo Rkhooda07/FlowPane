@@ -375,12 +375,13 @@ fn close_app_window(app: AppHandle, window: WebviewWindow) -> Result<bool, Strin
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .manage(WindowSpawnLimiter::default())
         .manage(HoverTrackerState::default())
         .setup(|app| {
-            let window = app.get_webview_window("main").unwrap();
+            let window = app
+                .get_webview_window("main")
+                .ok_or("main window missing from configuration")?;
             let hover_state = app.state::<HoverTrackerState>();
             remember_app_window_order(&hover_state, window.label())?;
 
@@ -442,7 +443,11 @@ pub fn run() {
             ])?;
 
             let _tray = tauri::tray::TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(
+                    app.default_window_icon()
+                        .ok_or("bundled app icon missing")?
+                        .clone(),
+                )
                 .menu(&tray_menu)
                 .on_menu_event(|app: &tauri::AppHandle, event| match event.id.as_ref() {
                     "quit" => {
@@ -454,8 +459,8 @@ pub fn run() {
                             .into_iter()
                             .find_map(|(label, window)| is_app_window_label(&label).then_some(window))
                         {
-                            window.show().unwrap();
-                            window.set_focus().unwrap();
+                            let _ = window.show();
+                            let _ = window.set_focus();
                         }
                     }
                     _ => {}
@@ -476,5 +481,6 @@ pub fn run() {
             close_app_window
         ])
         .run(tauri::generate_context!())
+        // Intentional panic: if the event loop can't start there is nothing to recover to.
         .expect("error while running tauri application");
 }
