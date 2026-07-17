@@ -64,6 +64,7 @@ let collapseModeAfterCongrats = null; // Stores 'x' or 'y' to know where to coll
 let lastNormalPosition = null;
 let isAnimating = false;
 let lastExpandTime = 0;
+let lastCollapseTime = 0;
 const peek = { active: false, timeout: null, mode: null };
 let isNotificationActive = false; // Track if ANY notification is currently active
 
@@ -568,8 +569,12 @@ async function toggleCollapseY(isManualDrag = false) {
     const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
     const isCollapsing = !appElement.classList.contains('collapsed-y');
     if (isManualDrag) { peek.active = false; appElement.classList.remove('peeking', 'peeking-y', 'peeking-x'); }
-    if (isCollapsing) await collapseToY(isCurrentlyCollapsed);
-    else await expandFromY(isManualDrag);
+    if (isCollapsing) {
+      await collapseToY(isCurrentlyCollapsed);
+      lastCollapseTime = Date.now();
+    } else {
+      await expandFromY(isManualDrag);
+    }
   } finally {
     isAnimating = false;
   }
@@ -589,6 +594,7 @@ async function collapseToX(isCurrentlyCollapsed) {
 
   try {
     const monitor = await currentMonitor();
+    if (!appElement.classList.contains('collapsed-x')) return; // expand won the race
     if (monitor) {
       const currentPos = await appWindow.outerPosition();
       const currentSize = await appWindow.outerSize();
@@ -675,8 +681,12 @@ async function toggleCollapseX(isManualDrag = false) {
     const isCurrentlyCollapsed = appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x');
     const isCollapsing = !appElement.classList.contains('collapsed-x');
     if (isManualDrag) { peek.active = false; appElement.classList.remove('peeking', 'peeking-y', 'peeking-x'); }
-    if (isCollapsing) await collapseToX(isCurrentlyCollapsed);
-    else await expandFromX(isManualDrag);
+    if (isCollapsing) {
+      await collapseToX(isCurrentlyCollapsed);
+      lastCollapseTime = Date.now();
+    } else {
+      await expandFromX(isManualDrag);
+    }
   } finally {
     isAnimating = false;
   }
@@ -2698,11 +2708,15 @@ appWindow.onMoved(async (event) => {
       }
 
       if (isCollapsedY || isCollapsedX) {
-        const EXPAND_THRESHOLD = 30;
-        if (isCollapsedY && dTop > EXPAND_THRESHOLD) {
-          toggleCollapseY(true);
-        } else if (isCollapsedX && dLeft > EXPAND_THRESHOLD && dRight > EXPAND_THRESHOLD) {
-          toggleCollapseX(true);
+        // Hysteresis: mirror of the lastExpandTime lock below — prevents the
+        // collapse→expand→collapse oscillation when dragging against an edge.
+        if (Date.now() - lastCollapseTime >= MIN_EXPAND_LOCK_MS) {
+          const EXPAND_THRESHOLD = 30;
+          if (isCollapsedY && dTop > EXPAND_THRESHOLD) {
+            toggleCollapseY(true);
+          } else if (isCollapsedX && dLeft > EXPAND_THRESHOLD && dRight > EXPAND_THRESHOLD) {
+            toggleCollapseX(true);
+          }
         }
       } else {
         // Windows: skip collapse trigger while actively dragging — AeroSnap is already
