@@ -3,6 +3,8 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
   z-index: 0; /* Fully in background, behind everything */
   background: linear-gradient(to bottom, rgba(15, 15, 25, 0.05) 0%, rgba(10, 10, 18, 0.08) 100%);
   border-radius: var(--border-radius);
