@@ -158,8 +158,10 @@ appElement.addEventListener('pointerdown', () => {
 }, { capture: true });
 
 // Initial check
-appWindow.isFocused().then(focused => {
+appWindow.isFocused().then(() => {
   updateFocusState();
+}).catch(err => {
+  console.error('Failed to read initial focus state:', err);
 });
 
 
@@ -168,26 +170,30 @@ const drag = { isGesture: false, isDockMinimizing: false, gestureExpiresAt: 0, i
 // Listen for window becoming visible or focused to handle "safe" restoration
 appWindow.onFocusChanged(async ({ payload: focused }) => {
   if (focused && !drag.isDockMinimizing && !isAnimating) {
-    // If the window was just restored, move it to a safe position if it's too close to the bottom
-    const monitor = await currentMonitor();
-    if (!monitor) return;
-    
-    const winPos = await appWindow.outerPosition();
-    const winSize = await appWindow.outerSize();
-    const { work } = getMonitorBounds(monitor);
-    const workBottom = work.y + work.height;
-    const windowBottom = winPos.y + winSize.height;
+    try {
+      // If the window was just restored, move it to a safe position if it's too close to the bottom
+      const monitor = await currentMonitor();
+      if (!monitor) return;
 
-    // If resting on the bottom edge (common after restoration), move it up slightly
-    if (windowBottom >= workBottom - 2) {
-      drag.isRestoringFromDock = true;
-      const safeY = workBottom - winSize.height - DOCK_SAFETY_GAP_PX;
-      await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(winPos.x, Math.round(safeY)));
-      
-      // Briefly ignore move events to avoid immediate re-minimization
-      setTimeout(() => {
-        drag.isRestoringFromDock = false;
-      }, 500);
+      const winPos = await appWindow.outerPosition();
+      const winSize = await appWindow.outerSize();
+      const { work } = getMonitorBounds(monitor);
+      const workBottom = work.y + work.height;
+      const windowBottom = winPos.y + winSize.height;
+
+      // If resting on the bottom edge (common after restoration), move it up slightly
+      if (windowBottom >= workBottom - 2) {
+        drag.isRestoringFromDock = true;
+        const safeY = workBottom - winSize.height - DOCK_SAFETY_GAP_PX;
+        await appWindow.setPosition(new window.__TAURI__.window.PhysicalPosition(winPos.x, Math.round(safeY)));
+
+        // Briefly ignore move events to avoid immediate re-minimization
+        setTimeout(() => {
+          drag.isRestoringFromDock = false;
+        }, 500);
+      }
+    } catch (err) {
+      console.error('Failed to restore window to a safe position:', err);
     }
   }
 });
@@ -419,7 +425,7 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
 
         if (promises.length > 0) {
           isApplying = true;
-          Promise.all(promises).finally(() => {
+          Promise.all(promises).catch(() => {}).finally(() => {
             isApplying = false;
           });
         }
@@ -428,7 +434,7 @@ async function animateWindowTransform(startPos, endPos, startSize, endSize, dura
         Promise.all([
           appWindow.setSize(new PhysicalSize(Math.round(pEndSize.width), Math.round(pEndSize.height))),
           appWindow.setPosition(new PhysicalPosition(Math.round(endPos.x), Math.round(endPos.y)))
-        ]).finally(() => {
+        ]).catch(() => {}).finally(() => {
           isAnimating = false;
           resolve();
         });
@@ -474,11 +480,11 @@ async function animateWindowSize(startSize, endSize, duration = 350) {
         isApplying = true;
         lastW = targetW;
         lastH = targetH;
-        appWindow.setSize(new PhysicalSize(targetW, targetH)).finally(() => {
+        appWindow.setSize(new PhysicalSize(targetW, targetH)).catch(() => {}).finally(() => {
           isApplying = false;
         });
       } else {
-        appWindow.setSize(new PhysicalSize(Math.round(pEndSize.width), Math.round(pEndSize.height))).finally(() => {
+        appWindow.setSize(new PhysicalSize(Math.round(pEndSize.width), Math.round(pEndSize.height))).catch(() => {}).finally(() => {
           isAnimating = false;
           resolve();
         });
@@ -528,6 +534,7 @@ async function expandFromY(isManualDrag) {
       if (monitor) {
         const currentPos = await appWindow.outerPosition();
         const currentSize = await appWindow.outerSize();
+        const { y: offsetY } = monitor.position;
         let endY = offsetY;
         if (lastNormalPosition && !peek.active) endY = lastNormalPosition.y;
         await animateWindowTransform(currentPos, { x: currentPos.x, y: Math.round(endY) }, currentSize, ALL_WINDOWS_SIZE, 250);
@@ -845,11 +852,13 @@ function buildTaskItem(task) {
   li.innerHTML = `
     <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} />
     <div class="task-info">
-      <div class="task-title">${task.title}</div>
+      <div class="task-title"></div>
       <div class="task-due">${dueText}</div>
     </div>
     <button class="delete-task-btn" title="Delete task">×</button>
   `;
+  // textContent, not innerHTML: task titles are user input and must never render as markup
+  li.querySelector('.task-title').textContent = task.title;
 
   const stopBubbling = (e) => e.stopPropagation();
   li.querySelector('.task-checkbox').addEventListener('click', stopBubbling);
@@ -2604,7 +2613,11 @@ Object.entries(dirMap).forEach(([dir, tauriDir]) => {
   if (handle) {
     handle.addEventListener('mousedown', async (e) => {
       e.preventDefault();
-      await appWindow.startResizeDragging(tauriDir);
+      try {
+        await appWindow.startResizeDragging(tauriDir);
+      } catch (err) {
+        console.error('Failed to start resize dragging:', err);
+      }
     });
   }
 });
@@ -2632,15 +2645,19 @@ appWindow.onMoved(async (event) => {
   if (peek.active) {
     peek.active = false;
     appElement.classList.remove('peeking', 'peeking-y', 'peeking-x');
-    await suppressEyeMessageBubble();
-    const monitor = await currentMonitor();
-    if (monitor) {
-      const currentSize = await appWindow.outerSize();
-      await animateWindowSize(
-        currentSize,
-        ALL_WINDOWS_SIZE,
-        MANUAL_DRAG_EXPAND_DURATION_MS
-      );
+    try {
+      await suppressEyeMessageBubble();
+      const monitor = await currentMonitor();
+      if (monitor) {
+        const currentSize = await appWindow.outerSize();
+        await animateWindowSize(
+          currentSize,
+          ALL_WINDOWS_SIZE,
+          MANUAL_DRAG_EXPAND_DURATION_MS
+        );
+      }
+    } catch (err) {
+      console.error('Failed to expand window after peek move:', err);
     }
   }
 
@@ -2713,6 +2730,8 @@ appWindow.onMoved(async (event) => {
           }
         }
       }
+    } catch (err) {
+      console.error('Failed to process window move:', err);
     } finally {
       if (moveProcessingPending) {
         moveProcessingPending = false;
@@ -3179,11 +3198,13 @@ function renderHistory(completedTasks) {
 
       li.innerHTML = `
         <div class="history-item-content">
-          <div class="history-item-title">${task.title}</div>
+          <div class="history-item-title"></div>
           <div class="history-item-meta">Completed ${dateStr} at ${timeStr}</div>
         </div>
         <button class="delete-history-item" title="Delete from history">×</button>
       `;
+      // textContent, not innerHTML: task titles are user input and must never render as markup
+      li.querySelector('.history-item-title').textContent = task.title;
 
       li.querySelector('.delete-history-item').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -4259,10 +4280,16 @@ async function showEyeMessage() {
     
     window.addEventListener('resize', updateCurrentTooltipPosition);
 
-    // Wait for store to be ready
+    // Wait for store to be ready. Bounded: if store init failed (localStorage
+    // fallback path), stop polling after ~10s and check localStorage directly.
+    let storeCheckAttempts = 0;
     const checkStore = setInterval(async () => {
-      if (typeof store !== 'undefined' && store !== null) {
-        clearInterval(checkStore);
+      storeCheckAttempts++;
+      const storeReady = typeof store !== 'undefined' && store !== null;
+      if (!storeReady && storeCheckAttempts < 40) return;
+      clearInterval(checkStore);
+
+      if (storeReady) {
         try {
           let hasSeen = await store.get('hasSeenOnboarding');
           if (hasSeen === null || hasSeen === undefined) {
@@ -4271,13 +4298,15 @@ async function showEyeMessage() {
           if (!hasSeen) {
             startOnboardingTour();
           }
+          return;
         } catch (e) {
           console.error('Onboarding check failed, checking localStorage:', e);
-          const hasSeen = localStorage.getItem('hasSeenOnboarding') === 'true';
-          if (!hasSeen) {
-            startOnboardingTour();
-          }
         }
+      }
+
+      const hasSeen = localStorage.getItem('hasSeenOnboarding') === 'true';
+      if (!hasSeen) {
+        startOnboardingTour();
       }
     }, 250);
   }
