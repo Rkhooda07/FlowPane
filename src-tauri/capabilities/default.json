@@ -9,7 +9,6 @@
   ],
   "permissions": [
     "core:default",
-    "opener:default",
     "store:default",
     "core:window:allow-start-dragging",
     "core:window:allow-start-resize-dragging",
@@ -17,11 +16,7 @@
     "core:window:allow-set-position",
     "core:window:allow-outer-size",
     "core:window:allow-current-monitor",
-    "core:window:allow-close",
     "core:window:allow-minimize",
-    "core:window:allow-maximize",
-    "core:window:allow-unmaximize",
-    "core:window:allow-set-size",
-    "core:window:allow-is-maximized"
+    "core:window:allow-set-size"
   ]
 }
