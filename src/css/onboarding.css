@@ -6,6 +6,11 @@
   opacity: 1;
   visibility: visible;
   transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+  /* Clip every dark layer (welcome backdrop + spotlight box-shadow) to the
+     window's rounded rect so all 4 corners stay curved during the tour.
+     Cursor tooltip is position:fixed and escapes this clip. */
+  border-radius: var(--border-radius);
+  overflow: hidden;
 }
 
 .onboarding-overlay.hidden {
