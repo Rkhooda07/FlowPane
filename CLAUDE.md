@@ -42,12 +42,12 @@ npm run tauri build    # production build
 **Constraints:**
 - Max 8 concurrent app windows (`MAX_APP_WINDOWS`)
 - Window spawn rate-limited to 700ms (`MIN_WINDOW_SPAWN_INTERVAL`)
-- Window dimensions are fixed: 325×395px (`APP_WINDOW_WIDTH/HEIGHT`)
+- Window dimensions are fixed: 335×405px (`APP_WINDOW_WIDTH/HEIGHT`)
 - Always-on-top, frameless, transparent — do not change these window properties
 
 **Code style:**
 - Rust: standard `cargo fmt` conventions; errors returned as `Result<_, String>`
-- JS: no TypeScript, no modules, no imports — single-file per concern
+- JS: no TypeScript. Native ES modules only (`<script type="module">`; `import`/`export` between `src/js/*.js`) — no bundler, no build step
 - Do not introduce a frontend framework or build toolchain
 
 ---
