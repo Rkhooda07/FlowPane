@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 releases/
+
+# Secrets / local env (never commit)
+.env
+.env.*
+*.pem
+*.p12
+*.key
