@@ -891,6 +891,12 @@ function buildTaskItem(task) {
       <div class="task-title"></div>
       <div class="task-due">${dueText}</div>
     </div>
+    <button class="edit-task-btn" title="Edit task" aria-label="Edit task">
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      </svg>
+    </button>
     <button class="delete-task-btn" title="Delete task">×</button>
   `;
   // textContent, not innerHTML: task titles are user input and must never render as markup
@@ -899,6 +905,7 @@ function buildTaskItem(task) {
   const stopBubbling = (e) => e.stopPropagation();
   li.querySelector('.task-checkbox').addEventListener('click', stopBubbling);
   li.querySelector('.task-checkbox').addEventListener('dblclick', stopBubbling);
+  li.querySelector('.edit-task-btn').addEventListener('dblclick', stopBubbling);
   li.querySelector('.delete-task-btn').addEventListener('dblclick', stopBubbling);
 
   li.querySelector('.task-checkbox').addEventListener('change', async (e) => {
@@ -919,10 +926,49 @@ function buildTaskItem(task) {
     }
   });
 
+  li.querySelector('.edit-task-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+
+    editingTask = task;
+    taskInput.value = task.title;
+
+    if (task.due) {
+      dueInput.value = formatDateTimeHuman(new Date(task.due));
+      hasUserModifiedDate = true;
+      inputArea.classList.add('expanded');
+    } else {
+      hasUserModifiedDate = false;
+      dueInput.value = formatDateTimeHuman(getDefaultDueDate());
+    }
+    updateReminderBtnState();
+
+    selectedReminderMinutes = task.reminderMinutes || null;
+    if (selectedReminderMinutes) {
+      taskReminderBtn.classList.add('has-reminder');
+    } else {
+      taskReminderBtn.classList.remove('has-reminder');
+    }
+
+    selectedTimerSeconds = task.timerDurationSeconds || null;
+    if (selectedTimerSeconds && taskTimerBtn) {
+      taskTimerBtn.classList.add('active');
+    } else if (taskTimerBtn) {
+      taskTimerBtn.classList.remove('active');
+    }
+
+    if (taskInputShellEl) taskInputShellEl.classList.add('editing-mode');
+    renderTasks();
+    requestAnimationFrame(() => {
+      taskInput.focus();
+      taskInput.setSelectionRange(taskInput.value.length, taskInput.value.length);
+    });
+  });
+
   li.querySelector('.delete-task-btn').addEventListener('click', async (e) => {
     e.stopPropagation();
     const shouldDelete = await requestDeleteConfirmation('task');
     if (!shouldDelete) return;
+    if (editingTask === task) cancelEditMode();
     tasks.splice(taskIndex, 1);
     saveTasks();
     renderTasks();
@@ -1000,7 +1046,7 @@ function renderTasks() {
     .filter(([noteId, note]) => hasNoteContent(note))
     .sort((a, b) => b[1].updatedAt - a[1].updatedAt);
 
-  const activeTasks = tasks.filter(t => !t.completed);
+  const activeTasks = tasks.filter(t => !t.completed && t !== editingTask);
   const completedTasks = tasks.filter(t => t.completed).sort((a, b) => b.completedAt - a.completedAt);
   renderHistory(completedTasks);
 
@@ -1107,6 +1153,7 @@ let currentFilter = 'all';
 let noteDrafts = {};
 let skipDeleteConfirm = false;
 let selectedTimerSeconds = null;
+let editingTask = null;
 
 function extractNoteId(tab) {
   const noteClass = [...tab.classList].find(c => /^note-\d+$/.test(c));
@@ -2381,10 +2428,21 @@ inputArea.addEventListener('focusout', (e) => {
     if (pickerJustClosed) {
       return;
     }
-    if (!inputArea.contains(document.activeElement) && document.activeElement !== document.body && !taskInput.value.trim()) {
-      inputArea.classList.remove('expanded');
+    if (!inputArea.contains(document.activeElement) && document.activeElement !== document.body) {
+      if (!taskInput.value.trim()) {
+        if (editingTask) cancelEditMode();
+        inputArea.classList.remove('expanded');
+      }
     }
   }, 100);
+});
+
+taskInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && editingTask) {
+    e.stopPropagation();
+    cancelEditMode();
+    taskInput.blur();
+  }
 });
 
 taskInput.addEventListener('keypress', (e) => {
@@ -2558,6 +2616,8 @@ function commitActiveDueBlockEdit() {
 }
 
 function resetTaskInputUI() {
+  editingTask = null;
+  if (taskInputShellEl) taskInputShellEl.classList.remove('editing-mode');
   taskInput.value = '';
   checkReminders();
   dueInput.value = formatDateTimeHuman(getDefaultDueDate());
@@ -2586,12 +2646,37 @@ function resetTaskInputUI() {
   }
 }
 
+function cancelEditMode() {
+  if (!editingTask) return;
+  resetTaskInputUI();
+  renderTasks();
+}
+
 function addTask() {
   if (!taskInput.value.trim()) return;
   commitActiveDueBlockEdit();
   dueInput.value = normalizeDueInputValue(dueInput.value, { enforceFuture: true });
   let dueDate = parseMaskedDate(dueInput.value);
   const finalDue = (hasUserModifiedDate && dueDate) ? dueDate.toISOString() : null;
+
+  if (editingTask) {
+    editingTask.title = taskInput.value.trim();
+    editingTask.due = finalDue;
+    editingTask.reminderMinutes = selectedReminderMinutes;
+    editingTask.reminded = false;
+    editingTask.timerDurationSeconds = selectedTimerSeconds;
+    editingTask.urgent = false;
+    if (finalDue) {
+      const diffHrs = (new Date(finalDue) - new Date()) / (1000 * 60 * 60);
+      if (diffHrs < 0.1667) editingTask.urgent = true;
+    }
+    editingTask = null;
+    if (taskInputShellEl) taskInputShellEl.classList.remove('editing-mode');
+    saveTasks();
+    renderTasks();
+    resetTaskInputUI();
+    return;
+  }
 
   const newTask = {
     title: taskInput.value.trim(),
