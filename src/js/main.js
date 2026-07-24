@@ -928,13 +928,8 @@ function buildTaskItem(task) {
     renderTasks();
   });
 
-  li.addEventListener('contextmenu', async (e) => {
+  li.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    const shouldDelete = await requestDeleteConfirmation('task');
-    if (!shouldDelete) return;
-    tasks.splice(taskIndex, 1);
-    saveTasks();
-    renderTasks();
   });
 
   li.addEventListener('click', () => {
