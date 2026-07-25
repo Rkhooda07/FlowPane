@@ -1163,6 +1163,8 @@ let activeNoteId = null;
 let navbarTitleSynced = true; // true = navbar mirrors body title; false = user set it independently
 let currentFilter = 'all';
 let noteDrafts = {};
+// Assigned by the colour-palette IIFE once it initialises.
+let notePalette = null;
 let skipDeleteConfirm = false;
 let selectedTimerSeconds = null;
 let editingTask = null;
@@ -1607,7 +1609,7 @@ function openNote(tab, noteId, themeIdSuggestion) {
   notesWorkspace.classList.add(`theme-${themeId}`);
   appElement.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4');
   appElement.classList.add(`theme-${themeId}`);
-  if (note.customColor) applyNoteColor(note.customColor);
+  if (note.customColor && notePalette) notePalette.applyNoteColor(note.customColor);
   notesWorkspace.classList.remove('hidden');
   setNotesRevealOrigin(tab);
 
@@ -1664,7 +1666,7 @@ function closeNote(tab) {
   notesWorkspace.style.removeProperty('--note-caret');
   appElement.style.removeProperty('--theme-accent-rgb');
   appElement.style.removeProperty('--theme-text');
-  closePalettePopup();
+  if (notePalette) notePalette.closePalettePopup();
 
   updateNavbarTitle('FlowPane');
 }
@@ -4889,5 +4891,7 @@ async function showEyeMessage() {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && paletteIsOpen) closePalettePopup();
   });
+
+  notePalette = { applyNoteColor, closePalettePopup };
 
 })();
