@@ -1,0 +1,158 @@
+/* FlowPane Landing Page — Design Tokens
+   Extracted 1:1 from the app's src/css/variables.css + extended for landing page */
+
+:root {
+  /* ── Color palette (from app) ── */
+  --bg-color: rgba(15, 15, 15, 0.5);
+  --text-color: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.35);
+  --accent-color: #007aff;
+  --accent-hover: #0056b3;
+  --accent-light: rgba(0, 122, 255, 0.12);
+  --urgent-color: #ff3b30;
+  --success-color: #34c759;
+  --warning-color: #ff9f0a;
+
+  /* ── Glassmorphism (from app) ── */
+  --glass-border: 1px solid rgba(255, 255, 255, 0.2);
+  --glass-border-strong: 1px solid rgba(255, 255, 255, 0.35);
+  --glass-shadow: none;
+  --glass-shadow-hover: 0 12px 40px -12px rgba(0, 0, 0, 0.5),
+                        0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  --glass-blur: 32px;
+  --glass-saturate: 200%;
+  --glass-brightness: 0.85;
+  --card-bg: rgba(255, 255, 255, 0.06);
+  --card-hover: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(255, 255, 255, 0.08);
+
+  /* ── Typography (from app) ── */
+  --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+
+  /* Font sizes */
+  --text-xs: 0.7rem;     /* 11.2px */
+  --text-sm: 0.8125rem;  /* 13px */
+  --text-base: 0.9375rem; /* 15px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.375rem;   /* 22px */
+  --text-2xl: 1.75rem;   /* 28px */
+  --text-3xl: 2.25rem;   /* 36px */
+  --text-4xl: 3rem;      /* 48px */
+  --text-5xl: 4rem;      /* 64px */
+
+  /* Line heights */
+  --leading-tight: 1.1;
+  --leading-snug: 1.3;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  /* Font weights */
+  --weight-light: 300;
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ── Spacing scale ── */
+  --space-xs: 0.25rem;   /* 4px */
+  --space-sm: 0.5rem;    /* 8px */
+  --space-md: 1rem;      /* 16px */
+  --space-lg: 1.5rem;    /* 24px */
+  --space-xl: 2rem;      /* 32px */
+  --space-2xl: 3rem;     /* 48px */
+  --space-3xl: 4rem;     /* 64px */
+  --space-4xl: 6rem;     /* 96px */
+
+  /* ── Border radius (from app: 24px) ── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;      /* matches app's --border-radius */
+  --radius-2xl: 32px;
+  --radius-pill: 9999px;
+
+  /* ── Container ── */
+  --container-max: 1200px;
+  --container-padding: 1.5rem;
+
+  /* ── Z-index scale ── */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 300;
+  --z-popover: 400;
+  --z-tooltip: 500;
+  --z-nav: 1000;
+
+  /* ── Navbar ── */
+  --nav-height: 72px;
+
+  /* ── Transitions ── */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 400ms;
+  --duration-slowest: 600ms;
+
+  /* ── Easing (cubic-bezier matching app's 0.16, 1, 0.3, 1) ── */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Focus ring ── */
+  --focus-ring: 0 0 0 3px rgba(0, 122, 255, 0.45);
+
+  /* ── Starfield (from app) ── */
+  --star-color: rgba(255, 255, 255, 0.45);
+}
+
+/* Light mode overrides (matching app) */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-color: rgba(255, 255, 255, 0.4);
+    --text-color: #1a1a1a;
+    --text-secondary: rgba(0, 0, 0, 0.6);
+    --text-muted: rgba(0, 0, 0, 0.35);
+    --accent-color: #0056b3;
+    --accent-hover: #003d80;
+    --accent-light: rgba(0, 86, 179, 0.12);
+    --glass-border: 1px solid rgba(0, 0, 0, 0.1);
+    --glass-border-strong: 1px solid rgba(0, 0, 0, 0.18);
+    --input-bg: rgba(0, 0, 0, 0.04);
+    --card-bg: rgba(0, 0, 0, 0.03);
+    --card-hover: rgba(0, 0, 0, 0.06);
+    --glass-brightness: 1.1;
+    --star-color: rgba(0, 90, 200, 0.3);
+  }
+}
+
+/* Force dark mode for landing page (it's a dark-mode-first app) */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-color: #0f0f0f;
+    --text-color: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.6);
+    --text-muted: rgba(255, 255, 255, 0.35);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.2);
+    --glass-border-strong: 1px solid rgba(255, 255, 255, 0.35);
+    --card-bg: rgba(255, 255, 255, 0.06);
+    --card-hover: rgba(255, 255, 255, 0.1);
+    --input-bg: rgba(255, 255, 255, 0.08);
+    --glass-brightness: 0.85;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0.01ms;
+    --duration-base: 0.01ms;
+    --duration-slow: 0.01ms;
+    --duration-slower: 0.01ms;
+    --duration-slowest: 0.01ms;
+  }
+}

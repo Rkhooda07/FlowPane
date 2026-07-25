@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FlowPane — A floating companion for staying in flow. Translucent, always-on-top task manager for macOS.">
+  <meta name="theme-color" content="#0f0f0f">
+  <meta property="og:title" content="FlowPane — A floating companion for staying in flow">
+  <meta property="og:description" content="Translucent, always-on-top task manager for macOS. Snap to edges, collapse to a glance, focus with a timer.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/landing/assets/images/og-image.png">
+  <meta property="og:url" content="https://flowpane.app/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="FlowPane — A floating companion for staying in flow">
+  <meta name="twitter:description" content="Translucent, always-on-top task manager for macOS. Snap to edges, collapse to a glance, focus with a timer.">
+  <meta name="twitter:image" content="/landing/assets/images/og-image.png">
+  <title>FlowPane — A floating companion for staying in flow</title>
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/landing/assets/fonts/outfit-latin.woff2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/landing/assets/images/favicon.png">
+  <link rel="icon" type="image/x-icon" href="/landing/assets/images/favicon.ico">
+  <link rel="apple-touch-icon" href="/landing/assets/images/favicon.png">
+  <link rel="manifest" href="/landing/site.webmanifest">
+  <link rel="stylesheet" href="/landing/css/variables.css">
+  <link rel="stylesheet" href="/landing/css/base.css">
+  <link rel="stylesheet" href="/landing/css/sections.css">
+</head>
+<body>
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- =========================================================================
+       NAVBAR
+       ========================================================================= -->
+  <nav class="navbar" id="navbar" role="navigation" aria-label="Main navigation">
+    <div class="navbar__inner">
+      <a href="/" class="navbar__logo" aria-label="FlowPane home">FlowPane</a>
+
+      <ul class="navbar__links" role="list">
+        <li><a href="#features" class="navbar__link">Features</a></li>
+        <li><a href="#download" class="navbar__link">Download</a></li>
+      </ul>
+
+      <a href="#download" class="btn btn--primary navbar__cta" id="nav-download-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download for macOS
+      </a>
+
+      <!-- Mobile menu button (hidden on desktop) -->
+      <button class="navbar__menu-btn" id="menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="navbar-drawer">
+        <span class="menu-btn__line"></span>
+        <span class="menu-btn__line"></span>
+        <span class="menu-btn__line"></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile drawer -->
+  <div class="navbar__backdrop" id="navbar-backdrop" aria-hidden="true"></div>
+  <div class="navbar__drawer" id="navbar-drawer" role="navigation" aria-label="Mobile menu">
+    <ul class="navbar__drawer-links" role="list">
+      <li><a href="#features" class="navbar__drawer-link">Features</a></li>
+      <li><a href="#download" class="navbar__drawer-link">Download</a></li>
+      <li><a href="#download" class="btn btn--primary navbar__drawer-cta" style="margin-top: var(--space-lg); justify-content: center;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download for macOS
+      </a></li>
+    </ul>
+  </div>
+
+  <!-- =========================================================================
+       HERO
+       ========================================================================= -->
+  <header class="hero section" id="home" aria-labelledby="hero-title">
+    <div class="container">
+      <div class="hero__content reveal" style="--delay: 0ms;">
+        <p class="hero__badge animate-fade-in" style="--delay: 100ms;">Version 1.0 for macOS</p>
+
+        <h1 id="hero-title" class="hero__title animate-slide-up" style="--delay: 200ms;">
+          A floating companion for staying in flow
+        </h1>
+
+        <p class="hero__subtitle animate-slide-up" style="--delay: 300ms;">
+          Translucent, always-on-top task manager. Snap to screen edges, collapse to a glance, focus with a timer.
+        </p>
+
+        <div class="hero__cta-group animate-slide-up" style="--delay: 400ms;">
+          <a href="#download" class="btn btn--primary btn--lg" id="hero-download-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download for macOS
+          </a>
+          <a href="#features" class="btn btn--secondary btn--lg">Explore features</a>
+        </div>
+
+        <p class="hero__note animate-fade-in" style="--delay: 600ms;">
+          Native macOS app · No Electron · Privacy-first · Free
+        </p>
+      </div>
+
+      <!-- App mockup / screenshot placeholder -->
+      <div class="hero__mockup reveal animate-scale-in" style="--delay: 500ms;">
+        <div class="hero__mockup-frame" id="app-mockup">
+          <div class="mockup__glow"></div>
+          <div class="mockup__chrome">
+            <div class="mockup__dots">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+          <div class="mockup__content">
+            <div class="mockup__placeholder">
+              <svg class="mockup__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="6"/>
+                <path d="M9 9h6M9 13h4M9 17h2"/>
+              </svg>
+              <p class="mockup__text">App screenshot</p>
+              <p class="mockup__hint">Add a 335×405px screenshot here (assets/images/hero-mockup.png)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero__scroll" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14M19 12l-7 7-7-7"/>
+        </svg>
+        <span>Scroll</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       FEATURES — Bento Grid
+       ========================================================================= -->
+  <section class="features section" id="features" aria-labelledby="features-title">
+    <div class="container">
+      <header class="section-header reveal">
+        <h2 id="features-title" class="section-title">Built for flow</h2>
+        <p class="section-subtitle">Every detail designed to keep you in the zone — not managing your tools.</p>
+      </header>
+
+      <div class="features-bento">
+        <!-- Card 1: Floating pane (large, featured) -->
+        <article class="feature-bento feature-bento--large glass-card reveal">
+          <div class="feature-bento__visual" aria-hidden="true">
+            <svg class="feature-bento__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Window frame -->
+              <rect x="4" y="4" width="40" height="40" rx="8" stroke-width="1.5"/>
+              <!-- Title bar -->
+              <line x1="8" y1="12" x2="40" y2="12" stroke-width="1"/>
+              <!-- Layer effect -->
+              <rect x="8" y="8" width="32" height="32" rx="6" stroke-width="1" opacity="0.3"/>
+              <!-- Floating indicator dots -->
+              <circle cx="14" cy="20" r="1.5" fill="currentColor" opacity="0.6"/>
+              <circle cx="24" cy="20" r="1.5" fill="currentColor" opacity="0.6"/>
+              <circle cx="34" cy="20" r="1.5" fill="currentColor" opacity="0.6"/>
+              <circle cx="14" cy="28" r="1.5" fill="currentColor" opacity="0.4"/>
+              <circle cx="24" cy="28" r="1.5" fill="currentColor" opacity="0.4"/>
+              <circle cx="34" cy="28" r="1.5" fill="currentColor" opacity="0.4"/>
+            </svg>
+          </div>
+          <div class="feature-bento__content">
+            <h3 class="feature-bento__title">Floating, always-on-top pane</h3>
+            <p class="feature-bento__description">FlowPane lives quietly above every other window. Your tasks, notes, and timer stay visible while you work — no context switching, no alt-tabbing, no losing your place.</p>
+          </div>
+        </article>
+
+        <!-- Card 2: Edge snap -->
+        <article class="feature-bento feature-bento--wide glass-card reveal">
+          <div class="feature-bento__visual" aria-hidden="true">
+            <svg class="feature-bento__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Screen edge -->
+              <rect x="4" y="4" width="40" height="40" rx="6" stroke-width="1"/>
+              <!-- Snap zone indicator -->
+              <path d="M8 14h12 M8 20h12 M8 26h12" stroke-width="1.5" stroke-linecap="round"/>
+              <!-- Collapsed bar -->
+              <rect x="30" y="16" width="10" height="16" rx="4" fill="currentColor" opacity="0.15"/>
+              <line x1="33" y1="20" x2="37" y2="20" stroke-width="1.5"/>
+              <line x1="33" y1="24" x2="37" y2="24" stroke-width="1"/>
+            </svg>
+          </div>
+          <div class="feature-bento__content">
+            <h3 class="feature-bento__title">Edge snapping & collapse</h3>
+            <p class="feature-bento__description">Drag to any screen edge to snap. Pull further to collapse into a minimal sliver — just your active task and a timer, always glanceable, never in the way.</p>
+          </div>
+        </article>
+
+        <!-- Card 3: Hover peek -->
+        <article class="feature-bento feature-bento--tall glass-card reveal">
+          <div class="feature-bento__visual" aria-hidden="true">
+            <svg class="feature-bento__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Collapsed edge bar -->
+              <rect x="4" y="8" width="12" height="32" rx="4" fill="currentColor" opacity="0.2"/>
+              <!-- Reveal arrow -->
+              <path d="M14 24h6 M18 20l4 4-4 4" stroke-width="2" fill="none"/>
+              <!-- Expanded panel (ghost) -->
+              <rect x="22" y="10" width="22" height="28" rx="6" stroke-width="1" opacity="0.3"/>
+              <line x1="26" y1="16" x2="38" y2="16" stroke-width="1" opacity="0.5"/>
+              <line x1="26" y1="22" x2="36" y2="22" stroke-width="1" opacity="0.5"/>
+              <line x1="26" y1="28" x2="34" y2="28" stroke-width="1" opacity="0.5"/>
+              <!-- Cursor hint -->
+              <circle cx="18" cy="6" r="3" stroke-width="1.5" opacity="0.4"/>
+            </svg>
+          </div>
+          <div class="feature-bento__content">
+            <h3 class="feature-bento__title">Hover to peek</h3>
+            <p class="feature-bento__description">No click required. Move your cursor near a collapsed edge and FlowPane reveals itself instantly. Pull away and it tucks back — fluid, frictionless, intentional.</p>
+          </div>
+        </article>
+
+        <!-- Card 4: Quick capture -->
+        <article class="feature-bento feature-bento--wide glass-card reveal">
+          <div class="feature-bento__visual" aria-hidden="true">
+            <svg class="feature-bento__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Input field -->
+              <rect x="6" y="12" width="36" height="14" rx="4" stroke-width="1.5"/>
+              <text x="10" y="22.5" font-size="8" fill="currentColor" opacity="0.4" font-family="monospace">What's next? /today 3pm !urgent</text>
+              <!-- Parse indicators -->
+              <circle cx="20" cy="32" r="3" fill="currentColor" opacity="0.3"/>
+              <circle cx="28" cy="32" r="3" fill="#ff3b30" opacity="0.4"/>
+              <circle cx="36" cy="32" r="3" fill="#34c759" opacity="0.4"/>
+              <!-- Quick add -->
+              <path d="M10 40h28 M24 34v12" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+            </svg>
+          </div>
+          <div class="feature-bento__content">
+            <h3 class="feature-bento__title">Quick task capture</h3>
+            <p class="feature-bento__description">Type naturally — "/today 3pm", "!urgent", "@2h" — and FlowPane parses dates, urgency, and timers on the fly. Capture thoughts at the speed of thinking.</p>
+          </div>
+        </article>
+
+        <!-- Card 5: Focus Mode (large) -->
+        <article class="feature-bento feature-bento--large glass-card reveal">
+          <div class="feature-bento__visual" aria-hidden="true">
+            <svg class="feature-bento__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Focus window -->
+              <rect x="4" y="4" width="40" height="40" rx="8" stroke-width="1.5"/>
+              <!-- Timer circle -->
+              <circle cx="24" cy="22" r="14" stroke-width="2" fill="none" opacity="0.3"/>
+              <path d="M24 8v10 M24 18l4 4" stroke-width="2.5" stroke-linecap="round"/>
+              <!-- Task name -->
+              <line x1="12" y1="38" x2="36" y2="38" stroke-width="1.5" opacity="0.6"/>
+              <!-- Stars/ambient -->
+              <circle cx="10" cy="10" r="1" fill="currentColor" opacity="0.3"/>
+              <circle cx="38" cy="10" r="1" fill="currentColor" opacity="0.3"/>
+              <circle cx="10" cy="38" r="1" fill="currentColor" opacity="0.3"/>
+              <circle cx="38" cy="38" r="1" fill="currentColor" opacity="0.3"/>
+            </svg>
+          </div>
+          <div class="feature-bento__content">
+            <h3 class="feature-bento__title">Focus Mode</h3>
+            <p class="feature-bento__description">Enter a dedicated full-screen view with a countdown or stopwatch. Everything else dims. Just you, your task, and the clock. Finish with a moment of celebration, not a notification.</p>
+          </div>
+        </article>
+
+        <!-- Card 6: Multi-note workspace -->
+        <article class="feature-bento feature-bento--tall glass-card reveal">
+          <div class="feature-bento__visual" aria-hidden="true">
+            <svg class="feature-bento__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Note tabs -->
+              <rect x="8" y="8" width="32" height="6" rx="3" fill="currentColor" opacity="0.15"/>
+              <rect x="8" y="8" width="10" height="6" rx="3" fill="#007aff" opacity="0.8"/>
+              <rect x="20" y="8" width="8" height="6" rx="3" fill="#ff3b30" opacity="0.6"/>
+              <rect x="30" y="8" width="10" height="6" rx="3" fill="#34c759" opacity="0.6"/>
+              <!-- Note content areas -->
+              <line x1="8" y1="20" x2="36" y2="20" stroke-width="1.5" opacity="0.4"/>
+              <line x1="8" y1="26" x2="32" y2="26" stroke-width="1" opacity="0.4"/>
+              <line x1="8" y1="32" x2="28" y2="32" stroke-width="1" opacity="0.4"/>
+              <!-- Second note -->
+              <line x1="8" y1="38" x2="34" y2="38" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.3"/>
+              <line x1="8" y1="42" x2="26" y2="42" stroke-width="1" stroke-dasharray="3 3" opacity="0.3"/>
+            </svg>
+          </div>
+          <div class="feature-bento__content">
+            <h3 class="feature-bento__title">Multi-note workspace</h3>
+            <p class="feature-bento__description">Color-coded note tabs let you keep parallel threads — specs, ideas, references — organized within a single task. Switch contexts with a click, not a window hunt.</p>
+          </div>
+        </article>
+
+        <!-- Card 7: Eye Bubble -->
+        <article class="feature-bento feature-bento--wide glass-card reveal">
+          <div class="feature-bento__visual" aria-hidden="true">
+            <svg class="feature-bento__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Eyes -->
+              <circle cx="16" cy="20" r="5" fill="currentColor" opacity="0.15"/>
+              <circle cx="32" cy="20" r="5" fill="currentColor" opacity="0.15"/>
+              <circle cx="16" cy="20" r="2.5" fill="currentColor" opacity="0.6"/>
+              <circle cx="32" cy="20" r="2.5" fill="currentColor" opacity="0.6"/>
+              <!-- Bubble -->
+              <path d="M24 28c0-4 3-6 6-6s6 2 6 6c0 3-2 5-5 5-1.5 0-3-.5-4-1.5" fill="currentColor" opacity="0.1"/>
+              <text x="24" y="30.5" text-anchor="middle" font-size="6" fill="currentColor" opacity="0.5" font-family="system-ui">focus?</text>
+              <!-- Dots trail -->
+              <circle cx="20" cy="36" r="1.5" fill="currentColor" opacity="0.4"/>
+              <circle cx="16" cy="40" r="1" fill="currentColor" opacity="0.3"/>
+              <circle cx="13" cy="43" r="0.5" fill="currentColor" opacity="0.2"/>
+            </svg>
+          </div>
+          <div class="feature-bento__content">
+            <h3 class="feature-bento__title">The Eye Bubble</h3>
+            <p class="feature-bento__description">A small, friendly nudge when you've drifted. No nagging sounds, no red badges — just a quiet "hey, still working on this?" that respects your agency.</p>
+          </div>
+        </article>
+
+        <!-- Card 8: Multi-window -->
+        <article class="feature-bento feature-bento--tall glass-card reveal">
+          <div class="feature-bento__visual" aria-hidden="true">
+            <svg class="feature-bento__icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Window 1 (front) -->
+              <rect x="10" y="10" width="28" height="28" rx="6" stroke-width="1.5"/>
+              <line x1="14" y1="16" x2="34" y2="16" stroke-width="1" opacity="0.4"/>
+              <line x1="14" y1="22" x2="30" y2="22" stroke-width="1" opacity="0.4"/>
+              <!-- Window 2 (behind, offset) -->
+              <rect x="14" y="14" width="28" height="28" rx="6" stroke-width="1" opacity="0.3"/>
+              <line x1="18" y1="20" x2="38" y2="20" stroke-width="1" opacity="0.2"/>
+              <!-- Window 3 (further behind) -->
+              <rect x="18" y="18" width="28" height="28" rx="6" stroke-width="1" opacity="0.15"/>
+              <!-- Connection dots -->
+              <circle cx="10" cy="10" r="2" fill="currentColor" opacity="0.3"/>
+              <circle cx="38" cy="10" r="2" fill="currentColor" opacity="0.3"/>
+              <circle cx="10" cy="38" r="2" fill="currentColor" opacity="0.3"/>
+              <circle cx="38" cy="38" r="2" fill="currentColor" opacity="0.3"/>
+            </svg>
+          </div>
+          <div class="feature-bento__content">
+            <h3 class="feature-bento__title">Multi-window support</h3>
+            <p class="feature-bento__description">Spawn independent FlowPane instances for different contexts — work, personal, a specific project. Each remembers its position, tasks, and collapsed state.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       DOWNLOAD
+       ========================================================================= -->
+  <section class="download section" id="download" aria-labelledby="download-title">
+    <div class="container">
+      <div class="download__card glass-card reveal">
+        <span class="download__badge">Version 0.1.0 · macOS 12+ · Apple Silicon</span>
+
+        <h2 id="download-title" class="download__title">Ready to flow?</h2>
+
+        <p class="download__description">
+          Download FlowPane for free. Native Tauri app — no Electron, no account required, no data leaves your Mac.
+        </p>
+
+        <div class="download__cta-group">
+          <a href="https://github.com/rkhooda/FlowPane/releases/latest/download/FlowPane_0.1.0_aarch64.dmg" class="btn btn--primary btn--lg download__primary-btn" id="download-btn" download="FlowPane_0.1.0_aarch64.dmg" aria-describedby="download-note">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download for macOS
+          </a>
+          <a href="https://github.com/rkhooda/FlowPane" class="btn btn--secondary btn--lg" target="_blank" rel="noopener noreferrer">
+            View on GitHub
+          </a>
+        </div>
+
+        <!-- First-launch note for unsigned app -->
+        <p id="download-note" class="download__first-launch" aria-live="polite">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4M12 8h.01"/>
+          </svg>
+          <span><strong>First launch:</strong> Since this is an independently distributed app (not signed with an Apple Developer ID), macOS will show an "unidentified developer" prompt. This is normal — just right-click the app and choose <kbd>Open</kbd>, or go to <strong>System Settings → Privacy & Security → Open Anyway</strong>. Many trusted Mac apps work this way.</span>
+        </p>
+
+        <!-- Specs row -->
+        <dl class="download__specs" aria-label="System requirements and file details">
+          <div class="download__spec">
+            <dt>Version</dt>
+            <dd>0.1.0</dd>
+          </div>
+          <div class="download__spec">
+            <dt>Requires</dt>
+            <dd>macOS 12 Monterey or later · Apple Silicon (M1/M2/M3/M4)</dd>
+          </div>
+          <div class="download__spec">
+            <dt>Size</dt>
+            <dd>7.9 MB (.dmg)</dd>
+          </div>
+          <div class="download__spec">
+            <dt>License</dt>
+            <dd><a href="https://github.com/rkhooda/FlowPane/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT</a> — open source</dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- FAQ Section -->
+      <section class="download-faq section" aria-labelledby="faq-title">
+        <h2 id="faq-title" class="download-faq__title">Questions?</h2>
+        <div class="download-faq__grid">
+          <article class="download-faq__item glass-card">
+            <h3 class="download-faq__question">Is this app safe?</h3>
+            <div class="download-faq__answer">
+              <p>Yes. FlowPane is open source (<a href="https://github.com/rkhooda/FlowPane" target="_blank" rel="noopener noreferrer">MIT licensed</a>) — you can audit every line of code on GitHub.</p>
+              <p>The "unidentified developer" prompt appears because I haven't paid for an Apple Developer ID ($99/yr). That certificate only verifies who built the app, not what it does. No telemetry, no network calls, no hidden behavior. Your trust is earned by transparency, not a certificate.</p>
+            </div>
+          </article>
+
+          <article class="download-faq__item glass-card">
+            <h3 class="download-faq__question">Does this work on Intel Macs?</h3>
+            <div class="download-faq__answer">
+              <p>Not yet. The current build is Apple Silicon only (M1/M2/M3/M4). An Intel (x86_64) build is planned — it requires testing on Intel hardware I don't currently have access to.</p>
+              <p>If you're on Intel and want to be notified, <a href="https://github.com/rkhooda/FlowPane/issues" target="_blank" rel="noopener noreferrer">open a GitHub issue</a> or star the repo to track progress.</p>
+            </div>
+          </article>
+
+          <article class="download-faq__item glass-card">
+            <h3 class="download-faq__question">Is my data private?</h3>
+            <div class="download-faq__answer">
+              <p>Absolutely. All tasks, notes, and settings live in a local <code>tasks.json</code> file on your Mac. FlowPane makes <strong>zero network requests</strong> — no analytics, no crash reporting, no update checks that phone home. Even the font (Outfit) is self-hosted and bundled with the app.</p>
+              <p>Your data never leaves your device. Period.</p>
+            </div>
+          </article>
+
+          <article class="download-faq__item glass-card">
+            <h3 class="download-faq__question">Is Windows supported?</h3>
+            <div class="download-faq__answer">
+              <p>Not yet. A Windows build is in active development — Tauri makes it straightforward, but the window management APIs (edge-snap, always-on-top, transparency) need platform-specific work.</p>
+              <p>Want a heads-up when it's ready? <a href="https://github.com/rkhooda/FlowPane/issues" target="_blank" rel="noopener noreferrer">Follow the repo</a> or <a href="https://github.com/rkhooda/FlowPane/discussions" target="_blank" rel="noopener noreferrer">join discussions</a>.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       FOOTER
+       ========================================================================= -->
+  <footer class="footer" role="contentinfo">
+    <div class="footer__inner">
+      <a href="/" class="footer__logo" aria-label="FlowPane home">FlowPane</a>
+
+      <nav class="footer__nav" aria-label="Footer navigation">
+        <ul class="footer__links" role="list">
+          <li><a href="https://github.com/rkhooda/FlowPane" class="footer__link" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="/privacy" class="footer__link">Privacy</a></li>
+          <li><a href="mailto:hello@flowpane.app" class="footer__link">Contact</a></li>
+        </ul>
+      </nav>
+
+      <p class="footer__copyright">&copy; 2025 FlowPane. Built with Tauri 2.</p>
+    </div>
+  </footer>
+
+  <script type="module" src="/landing/js/main.js"></script>
+</body>
+</html>

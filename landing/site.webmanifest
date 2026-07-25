@@ -1,0 +1,21 @@
+{
+  "name": "FlowPane",
+  "short_name": "FlowPane",
+  "description": "A floating companion for staying in flow. Translucent, always-on-top task manager for macOS.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#0f0f0f",
+  "icons": [
+    {
+      "src": "/landing/assets/images/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/landing/assets/images/apple-touch-icon.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ]
+}
