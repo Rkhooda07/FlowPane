@@ -23,6 +23,9 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  /* clip, not hidden: the ambient washes bleed past their panes by design
+     and must not turn the document into a scroll container */
+  overflow-x: clip;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -36,7 +39,6 @@ body {
   color: var(--text-2);
   background: var(--void);
   min-height: 100vh;
-  overflow-x: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -165,6 +167,19 @@ body {
   outline: none;
   box-shadow: var(--focus-ring);
   border-radius: var(--r-sm);
+}
+
+/* Buttons carry their own shadow, which would otherwise win over the ring */
+.btn:focus-visible {
+  border-radius: var(--r-pill);
+}
+
+.btn--ember:focus-visible {
+  box-shadow: 0 6px 18px -8px var(--ember-glow), var(--focus-ring);
+}
+
+.btn--glass:focus-visible {
+  box-shadow: var(--focus-ring);
 }
 
 ::selection {
