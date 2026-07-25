@@ -24,15 +24,13 @@
 
 ## Screenshots
 
-<!-- Replace the placeholders below with your actual screenshots -->
-
 | Task List | Focus Mode | Edge Collapsed |
 |:---------:|:----------:|:--------------:|
-| ![Task List](docs/screenshots/task-list.png) | ![Focus Mode](docs/screenshots/focus-mode.png) | ![Collapsed](docs/screenshots/collapsed.png) |
+| <img src="src/assets/task-list.png" alt="Task List" width="300" /> | <img src="src/assets/focus-timer.png" alt="Focus Mode" width="300" /> | <img src="src/assets/edge-collapsed.png" alt="Edge Collapsed" width="300" /> |
 
 | Due Date Picker | Notes | Completed Tasks |
 |:--------------:|:-----:|:---------------:|
-| ![Due Date](docs/screenshots/due-date.png) | ![Notes](docs/screenshots/notes.png) | ![History](docs/screenshots/history.png) |
+| <img src="src/assets/due-date-picker.png" alt="Due Date Picker" width="300" /> | <img src="src/assets/notes.png" alt="Notes" width="300" /> | <img src="src/assets/completed-task.png" alt="Completed Tasks" width="300" /> |
 
 ---
 

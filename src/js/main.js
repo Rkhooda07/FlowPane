@@ -978,8 +978,14 @@ function buildTaskItem(task) {
     e.preventDefault();
   });
 
-  li.addEventListener('click', () => {
-    if (!task.completed) enterFocusMode(task);
+  li.addEventListener('click', async () => {
+    if (task.completed) return;
+    if (appElement.classList.contains('collapsed-y')) {
+      await toggleCollapseY();
+    } else if (appElement.classList.contains('collapsed-x')) {
+      await toggleCollapseX();
+    }
+    enterFocusMode(task);
   });
 
   return li;
@@ -1028,10 +1034,16 @@ function buildNoteItem(note, noteId) {
     renderTasks();
   });
 
-  li.addEventListener('click', () => {
+  li.addEventListener('click', async () => {
     const themeId = note.theme || 1;
     const noteTab = document.querySelector(`.task-note-tab.note-${themeId}`);
-    if (noteTab) openNote(noteTab, noteId);
+    if (!noteTab) return;
+    if (appElement.classList.contains('collapsed-y')) {
+      await toggleCollapseY();
+    } else if (appElement.classList.contains('collapsed-x')) {
+      await toggleCollapseX();
+    }
+    openNote(noteTab, noteId);
   });
 
   return li;
@@ -3344,7 +3356,12 @@ function renderHistory(completedTasks) {
         }, 600);
       });
 
-      li.addEventListener('click', () => {
+      li.addEventListener('click', async () => {
+        if (appElement.classList.contains('collapsed-y')) {
+          await toggleCollapseY();
+        } else if (appElement.classList.contains('collapsed-x')) {
+          await toggleCollapseX();
+        }
         showRestoreModal(task);
       });
 
