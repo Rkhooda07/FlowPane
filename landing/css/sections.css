@@ -540,80 +540,141 @@
 /* ══════════════ BEHAVIOUR STEPS ══════════════ */
 .band--tight { padding-top: 0; }
 
-.steps {
+/* One surface, four segments — a strip of film, not four cards.
+   Reads as a single continuous gesture, which is what it describes. */
+.rail-seq {
+  position: relative;
   display: grid;
-  gap: var(--s-4);
   margin-top: var(--s-7);
   list-style: none;
-}
-
-@media (min-width: 620px) { .steps { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1000px) { .steps { grid-template-columns: repeat(4, 1fr); } }
-
-.step {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
-  padding: var(--s-5);
   overflow: hidden;
-  transition:
-    transform var(--dur-3) var(--ease-glide),
-    background-color var(--dur-3) var(--ease-flat),
-    border-color var(--dur-3) var(--ease-flat);
 }
 
-.step:hover {
-  transform: translate3d(0, -4px, 0);
-  background: var(--frost-lift);
-  border-color: var(--rim);
+@media (min-width: 640px) { .rail-seq { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .rail-seq { grid-template-columns: repeat(4, 1fr); } }
+
+.seq {
+  position: relative;
+  padding: var(--s-5) var(--s-5) var(--s-6);
+  transition: background-color var(--dur-3) var(--ease-flat);
 }
 
-.step__n { color: var(--ember); }
+.seq:hover { background: var(--frost-sunk); }
 
-.step__t {
+/* Hairline dividers between segments, never on an outer edge.
+   Stacked: horizontal rules. Side by side: vertical rules. */
+.seq::before {
+  content: '';
+  position: absolute;
+  inset: 0 var(--s-5) auto;
+  height: 1px;
+  background: var(--rim-quiet);
+}
+
+.seq:first-child::before { display: none; }
+
+@media (min-width: 640px) {
+  .seq:nth-child(3)::before { inset: 0 var(--s-5) auto; height: 1px; width: auto; }
+  .seq:nth-child(2)::before,
+  .seq:nth-child(4)::before {
+    inset: var(--s-5) auto var(--s-5) 0;
+    width: 1px;
+    height: auto;
+  }
+}
+
+@media (min-width: 1000px) {
+  .seq::before {
+    inset: var(--s-5) auto var(--s-5) 0;
+    width: 1px;
+    height: auto;
+  }
+}
+
+/* The thread: an amber line that travels the length of the rail once,
+   on entry. It is the sequence made literal. */
+.rail-seq::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 2px;
+  width: 100%;
+  transform-origin: left;
+  transform: scaleX(0);
+  background: linear-gradient(to right, var(--ember-deep), var(--ember), transparent);
+}
+
+.rail-seq.is-in::after {
+  animation: thread var(--dur-5) var(--ease-glide) 160ms forwards;
+}
+
+@keyframes thread { to { transform: scaleX(1); } }
+
+.seq__n {
+  display: block;
+  color: var(--ember);
+  margin-bottom: var(--s-4);
+}
+
+.seq__t {
   font-size: var(--t-lg);
   font-weight: var(--w-medium);
   letter-spacing: var(--track-tight);
   color: var(--text-1);
+  margin-bottom: var(--s-2);
 }
 
-.step__d {
+.seq__d {
   font-size: var(--t-sm);
   line-height: var(--lead-body);
   color: var(--text-3);
 }
 
-/* Diagrammatic, not iconographic: a literal pane shape changing state */
-.step__viz {
+/* Diagrammatic: a screen with its right edge drawn, and a pane on it.
+   No dashed placeholder box — the edge is the whole point. */
+.seq__viz {
   position: relative;
-  height: 62px;
-  margin-top: var(--s-4);
-  border: 1px dashed var(--rim-quiet);
-  border-radius: var(--r-sm);
-  overflow: hidden;
+  height: 56px;
+  width: 132px;
+  margin-bottom: var(--s-5);
+  border-right: 2px solid var(--rim);
+  border-radius: 2px;
 }
 
-.viz-pane {
+.chip {
   position: absolute;
-  top: 10px;
-  left: 12px;
-  width: 34px;
-  height: 42px;
+  top: 8px;
+  left: 4px;
+  width: 30px;
+  height: 40px;
   border-radius: 5px;
   background: var(--frost-lift);
   border: 1px solid var(--rim);
-  transition: all var(--dur-4) var(--ease-glide);
+  transition:
+    transform var(--dur-4) var(--ease-glide),
+    width var(--dur-4) var(--ease-glide),
+    background-color var(--dur-4) var(--ease-flat),
+    border-color var(--dur-4) var(--ease-flat);
 }
 
-.viz-pane--snap { left: auto; right: 0; border-radius: 5px 0 0 5px; }
-.viz-pane--slim { left: auto; right: 0; width: 11px; border-radius: 5px 0 0 5px; background: var(--ember-wash); border-color: var(--ember-rim); }
-.viz-pane--peek { left: auto; right: 0; width: 11px; border-radius: 5px 0 0 5px; }
+.chip--snap,
+.chip--slim,
+.chip--peek { left: auto; right: 0; border-radius: 5px 0 0 5px; }
 
-.step:hover .viz-pane          { transform: translateX(6px); }
-.step:hover .viz-pane--snap    { transform: translateX(0); }
-.step:hover .viz-pane--slim    { transform: translateX(4px); }
-.step:hover .viz-pane--peek    { width: 34px; background: var(--ember-wash); border-color: var(--ember-rim); }
+.chip--slim,
+.chip--peek { width: 10px; }
+
+.chip--slim { background: var(--ember-wash); border-color: var(--ember-rim); }
+
+.seq:hover .chip       { transform: translateX(10px); }
+.seq:hover .chip--snap { transform: translateX(0); }
+.seq:hover .chip--slim { transform: translateX(3px); }
+.seq:hover .chip--peek { width: 30px; background: var(--ember-wash); border-color: var(--ember-rim); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-seq::after { transform: scaleX(1); animation: none; }
+}
 
 /* ══════════════ LEDGER ══════════════ */
 .ledger {

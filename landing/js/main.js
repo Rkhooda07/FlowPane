@@ -17,7 +17,7 @@ const entering = new IntersectionObserver((entries) => {
   }
 }, { rootMargin: '0px 0px -12% 0px', threshold: 0.15 });
 
-document.querySelectorAll('.enter').forEach((el) => entering.observe(el));
+document.querySelectorAll('.enter, .rail-seq').forEach((el) => entering.observe(el));
 
 /* ═════════ EYES ═════════
    Every .eye on the page tracks the real cursor, exactly as the app tracks
