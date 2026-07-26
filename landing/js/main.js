@@ -121,6 +121,8 @@ function typeIn(tokens) {
 
 function showBubble() {
   if (bubbleOpen || !bubble || reduced.matches) return;
+  /* Never speak over an open note, as in the app */
+  if (paneEl && paneEl.classList.contains('is-note-open')) return;
   bubbleOpen = true;
 
   const tokens = tokenize(LINES[lineIndex % LINES.length]);
@@ -182,18 +184,28 @@ const noteRow = document.getElementById('note-row');
 const noteWs = document.getElementById('note-ws');
 const noteExit = document.getElementById('note-exit');
 const noteTitleEl = document.querySelector('.fp-title__note');
-const noteWsTitle = noteWs && noteWs.querySelector('.fp-note-ws__title');
-const noteWsBody = noteWs && noteWs.querySelector('.fp-note-ws__body');
+const noteWsTitle = document.getElementById('note-ws-title');
+const noteWsBody = document.getElementById('note-ws-body');
 
-/* One demo note per sticky-tab colour; theme 4 is the pink list entry. */
+/* One demo note per sticky-tab colour; theme 4 is the pink list entry.
+   Edits persist per-note for the session only — a refresh restores these. */
 const DEMO_NOTES = {
-  1: { title: 'ideas that slap', body: 'a pane that cheers when you finish 🎉<br>keyboard-only mode<br>tiny rain sounds for focus' },
-  2: { title: 'do not forget', body: 'cancel that one free trial 💸<br>reply to mum<br>stretch. actually stretch.' },
-  3: { title: 'weekend quests', body: 'find the best croissant in town 🥐<br>fix the squeaky chair<br>beat my 25:00 focus record' },
-  4: { title: '3am shower thoughts', body: 'what if the eyes blink back…<br><br>teach the pane to wink 😉<br>adopt a plant it can watch<br>name the googly eyes' },
+  1: { title: 'ideas that slap', body: 'a pane that cheers when you finish 🎉\nkeyboard-only mode\ntiny rain sounds for focus' },
+  2: { title: 'do not forget', body: 'cancel that one free trial 💸\nreply to mum\nstretch. actually stretch.' },
+  3: { title: 'weekend quests', body: 'find the best croissant in town 🥐\nfix the squeaky chair\nbeat my 25:00 focus record' },
+  4: { title: '3am shower thoughts', body: 'what if the eyes blink back…\n\nteach the pane to wink 😉\nadopt a plant it can watch\nname the googly eyes' },
 };
 
 let activeTheme = null;
+
+/* The pink list entry mirrors its note, as buildNoteItem does in the app. */
+function syncNoteRow() {
+  if (!noteRow || !noteRow.isConnected) return;
+  const note = DEMO_NOTES[4];
+  noteRow.querySelector('.fp-t').textContent = note.title.trim() || 'Untitled note';
+  const firstLine = note.body.trim().split('\n')[0];
+  noteRow.querySelector('.fp-note__sub').textContent = firstLine || 'Click to start writing... ✍️';
+}
 
 function setRevealOrigin(e) {
   const box = noteWs.getBoundingClientRect();
@@ -213,9 +225,9 @@ function openNote(theme, e) {
 
   noteWs.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4');
   noteWs.classList.add(`theme-${theme}`);
-  noteWsTitle.textContent = note.title;
-  noteWsBody.innerHTML = note.body;
-  if (noteTitleEl) noteTitleEl.textContent = note.title;
+  noteWsTitle.value = note.title;
+  noteWsBody.value = note.body;
+  if (noteTitleEl) noteTitleEl.textContent = note.title.trim() || 'Untitled note';
 
   clearActiveTab();
   const tab = document.querySelector(`.fp-tab--${theme}`);
@@ -225,7 +237,15 @@ function openNote(theme, e) {
   activeTheme = theme;
   paneEl.classList.add('is-note-open');
   noteWs.setAttribute('aria-hidden', 'false');
+  noteWs.inert = false;
   if (bubbleOpen) hideBubble();
+
+  /* As the app does: an untitled note gets the title caret, otherwise
+     the body, with the caret at the end. */
+  const target = note.title.trim() ? noteWsBody : noteWsTitle;
+  target.focus({ preventScroll: true });
+  const end = target.value.length;
+  target.setSelectionRange(end, end);
 }
 
 function closeNote(e) {
@@ -234,6 +254,7 @@ function closeNote(e) {
   clearActiveTab();
   paneEl.classList.remove('is-note-open');
   noteWs.setAttribute('aria-hidden', 'true');
+  noteWs.inert = true;
 }
 
 /* Delete buttons remove the row for real; a refresh restores the demo. */
@@ -251,6 +272,21 @@ function removeRow(row) {
 }
 
 if (paneEl && noteRow && noteWs && noteExit) {
+  noteWs.inert = true;
+
+  noteWsTitle.addEventListener('input', () => {
+    if (!activeTheme) return;
+    DEMO_NOTES[activeTheme].title = noteWsTitle.value;
+    if (noteTitleEl) noteTitleEl.textContent = noteWsTitle.value.trim() || 'Untitled note';
+    if (activeTheme === 4) syncNoteRow();
+  });
+
+  noteWsBody.addEventListener('input', () => {
+    if (!activeTheme) return;
+    DEMO_NOTES[activeTheme].body = noteWsBody.value;
+    if (activeTheme === 4) syncNoteRow();
+  });
+
   noteRow.addEventListener('click', (e) => openNote(4, e));
   noteRow.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openNote(4); }

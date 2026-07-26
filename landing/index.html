@@ -205,10 +205,11 @@
               </ul>
             </div>
 
-            <!-- Notes workspace: the app's own circular reveal (src/css/notes.css) -->
+            <!-- Notes workspace: the app's own circular reveal (src/css/notes.css),
+                 editable exactly like the app's title input + body editor -->
             <div class="fp-note-ws" id="note-ws" aria-hidden="true">
-              <span class="fp-note-ws__title">3am shower thoughts</span>
-              <span class="fp-note-ws__body">what if the eyes blink back…<br><br>teach the pane to wink 😉<br>adopt a plant it can watch<br>name the googly eyes</span>
+              <input class="fp-note-ws__title" id="note-ws-title" type="text" placeholder="Note title" maxlength="60" autocomplete="off" spellcheck="false" aria-label="Note title" />
+              <textarea class="fp-note-ws__body" id="note-ws-body" placeholder="Write your note..." spellcheck="false" aria-label="Note body"></textarea>
             </div>
 
             <!-- The app's real comic thought bubble, same path, same ink shadow -->

@@ -778,7 +778,21 @@
 
 .is-note-open .fp-note-ws {
   opacity: 1;
+  pointer-events: auto;
   clip-path: circle(145% at var(--reveal-x) var(--reveal-y));
+}
+
+/* Editable, like the app's .notes-title-input / .notes-body-editor */
+.fp-note-ws__title,
+.fp-note-ws__body {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--note-fg);
+  caret-color: var(--note-fg);
+  font-family: inherit;
+  padding: 0;
+  outline: none;
 }
 
 .fp-note-ws__title {
@@ -789,9 +803,26 @@
 }
 
 .fp-note-ws__body {
+  flex: 1;
+  resize: none;
   font-size: 17px;
   line-height: 1.45;
   letter-spacing: 0.15px;
+}
+
+.fp-note-ws__title::placeholder,
+.fp-note-ws__body::placeholder {
+  color: var(--note-fg);
+  opacity: 0.42;
+}
+
+/* The caret is the focus indicator here, as in the app */
+.fp-note-ws__title:focus-visible,
+.fp-note-ws__body:focus-visible { box-shadow: none; }
+
+.fp-note-ws ::selection {
+  background: var(--note-fg);
+  color: var(--note-bg);
 }
 
 @media (prefers-reduced-motion: reduce) {
