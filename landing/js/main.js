@@ -173,13 +173,27 @@ window.addEventListener('scroll', () => {
 onScroll();
 
 /* ═════════ NOTE WORKSPACE ═════════
-   Clicking the note performs the app's own circular reveal (openNote /
-   closeNote in src/js/main.js): clip-path circle from the click point. */
+   Clicking a note (the list entry or a sticky tab) performs the app's own
+   circular reveal (openNote / closeNote in src/js/main.js): clip-path
+   circle from the click point, themed to the note's colour. */
 
 const paneEl = document.getElementById('pane');
 const noteRow = document.getElementById('note-row');
 const noteWs = document.getElementById('note-ws');
 const noteExit = document.getElementById('note-exit');
+const noteTitleEl = document.querySelector('.fp-title__note');
+const noteWsTitle = noteWs && noteWs.querySelector('.fp-note-ws__title');
+const noteWsBody = noteWs && noteWs.querySelector('.fp-note-ws__body');
+
+/* One demo note per sticky-tab colour; theme 4 is the pink list entry. */
+const DEMO_NOTES = {
+  1: { title: 'ideas that slap', body: 'a pane that cheers when you finish 🎉<br>keyboard-only mode<br>tiny rain sounds for focus' },
+  2: { title: 'do not forget', body: 'cancel that one free trial 💸<br>reply to mum<br>stretch. actually stretch.' },
+  3: { title: 'weekend quests', body: 'find the best croissant in town 🥐<br>fix the squeaky chair<br>beat my 25:00 focus record' },
+  4: { title: '3am shower thoughts', body: 'what if the eyes blink back…<br><br>teach the pane to wink 😉<br>adopt a plant it can watch<br>name the googly eyes' },
+};
+
+let activeTheme = null;
 
 function setRevealOrigin(e) {
   const box = noteWs.getBoundingClientRect();
@@ -189,8 +203,26 @@ function setRevealOrigin(e) {
   noteWs.style.setProperty('--reveal-y', `${y}%`);
 }
 
-function openNote(e) {
+function clearActiveTab() {
+  document.querySelectorAll('.fp-tab.note-active').forEach((t) => t.classList.remove('note-active'));
+}
+
+function openNote(theme, e) {
+  const note = DEMO_NOTES[theme];
+  if (!note) return;
+
+  noteWs.classList.remove('theme-1', 'theme-2', 'theme-3', 'theme-4');
+  noteWs.classList.add(`theme-${theme}`);
+  noteWsTitle.textContent = note.title;
+  noteWsBody.innerHTML = note.body;
+  if (noteTitleEl) noteTitleEl.textContent = note.title;
+
+  clearActiveTab();
+  const tab = document.querySelector(`.fp-tab--${theme}`);
+  if (tab) tab.classList.add('note-active');
+
   setRevealOrigin(e);
+  activeTheme = theme;
   paneEl.classList.add('is-note-open');
   noteWs.setAttribute('aria-hidden', 'false');
   if (bubbleOpen) hideBubble();
@@ -198,18 +230,47 @@ function openNote(e) {
 
 function closeNote(e) {
   setRevealOrigin(e);
+  activeTheme = null;
+  clearActiveTab();
   paneEl.classList.remove('is-note-open');
   noteWs.setAttribute('aria-hidden', 'true');
 }
 
+/* Delete buttons remove the row for real; a refresh restores the demo. */
+function removeRow(row) {
+  const height = row.offsetHeight;
+  row.style.overflow = 'hidden';
+  row.style.pointerEvents = 'none';
+  row.animate(
+    [
+      { opacity: 1, height: `${height}px`, paddingTop: '14px', paddingBottom: '14px', transform: 'scale(1)' },
+      { opacity: 0, height: '0px', paddingTop: '0px', paddingBottom: '0px', transform: 'scale(0.96)' },
+    ],
+    { duration: 340, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+  ).onfinish = () => row.remove();
+}
+
 if (paneEl && noteRow && noteWs && noteExit) {
-  noteRow.addEventListener('click', openNote);
+  noteRow.addEventListener('click', (e) => openNote(4, e));
   noteRow.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openNote(); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openNote(4); }
   });
+
+  document.querySelectorAll('.fp-tab').forEach((tab) => {
+    tab.addEventListener('click', (e) => {
+      const theme = Number(tab.dataset.theme);
+      if (activeTheme === theme) closeNote(e);
+      else openNote(theme, e);
+    });
+  });
+
   noteExit.addEventListener('click', closeNote);
+
   document.querySelectorAll('.fp-x').forEach((x) =>
-    x.addEventListener('click', (e) => e.stopPropagation()));
+    x.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeRow(x.closest('.fp-task'));
+    }));
 }
 
 /* ═════════ MOBILE DRAWER ═════════ */
