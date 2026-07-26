@@ -9,6 +9,14 @@ const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 requestAnimationFrame(() => document.body.classList.add('is-cued'));
 
+/* The stage must stop animating once entered, or its held transform keeps it
+   a containing block and the docked pane can't fix to the viewport. */
+const stage = document.querySelector('.hero__stage');
+if (stage) {
+  stage.addEventListener('animationend', () => stage.classList.add('is-settled'), { once: true });
+  if (reduced.matches) stage.classList.add('is-settled');
+}
+
 const entering = new IntersectionObserver((entries) => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;

@@ -98,32 +98,98 @@
         </ul>
       </div>
 
-      <!-- The pane. Not a screenshot — a live replica that performs. -->
+      <!-- The pane. Not a screenshot — a live replica of src/index.html,
+           part for part: starfield layer, title bar, input shell, filter,
+           task cards and a note entry. -->
       <div class="hero__stage cue" style="--step:4">
         <div class="pane-rig" id="rig">
           <div class="pane-app pane" id="pane">
 
-            <div class="pane-bar">
+            <!-- src/css/stars.css: twinkle layers + snowy ✦ stars -->
+            <div class="fp-sky" aria-hidden="true">
+              <i class="snowy" style="left:14%;top:22%;font-size:9px;animation-duration:6.2s;animation-delay:-1.4s"></i>
+              <i class="snowy" style="left:71%;top:12%;font-size:7px;animation-duration:7.4s;animation-delay:-4.1s"></i>
+              <i class="snowy" style="left:86%;top:38%;font-size:10px;animation-duration:5.6s;animation-delay:-2.8s"></i>
+              <i class="snowy" style="left:33%;top:55%;font-size:6px;animation-duration:6.9s;animation-delay:-0.6s"></i>
+              <i class="snowy" style="left:58%;top:74%;font-size:9px;animation-duration:5.2s;animation-delay:-3.5s"></i>
+              <i class="snowy" style="left:9%;top:82%;font-size:7px;animation-duration:7.8s;animation-delay:-5.2s"></i>
+              <i class="snowy" style="left:80%;top:88%;font-size:8px;animation-duration:6.4s;animation-delay:-1.9s"></i>
+            </div>
+
+            <div class="fp-bar">
               <span class="googly" id="eyes" aria-hidden="true">
                 <span class="eye"><span class="pupil"></span></span>
                 <span class="eye"><span class="pupil"></span></span>
               </span>
-              <span class="pane-bar__name">Today</span>
-              <span class="pane-bar__dots" aria-hidden="true"><i></i><i></i></span>
+              <span class="fp-title">FlowPane</span>
+              <span class="fp-guide" aria-hidden="true">
+                <span class="fp-guide__icon"><i></i><i></i><i></i><i></i></span>
+              </span>
             </div>
 
-            <div class="pane-body">
-              <ul class="pane-tasks" role="list">
-                <li class="pane-task is-done"><i class="tick"></i><span>Push the landing page</span></li>
-                <li class="pane-task is-live"><i class="tick"></i><span>Rewrite the hero</span><em class="mono">24:31</em></li>
-                <li class="pane-task"><i class="tick"></i><span>Review the open PR</span></li>
-                <li class="pane-task"><i class="tick"></i><span>Water the plant</span></li>
-              </ul>
-
-              <div class="pane-clock">
-                <span class="pane-clock__t">24:31</span>
-                <span class="mono pane-clock__l">focusing</span>
+            <div class="fp-input">
+              <div class="fp-field">
+                <span class="fp-field__ph">What's next?</span>
+                <svg class="fp-field__ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <svg class="fp-field__ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="10" y1="2" x2="14" y2="2"></line>
+                  <line x1="12" y1="14" x2="15" y2="11"></line>
+                  <circle cx="12" cy="14" r="8"></circle>
+                </svg>
+                <span class="fp-tabs" aria-hidden="true">
+                  <i class="fp-tab fp-tab--1"></i>
+                  <i class="fp-tab fp-tab--2"></i>
+                  <i class="fp-tab fp-tab--3"></i>
+                  <i class="fp-tab fp-tab--4"></i>
+                </span>
               </div>
+            </div>
+
+            <div class="fp-main">
+              <div class="fp-filter" aria-hidden="true">
+                <svg class="fp-filter__ic" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                  <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path>
+                </svg>
+                <span class="fp-filter__pills">
+                  <b class="is-on">All</b><b>Tasks</b><b>Notes</b>
+                </span>
+                <span class="fp-history">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                    <path d="M3 3v5h5"></path>
+                    <path d="M12 7v5l4 2"></path>
+                  </svg>
+                </span>
+              </div>
+
+              <ul class="fp-list" role="list">
+                <li class="fp-task fp-urgent">
+                  <span class="fp-check"></span>
+                  <span class="fp-info">
+                    <span class="fp-t">Ship it before the coffee dies ☕</span>
+                    <span class="fp-due">Due in 9 mins</span>
+                  </span>
+                </li>
+                <li class="fp-task">
+                  <span class="fp-check"></span>
+                  <span class="fp-info">
+                    <span class="fp-t">Slay the inbox dragon 🐉</span>
+                    <span class="fp-due"><b>∞</b> Plenty of time</span>
+                  </span>
+                </li>
+                <li class="fp-task fp-note">
+                  <span class="fp-swatch"></span>
+                  <span class="fp-info">
+                    <span class="fp-t">3am shower thoughts 🚿</span>
+                    <span class="fp-due fp-note__sub">what if the eyes blink back…</span>
+                  </span>
+                </li>
+              </ul>
             </div>
 
             <!-- The app's real comic thought bubble, same path, same ink shadow -->

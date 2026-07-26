@@ -301,7 +301,16 @@ img, svg {
 }
 
 @keyframes cue-in {
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Once the stage's entrance ends, drop the filled animation entirely: a held
+   transform animation keeps the stage a containing block, which would pin the
+   docked (position: fixed) pane rig to the hero instead of the viewport. */
+.hero__stage.is-settled {
+  animation: none;
+  opacity: 1;
+  transform: none;
 }
 
 /* Scroll-entered sections use the same vocabulary */
