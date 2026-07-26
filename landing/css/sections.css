@@ -430,7 +430,45 @@
   letter-spacing: 0.5px;
   color: var(--text-1);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
 }
+
+/* Navbar swaps to the note's title while a note is open, as in the app */
+.fp-title__note { display: none; }
+.is-note-open .fp-title__app { display: none; }
+.is-note-open .fp-title__note { display: inline; }
+
+/* The app's exit button (src/css/titlebar.css .btn-exit) */
+.fp-exit {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--ease-glide),
+    color var(--dur-2) var(--ease-glide),
+    border-color var(--dur-2) var(--ease-glide),
+    transform var(--dur-2) var(--ease-glide);
+}
+
+.fp-exit:hover {
+  background: rgba(255, 59, 48, 0.15);
+  color: #ff5f56;
+  border-color: rgba(255, 59, 48, 0.3);
+  transform: scale(1.1) translateY(-1px);
+}
+
+.is-note-open .fp-guide { display: none; }
+.is-note-open .fp-exit { display: flex; }
+
+/* Stars fade while a note is open, exactly like #app.notes-active */
+.fp-sky { transition: opacity var(--dur-4) var(--ease-flat); }
+.is-note-open .fp-sky { opacity: 0; }
 
 .fp-guide {
   display: flex;
@@ -655,6 +693,71 @@
   text-overflow: ellipsis;
 }
 
+.fp-note { cursor: pointer; }
+
+/* Hover-revealed delete, the app's .delete-task-btn */
+.fp-x {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  margin-left: auto;
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.3);
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease-flat), background-color var(--dur-2) var(--ease-flat), color var(--dur-2) var(--ease-flat);
+}
+
+.fp-task:hover .fp-x { opacity: 1; }
+
+.fp-x:hover {
+  background: rgba(255, 59, 48, 0.15);
+  color: var(--urgent);
+}
+
+/* ── Notes workspace: the app's circular clip-path reveal ── */
+.fp-note-ws {
+  --reveal-x: 50%;
+  --reveal-y: 100%;
+  position: absolute;
+  top: 48px;
+  left: 0; right: 0; bottom: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px 12px;
+  background: #f3a8d5;
+  color: #301628;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  border-radius: 0 0 calc(var(--r-pane) - 1px) calc(var(--r-pane) - 1px);
+  opacity: 0;
+  pointer-events: none;
+  clip-path: circle(0px at var(--reveal-x) var(--reveal-y));
+  transition: clip-path 1660ms var(--ease-glide), opacity 260ms ease;
+}
+
+.is-note-open .fp-note-ws {
+  opacity: 1;
+  clip-path: circle(145% at var(--reveal-x) var(--reveal-y));
+}
+
+.fp-note-ws__title {
+  font-size: 30px;
+  font-weight: var(--w-semi);
+  line-height: 1.18;
+  letter-spacing: 0.1px;
+}
+
+.fp-note-ws__body {
+  font-size: 17px;
+  line-height: 1.45;
+  letter-spacing: 0.15px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fp-sky::before,
   .fp-sky::after,
@@ -670,48 +773,16 @@
 .hero__stage:hover .stage__hint { opacity: 0; }
 .stage__hint.is-shown { opacity: 1; }
 
-/* ── Docked state: the pane performs its own collapse on scroll ── */
-@media (min-width: 1180px) {
-  .pane-rig.is-docked {
-    position: fixed;
-    top: calc(var(--nav-h) + var(--s-5));
-    right: var(--s-5);
-    left: auto;
-    width: 68px;
-    max-width: 68px;
-    z-index: 900;
-  }
-
-  .pane-rig.is-docked .pane-app { min-height: 96px; }
-
-  .pane-rig.is-docked .fp-bar {
-    flex-direction: column;
-    justify-content: center;
-    height: auto;
-    padding: var(--s-3) var(--s-2);
-    border-bottom: none;
-    border-radius: inherit;
-  }
-
-  .pane-rig.is-docked .googly { flex-direction: column; }
-
-  .pane-rig.is-docked .fp-title,
-  .pane-rig.is-docked .fp-guide,
-  .pane-rig.is-docked .fp-input,
-  .pane-rig.is-docked .fp-main,
-  .pane-rig.is-docked .bubble { display: none; }
-}
-
 /* ══════════════ THOUGHT BUBBLE ══════════════
    The app's real bubble: same SVG path, hard ink stroke, 4px offset shadow */
 /* Hangs above the pane so it never covers the list; the dot trail
    falls down-left toward the eyes, as it does in the app. */
 .bubble {
   position: absolute;
-  bottom: calc(100% - 26px);
+  bottom: calc(100% - 22px);
   left: 34px;
-  width: 176px;
-  height: 124px;
+  width: 128px;
+  height: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -769,9 +840,9 @@
 }
 
 .bubble__text {
-  max-width: 108px;
-  margin-top: -18px;
-  font-size: 14px;
+  max-width: 92px;
+  margin-top: -13px;
+  font-size: 13px;
   font-weight: var(--w-bold);
   font-style: italic;
   line-height: 1.1;
@@ -1233,5 +1304,5 @@
   .get__acts .btn { width: 100%; }
 
   .get__specs { grid-template-columns: 1fr; gap: var(--s-4); }
-  .bubble { left: -6px; width: 150px; }
+  .bubble { left: -6px; }
 }

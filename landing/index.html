@@ -121,10 +121,20 @@
                 <span class="eye"><span class="pupil"></span></span>
                 <span class="eye"><span class="pupil"></span></span>
               </span>
-              <span class="fp-title">FlowPane</span>
+              <span class="fp-title">
+                <span class="fp-title__app">FlowPane</span>
+                <span class="fp-title__note">3am shower thoughts</span>
+              </span>
               <span class="fp-guide" aria-hidden="true">
                 <span class="fp-guide__icon"><i></i><i></i><i></i><i></i></span>
               </span>
+              <button class="fp-exit" id="note-exit" aria-label="Close note" type="button">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"></path>
+                  <polyline points="15 17 20 12 15 7"></polyline>
+                  <line x1="20" y1="12" x2="10" y2="12"></line>
+                </svg>
+              </button>
             </div>
 
             <div class="fp-input">
@@ -174,6 +184,7 @@
                     <span class="fp-t">Ship it before the coffee dies ☕</span>
                     <span class="fp-due">Due in 9 mins</span>
                   </span>
+                  <span class="fp-x" aria-hidden="true">×</span>
                 </li>
                 <li class="fp-task">
                   <span class="fp-check"></span>
@@ -181,15 +192,23 @@
                     <span class="fp-t">Slay the inbox dragon 🐉</span>
                     <span class="fp-due"><b>∞</b> Plenty of time</span>
                   </span>
+                  <span class="fp-x" aria-hidden="true">×</span>
                 </li>
-                <li class="fp-task fp-note">
+                <li class="fp-task fp-note" id="note-row" role="button" tabindex="0" aria-label="Open the note">
                   <span class="fp-swatch"></span>
                   <span class="fp-info">
                     <span class="fp-t">3am shower thoughts 🚿</span>
                     <span class="fp-due fp-note__sub">what if the eyes blink back…</span>
                   </span>
+                  <span class="fp-x" aria-hidden="true">×</span>
                 </li>
               </ul>
+            </div>
+
+            <!-- Notes workspace: the app's own circular reveal (src/css/notes.css) -->
+            <div class="fp-note-ws" id="note-ws" aria-hidden="true">
+              <span class="fp-note-ws__title">3am shower thoughts</span>
+              <span class="fp-note-ws__body">what if the eyes blink back…<br><br>teach the pane to wink 😉<br>adopt a plant it can watch<br>name the googly eyes</span>
             </div>
 
             <!-- The app's real comic thought bubble, same path, same ink shadow -->

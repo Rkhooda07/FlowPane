@@ -156,39 +156,61 @@ if (!reduced.matches && bubble) {
   later(() => hint && hint.classList.remove('is-shown'), 6000);
 }
 
-/* ═════════ THE PANE DOCKS ═════════
-   Past the hero, the replica performs the app's own collapse-to-edge. */
+/* ═════════ NAV SHADE ═════════ */
 
-const rig = document.getElementById('rig');
-const hero = document.getElementById('top');
 const nav = document.getElementById('nav');
-
-const canDock = window.matchMedia('(min-width: 1180px)');
-let docked = false;
 let scrollFrame = null;
 
 function onScroll() {
   scrollFrame = null;
-
   nav.classList.toggle('is-past', window.scrollY > 16);
-
-  if (!rig || !hero || reduced.matches || !canDock.matches) return;
-
-  const past = window.scrollY > hero.offsetHeight * 0.72;
-  if (past === docked) return;
-  docked = past;
-  rig.classList.toggle('is-docked', past);
 }
 
 window.addEventListener('scroll', () => {
   if (!scrollFrame) scrollFrame = requestAnimationFrame(onScroll);
 }, { passive: true });
 
-canDock.addEventListener('change', () => {
-  if (!canDock.matches && rig) { rig.classList.remove('is-docked'); docked = false; }
-});
-
 onScroll();
+
+/* ═════════ NOTE WORKSPACE ═════════
+   Clicking the note performs the app's own circular reveal (openNote /
+   closeNote in src/js/main.js): clip-path circle from the click point. */
+
+const paneEl = document.getElementById('pane');
+const noteRow = document.getElementById('note-row');
+const noteWs = document.getElementById('note-ws');
+const noteExit = document.getElementById('note-exit');
+
+function setRevealOrigin(e) {
+  const box = noteWs.getBoundingClientRect();
+  const x = e && box.width ? ((e.clientX - box.left) / box.width) * 100 : 50;
+  const y = e && box.height ? ((e.clientY - box.top) / box.height) * 100 : 100;
+  noteWs.style.setProperty('--reveal-x', `${x}%`);
+  noteWs.style.setProperty('--reveal-y', `${y}%`);
+}
+
+function openNote(e) {
+  setRevealOrigin(e);
+  paneEl.classList.add('is-note-open');
+  noteWs.setAttribute('aria-hidden', 'false');
+  if (bubbleOpen) hideBubble();
+}
+
+function closeNote(e) {
+  setRevealOrigin(e);
+  paneEl.classList.remove('is-note-open');
+  noteWs.setAttribute('aria-hidden', 'true');
+}
+
+if (paneEl && noteRow && noteWs && noteExit) {
+  noteRow.addEventListener('click', openNote);
+  noteRow.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openNote(); }
+  });
+  noteExit.addEventListener('click', closeNote);
+  document.querySelectorAll('.fp-x').forEach((x) =>
+    x.addEventListener('click', (e) => e.stopPropagation()));
+}
 
 /* ═════════ MOBILE DRAWER ═════════ */
 
