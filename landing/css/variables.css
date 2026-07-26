@@ -57,7 +57,7 @@
   --t-xl: 1.5rem;        /* 24  */
   --t-2xl: 2rem;         /* 32  */
   --t-3xl: clamp(2.25rem, 5vw, 3.25rem);
-  --t-display: clamp(2.75rem, 8.5vw, 6.25rem);
+  --t-display: clamp(2.5rem, 7vw, 5rem);
 
   /* Display type is LIGHT, not bold — derived from the app's 52px/200 focus timer */
   --w-hair: 200;
