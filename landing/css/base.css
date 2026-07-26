@@ -26,9 +26,16 @@ html {
   /* clip, not hidden: the ambient washes bleed past their panes by design
      and must not turn the document into a scroll container */
   overflow-x: clip;
+  scrollbar-width: none;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 body {
@@ -76,7 +83,7 @@ body {
     radial-gradient(1px 1px at 8% 88%, var(--star), transparent),
     radial-gradient(1.3px 1.3px at 52% 12%, var(--star), transparent);
   opacity: 0.4;
-  filter: blur(0.4px);
+  will-change: transform;
   animation: sky-drift 160s linear infinite;
 }
 
@@ -207,13 +214,14 @@ img, svg {
   border: 0;
 }
 
-/* ── Glass ── the throughline material, used on every surface */
+/* ── Glass ── the throughline material, used on every surface.
+   No backdrop-filter here: in-flow surfaces sit on the flat void, where
+   blurring the backdrop is invisible but costs a repaint every scroll
+   frame. Real blur lives only on the nav, the drawer and the hero pane. */
 .pane {
   background: var(--frost);
   border: 1px solid var(--rim-quiet);
   border-radius: var(--r-pane);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 /* ── Buttons ── */
@@ -268,8 +276,6 @@ img, svg {
   background: var(--frost);
   color: var(--text-1);
   border-color: var(--rim-quiet);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 
 .btn--glass:hover {

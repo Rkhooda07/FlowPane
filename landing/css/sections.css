@@ -327,6 +327,10 @@
   flex-direction: column;
   overflow: visible;
   min-height: 405px;
+  /* The one in-flow surface with real glass: it sits over the ambient
+     wash, which is what the blur resolves against. */
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-color: var(--rim);
   box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.85);
   transition: min-height var(--dur-5) var(--ease-glide),
@@ -945,8 +949,6 @@
   border-top: 1px solid var(--rim-quiet);
   padding-block: var(--s-7) var(--s-6);
   background: rgba(15, 15, 15, 0.5);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 
 .foot__in {

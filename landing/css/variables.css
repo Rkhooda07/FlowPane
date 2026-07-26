@@ -16,8 +16,8 @@
   --rim-bright: rgba(255, 255, 255, 0.35);
   --rim-quiet: rgba(255, 255, 255, 0.09);
 
-  --glass-blur: 32px;
-  --glass-saturate: 200%;
+  --glass-blur: 20px;
+  --glass-saturate: 160%;
 
   /* ── Ember ── the app's real action colour: focus mode is entirely gold */
   --ember: #ffcc66;
