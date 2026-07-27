@@ -532,14 +532,13 @@
   transition: border-color var(--dur-2) var(--ease-glide), box-shadow var(--dur-2) var(--ease-glide), background var(--dur-2) var(--ease-glide);
 }
 
-/* The ring belongs to the field's own rounded edge, not the borderless
-   input inside it — so the glow is drawn here via :focus-within, and the
-   input's native ring (Safari draws one even through outline: none) is
-   stripped with appearance: none. */
+/* The glow belongs to the field's own rounded edge, not the borderless
+   input inside it — so it's drawn here via :focus-within (a soft ambient
+   wash, no hard ring), and the input's native ring (Safari draws one even
+   through outline: none) is stripped with appearance: none. */
 .fp-field:focus-within {
   background: rgba(255, 255, 255, 0.1);
-  border-color: var(--ember-rim);
-  box-shadow: 0 0 0 1px var(--ember-rim), 0 0 20px var(--ember-glow), inset 0 0 10px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 24px var(--ember-glow), inset 0 0 10px rgba(255, 255, 255, 0.05);
 }
 
 .fp-field__ph { color: rgba(255, 255, 255, 0.35); }
@@ -555,6 +554,14 @@
   padding: 0 120px 0 0;
   font: inherit;
   color: var(--text-1);
+}
+
+/* The site-wide focus ring (base.css :focus-visible) is a hard double
+   ring meant for buttons and links — too sharp for a text field sitting
+   inside its own glowing pill. The pill's ambient glow is the field's
+   focus treatment instead. */
+.fp-field__input:focus-visible {
+  box-shadow: none;
 }
 
 .fp-field__input::placeholder { color: rgba(255, 255, 255, 0.35); }
@@ -735,12 +742,16 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  /* Negative margin + matching padding: gives the urgent-pulse scale and
+     glow room to breathe without being clipped by the scroll box, while
+     keeping items flush with the filter row above. */
+  margin: 0 -10px;
+  padding: 2px 10px 4px;
+  scrollbar-width: none;
 }
 
-.fp-list::-webkit-scrollbar { width: 4px; }
-.fp-list::-webkit-scrollbar-track { background: transparent; }
-.fp-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
-.fp-list:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); }
+.fp-list::-webkit-scrollbar { display: none; }
 
 .fp-task {
   display: flex;
