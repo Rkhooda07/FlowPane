@@ -151,8 +151,8 @@ function hideBubble() {
 if (!reduced.matches && bubble) {
   setInterval(() => {
     if (bubbleOpen) return;
-    if (performance.now() - idleSince > 2600) showBubble();
-  }, 900);
+    if (performance.now() - idleSince > 1500) showBubble();
+  }, 500);
 
   later(() => hint && hint.classList.add('is-shown'), 1600);
   later(() => hint && hint.classList.remove('is-shown'), 6000);
