@@ -676,20 +676,18 @@
   opacity: 1 !important;
 }
 
-/* Completion Animation */
+/* Completion Animation — pop then fly to top-right where history btn lives */
 @keyframes taskToHistory {
-  0% { transform: scale(1); opacity: 1; }
-  30% { transform: scale(1.02); opacity: 0.8; }
-  100% { 
-    transform: translate(120px, -150px) scale(0.1) rotate(10deg); 
-    opacity: 0; 
-  }
+  0%   { transform: scale(1)    translateX(0)    translateY(0)    rotate(0deg);   opacity: 1; filter: blur(0); }
+  18%  { transform: scale(1.04) translateX(0)    translateY(-4px) rotate(0deg);   opacity: 1; filter: blur(0); }
+  100% { transform: scale(0.05) translateX(200px) translateY(-180px) rotate(15deg); opacity: 0; filter: blur(3px); }
 }
 
 .task-completing {
-  animation: taskToHistory 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  animation: taskToHistory 0.38s cubic-bezier(0.55, 0, 1, 0.45) forwards !important;
   pointer-events: none;
   z-index: 100;
+  position: relative;
 }
 
 /* Task cards and note entry (src/css/tasks.css .task-item / .note-entry) */
@@ -773,8 +771,9 @@
   justify-content: center;
   text-align: center;
   padding: 24px;
+  padding-top: 40px;
   color: rgba(255, 255, 255, 0.35);
-  height: 140px;
+  min-height: 140px;
   width: 100%;
 }
 

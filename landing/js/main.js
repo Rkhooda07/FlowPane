@@ -490,7 +490,7 @@ if (paneEl && noteWs && noteExit) {
               task.completedTime = `at ${timeStr}`;
               completedTasks.push(task);
               renderList();
-            }, 500);
+            }, 380);
           }
         }
       } else if (xBtn && li) {
