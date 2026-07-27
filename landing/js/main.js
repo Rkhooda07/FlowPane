@@ -209,6 +209,8 @@ let activeItems = [
 let completedTasks = [];
 let activeFilter = 'all'; // 'all', 'tasks', 'notes'
 let isHistoryOpen = false;
+let isFocusOpen = false;
+let taskCounter = 2;
 
 const listEl = document.querySelector('.fp-list');
 
@@ -288,6 +290,9 @@ function renderList() {
     li.dataset.id = item.id;
     if (item.type === 'task') {
       li.className = 'fp-task' + (item.urgent ? ' fp-urgent' : '');
+      li.setAttribute('role', 'button');
+      li.setAttribute('tabindex', '0');
+      li.setAttribute('aria-label', 'Open focus mode for this task');
       li.innerHTML = `
         <span class="fp-check"></span>
         <span class="fp-info">
@@ -375,7 +380,9 @@ function closeNote(e) {
 }
 
 function closeNoteOrHistory(e) {
-  if (isHistoryOpen) {
+  if (isFocusOpen) {
+    closeFocus();
+  } else if (isHistoryOpen) {
     isHistoryOpen = false;
     paneEl.classList.remove('is-history-open');
     const historyBtn = document.querySelector('.fp-history');
@@ -384,6 +391,49 @@ function closeNoteOrHistory(e) {
   } else {
     closeNote(e);
   }
+}
+
+/* ═════════ FOCUS MODE PREVIEW ═════════
+   Clicking a task opens the app's real focus-mode chrome (src/css/focus-mode.css),
+   but the scene is blurred and locked — the countdown never actually runs here. */
+
+const focusWs = document.getElementById('focus-ws');
+const focusWsTask = document.getElementById('focus-ws-task');
+const focusWsQuote = document.querySelector('.fp-focus-ws__quote');
+
+const FOCUS_QUOTES = [
+  'Small steps, steady pace.',
+  'One thing. Then the next.',
+  'Quiet mind, clear list.',
+  'This is the only tab that matters.',
+];
+
+function openFocus(task) {
+  if (!paneEl || !focusWs || !task) return;
+
+  if (isHistoryOpen) {
+    isHistoryOpen = false;
+    paneEl.classList.remove('is-history-open');
+    const historyBtn = document.querySelector('.fp-history');
+    if (historyBtn) historyBtn.classList.remove('is-on');
+  }
+  if (activeTheme) closeNote();
+  if (bubbleOpen) hideBubble();
+
+  isFocusOpen = true;
+  focusWsTask.textContent = task.title;
+  if (focusWsQuote) focusWsQuote.textContent = FOCUS_QUOTES[Math.floor(Math.random() * FOCUS_QUOTES.length)];
+  paneEl.classList.add('is-focus-open');
+  focusWs.setAttribute('aria-hidden', 'false');
+  if (noteExit) noteExit.setAttribute('aria-label', 'Exit focus mode');
+}
+
+function closeFocus() {
+  if (!isFocusOpen) return;
+  isFocusOpen = false;
+  paneEl.classList.remove('is-focus-open');
+  focusWs.setAttribute('aria-hidden', 'true');
+  if (noteExit) noteExit.setAttribute('aria-label', 'Close note');
 }
 
 if (paneEl && noteWs && noteExit) {
@@ -525,15 +575,56 @@ if (paneEl && noteWs && noteExit) {
       } else if (noteRow) {
         e.stopPropagation();
         openNote(4, e);
+      } else if (li && !isHistoryOpen) {
+        const task = activeItems.find(t => t.id === li.dataset.id);
+        if (task) openFocus(task);
       }
     });
 
     listEl.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
       const noteRow = e.target.closest('.fp-note');
-      if (noteRow && (e.key === 'Enter' || e.key === ' ')) {
+      const li = e.target.closest('.fp-task');
+      if (noteRow) {
         e.preventDefault();
         openNote(4);
+      } else if (li && !isHistoryOpen) {
+        e.preventDefault();
+        const task = activeItems.find(t => t.id === li.dataset.id);
+        if (task) openFocus(task);
       }
+    });
+  }
+
+  // Add-task input: mirrors the app's "type it, hit enter" flow
+  const taskInput = document.getElementById('fp-task-input');
+  if (taskInput) {
+    taskInput.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const title = taskInput.value.trim();
+      if (!title) return;
+
+      activeItems.unshift({
+        id: `task-${++taskCounter}`,
+        type: 'task',
+        title,
+        due: '<b>∞</b> Plenty of time',
+        urgent: false,
+      });
+      taskInput.value = '';
+      if (activeFilter === 'notes') {
+        pills.forEach(p => p.classList.remove('is-on'));
+        const allPill = [...pills].find(p => p.textContent.toLowerCase() === 'all');
+        if (allPill) allPill.classList.add('is-on');
+        activeFilter = 'all';
+      }
+      if (isHistoryOpen) {
+        isHistoryOpen = false;
+        paneEl.classList.remove('is-history-open');
+        const historyBtn = document.querySelector('.fp-history');
+        if (historyBtn) historyBtn.classList.remove('is-on');
+      }
+      renderList();
     });
   }
 

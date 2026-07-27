@@ -125,6 +125,7 @@
                 <span class="fp-title__app">FlowPane</span>
                 <span class="fp-title__note">3am shower thoughts</span>
                 <span class="fp-title__history">completed tasks</span>
+                <span class="fp-title__focus">Focus Mode</span>
               </span>
               <span class="fp-guide" aria-hidden="true">
                 <span class="fp-guide__icon"><i></i><i></i><i></i><i></i></span>
@@ -140,7 +141,7 @@
 
             <div class="fp-input">
               <div class="fp-field">
-                <span class="fp-field__ph">What's next?</span>
+                <input class="fp-field__input" id="fp-task-input" type="text" placeholder="What's next?" autocomplete="off" autocapitalize="sentences" maxlength="80" aria-label="Add a task" />
                 <svg class="fp-field__ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                   <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -211,6 +212,27 @@
             <div class="fp-note-ws" id="note-ws" aria-hidden="true">
               <input class="fp-note-ws__title" id="note-ws-title" type="text" placeholder="Note title" maxlength="60" autocomplete="off" spellcheck="false" aria-label="Note title" />
               <textarea class="fp-note-ws__body" id="note-ws-body" placeholder="Write your note..." spellcheck="false" aria-label="Note body"></textarea>
+            </div>
+
+            <!-- Focus mode preview: the app's real timer chrome, blurred behind
+                 a lock screen — clicking a task opens this, not the real thing -->
+            <div class="fp-focus-ws" id="focus-ws" aria-hidden="true">
+              <div class="fp-focus-ws__scene" aria-hidden="true">
+                <p class="fp-focus-ws__eyebrow">Focus Mode</p>
+                <h3 class="fp-focus-ws__task" id="focus-ws-task">Ship it before the coffee dies</h3>
+                <div class="fp-focus-ws__timer">25:00</div>
+                <p class="fp-focus-ws__quote">Small steps, steady pace.</p>
+                <div class="fp-focus-ws__controls">
+                  <span class="fp-focus-ws__btn">⏱</span>
+                  <span class="fp-focus-ws__btn fp-focus-ws__btn--play">▶</span>
+                  <span class="fp-focus-ws__btn">↺</span>
+                </div>
+              </div>
+              <div class="fp-focus-ws__lock">
+                <p class="fp-focus-ws__lock-t">🔒 This clock isn't really running</p>
+                <p class="fp-focus-ws__lock-d">Download FlowPane to step into Focus Mode for real.</p>
+                <a class="fp-focus-ws__cta" href="#get">Get FlowPane, it's free</a>
+              </div>
             </div>
 
             <!-- The app's real comic thought bubble, same path, same ink shadow -->
