@@ -27,6 +27,71 @@ const entering = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('.enter, .rail-seq').forEach((el) => entering.observe(el));
 
+/* ═════════ WINDOW DRAG ═════════
+   The title bar drags the whole preview around the page, exactly like the
+   real app's frameless window drags by its title bar. Bounded to the
+   viewport so it can't be dragged out of reach, with the site nav (fixed,
+   above everything) left as the one thing it can't slide under. */
+
+const dragHandle = document.querySelector('.fp-bar');
+const dragRig = document.getElementById('rig');
+
+if (dragHandle && dragRig) {
+  let dragging = false;
+  let pointerId = null;
+  let startX = 0, startY = 0;
+  let originX = 0, originY = 0; // translate this drag started from
+  let dragX = 0, dragY = 0;     // current translate
+  let minX = 0, maxX = 0, minY = 0, maxY = 0;
+
+  const EDGE_MARGIN = 72; // keep at least this much of the pane on screen
+
+  dragHandle.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if (e.target.closest('#note-exit')) return;
+
+    const rect = dragRig.getBoundingClientRect();
+    const originLeft = rect.left - dragX;
+    const originTop = rect.top - dragY;
+    const navH = document.getElementById('nav')?.getBoundingClientRect().height || 0;
+
+    minX = EDGE_MARGIN - rect.width - originLeft;
+    maxX = window.innerWidth - EDGE_MARGIN - originLeft;
+    minY = navH - originTop;
+    maxY = window.innerHeight - EDGE_MARGIN - originTop;
+
+    startX = e.clientX;
+    startY = e.clientY;
+    originX = dragX;
+    originY = dragY;
+
+    dragging = true;
+    pointerId = e.pointerId;
+    dragHandle.setPointerCapture(pointerId);
+    dragRig.classList.add('is-dragging');
+    document.body.classList.add('is-dragging-pane');
+    if (bubbleOpen) hideBubble();
+  });
+
+  dragHandle.addEventListener('pointermove', (e) => {
+    if (!dragging || e.pointerId !== pointerId) return;
+    dragX = Math.min(maxX, Math.max(minX, originX + (e.clientX - startX)));
+    dragY = Math.min(maxY, Math.max(minY, originY + (e.clientY - startY)));
+    dragRig.style.transform = `translate3d(${dragX}px, ${dragY}px, 0)`;
+  });
+
+  function endDrag(e) {
+    if (!dragging || (pointerId !== null && e.pointerId !== pointerId)) return;
+    dragging = false;
+    pointerId = null;
+    dragRig.classList.remove('is-dragging');
+    document.body.classList.remove('is-dragging-pane');
+  }
+
+  dragHandle.addEventListener('pointerup', endDrag);
+  dragHandle.addEventListener('pointercancel', endDrag);
+}
+
 /* ═════════ EYES ═════════
    Every .eye on the page tracks the real cursor, exactly as the app tracks
    the OS cursor. Pupil travel is clamped so it stays inside the sclera. */

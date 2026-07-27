@@ -308,6 +308,19 @@
   transition: transform var(--dur-4) var(--ease-glide);
 }
 
+/* While the title bar is being dragged, the transform must track the
+   pointer 1:1 — the eased transition above would make it lag. */
+.pane-rig.is-dragging {
+  transition: none;
+  will-change: transform;
+}
+
+body.is-dragging-pane {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 /* Ambient wash behind the pane, so translucency has something to resolve against */
 .pane-rig::before {
   content: '';
@@ -408,7 +421,8 @@
 .fp-input,
 .fp-main { position: relative; z-index: 1; }
 
-/* Title bar (src/css/titlebar.css .title-bar) */
+/* Title bar (src/css/titlebar.css .title-bar) — a real drag region here too,
+   like the app's own data-tauri-drag-region bar. */
 .fp-bar {
   display: flex;
   align-items: center;
@@ -418,7 +432,11 @@
   background: rgba(255, 255, 255, 0.12);
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
   border-radius: calc(var(--r-pane) - 1px) calc(var(--r-pane) - 1px) 0 0;
+  cursor: grab;
+  touch-action: none;
 }
+
+.fp-bar:active { cursor: grabbing; }
 
 .fp-title {
   position: absolute;
