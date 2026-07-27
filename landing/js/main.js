@@ -454,6 +454,18 @@ if (paneEl && noteWs && noteExit) {
           if (idx !== -1) {
             li.classList.add('task-completing');
 
+            // Smoothly collapse the height, padding, and gap of the item in parallel
+            const height = li.offsetHeight;
+            li.style.overflow = 'hidden';
+            li.style.pointerEvents = 'none';
+            li.animate(
+              [
+                { height: `${height}px`, paddingTop: '14px', paddingBottom: '14px', marginBottom: '0px' },
+                { height: '0px', paddingTop: '0px', paddingBottom: '0px', marginBottom: '-8px' }
+              ],
+              { duration: 380, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+            );
+
             // History icon animation
             const historyBtn = document.querySelector('.fp-history');
             if (historyBtn) {
@@ -501,8 +513,8 @@ if (paneEl && noteWs && noteExit) {
         li.style.pointerEvents = 'none';
         li.animate(
           [
-            { opacity: 1, height: `${height}px`, paddingTop: '14px', paddingBottom: '14px', transform: 'scale(1)' },
-            { opacity: 0, height: '0px', paddingTop: '0px', paddingBottom: '0px', transform: 'scale(0.96)' },
+            { opacity: 1, height: `${height}px`, paddingTop: '14px', paddingBottom: '14px', marginBottom: '0px', transform: 'scale(1)' },
+            { opacity: 0, height: '0px', paddingTop: '0px', paddingBottom: '0px', marginBottom: '-8px', transform: 'scale(0.96)' },
           ],
           { duration: 340, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
         ).onfinish = () => {

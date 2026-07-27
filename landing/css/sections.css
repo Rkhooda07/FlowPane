@@ -303,7 +303,7 @@
 .pane-rig {
   position: relative;
   width: 100%;
-  max-width: 335px;
+  max-width: 365px;
   transform-style: preserve-3d;
   transition: transform var(--dur-4) var(--ease-glide);
 }
@@ -326,7 +326,7 @@
   display: flex;
   flex-direction: column;
   overflow: visible;
-  min-height: 405px;
+  height: 440px;
   /* The one in-flow surface with real glass: it sits over the ambient
      wash, which is what the blur resolves against. */
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
@@ -697,6 +697,7 @@
   flex-direction: column;
   gap: 8px;
   position: relative;
+  flex: 1;
 }
 
 .fp-task {
@@ -771,9 +772,8 @@
   justify-content: center;
   text-align: center;
   padding: 24px;
-  padding-top: 40px;
   color: rgba(255, 255, 255, 0.35);
-  min-height: 140px;
+  flex: 1;
   width: 100%;
 }
 
