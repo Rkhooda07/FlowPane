@@ -753,6 +753,14 @@
 
 .fp-list::-webkit-scrollbar { display: none; }
 
+/* Entrance for freshly rendered rows (src/css/tasks.css .task-item's own
+   slideIn) — the list is rebuilt from scratch on every change, so this
+   plays each time renderList() runs, exactly as it does in the app. */
+@keyframes fp-slide-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .fp-task {
   display: flex;
   align-items: flex-start;
@@ -762,6 +770,7 @@
   border: 0.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   cursor: pointer;
+  animation: fp-slide-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   transition:
     background-color var(--dur-3) var(--ease-glide),
     border-color var(--dur-3) var(--ease-glide),
@@ -1157,7 +1166,8 @@
   .fp-sky::before,
   .fp-sky::after,
   .snowy,
-  .fp-urgent { animation: none; }
+  .fp-urgent,
+  .fp-task { animation: none; }
 }
 
 .stage__hint {
