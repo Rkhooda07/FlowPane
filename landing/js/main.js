@@ -119,14 +119,16 @@ function typeIn(tokens) {
   timers.add(id);
 }
 
-function showBubble() {
+function showBubble(customMsg) {
   if (bubbleOpen || !bubble || reduced.matches) return;
   /* Never speak over an open note, as in the app */
   if (paneEl && paneEl.classList.contains('is-note-open')) return;
   bubbleOpen = true;
 
-  const tokens = tokenize(LINES[lineIndex % LINES.length]);
-  lineIndex++;
+  const msg = customMsg || LINES[lineIndex % LINES.length];
+  if (!customMsg) lineIndex++;
+
+  const tokens = tokenize(msg);
 
   bubbleText.innerHTML = '';
   bubble.classList.remove('is-out');
@@ -180,7 +182,6 @@ onScroll();
    circle from the click point, themed to the note's colour. */
 
 const paneEl = document.getElementById('pane');
-const noteRow = document.getElementById('note-row');
 const noteWs = document.getElementById('note-ws');
 const noteExit = document.getElementById('note-exit');
 const noteTitleEl = document.querySelector('.fp-title__note');
@@ -198,13 +199,129 @@ const DEMO_NOTES = {
 
 let activeTheme = null;
 
+// Dynamic list items
+let activeItems = [
+  { id: 'task-1', type: 'task', title: 'Ship it before the coffee dies ☕', due: 'Due in 9 mins', urgent: true },
+  { id: 'task-2', type: 'task', title: 'Slay the inbox dragon 🐉', due: '<b>∞</b> Plenty of time', urgent: false },
+  { id: 'note-4', type: 'note', theme: 4 }
+];
+
+let completedTasks = [];
+let activeFilter = 'all'; // 'all', 'tasks', 'notes'
+let isHistoryOpen = false;
+
+const listEl = document.querySelector('.fp-list');
+
+function renderList() {
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  if (isHistoryOpen) {
+    if (completedTasks.length === 0) {
+      listEl.innerHTML = `
+        <div class="fp-empty">
+          <div class="fp-empty__icon">✨</div>
+          <div class="fp-empty__text">Your finished tasks will land here</div>
+          <div class="fp-empty__sub">Keep up the flow, you're doing great!</div>
+        </div>
+      `;
+      return;
+    }
+
+    completedTasks.forEach(item => {
+      const li = document.createElement('li');
+      li.className = 'fp-task fp-completed';
+      li.dataset.id = item.id;
+      li.innerHTML = `
+        <span class="fp-check is-checked"></span>
+        <span class="fp-info">
+          <span class="fp-t" style="text-decoration: line-through; opacity: 0.5;"></span>
+          <span class="fp-due">Completed ${item.completedTime}</span>
+        </span>
+        <button class="fp-x" type="button" aria-label="Delete">×</button>
+      `;
+      li.querySelector('.fp-t').textContent = item.title;
+      listEl.appendChild(li);
+    });
+    return;
+  }
+
+  // Filter active items
+  let itemsToShow = activeItems;
+  if (activeFilter === 'tasks') {
+    itemsToShow = activeItems.filter(item => item.type === 'task');
+  } else if (activeFilter === 'notes') {
+    itemsToShow = activeItems.filter(item => item.type === 'note');
+  }
+
+  if (itemsToShow.length === 0) {
+    if (activeFilter === 'tasks') {
+      listEl.innerHTML = `
+        <div class="fp-empty">
+          <div class="fp-empty__icon">🎯</div>
+          <div class="fp-empty__text">No active tasks</div>
+          <div class="fp-empty__sub">Add a task or take a breather!</div>
+        </div>
+      `;
+    } else if (activeFilter === 'notes') {
+      listEl.innerHTML = `
+        <div class="fp-empty">
+          <div class="fp-empty__icon">📝</div>
+          <div class="fp-empty__text">No notes here</div>
+          <div class="fp-empty__sub">Open a tab to create one.</div>
+        </div>
+      `;
+    } else {
+      listEl.innerHTML = `
+        <div class="fp-empty">
+          <div class="fp-empty__icon">🏖️</div>
+          <div class="fp-empty__text">All caught up!</div>
+          <div class="fp-empty__sub">Nothing to do, enjoy your time.</div>
+        </div>
+      `;
+    }
+    return;
+  }
+
+  itemsToShow.forEach(item => {
+    const li = document.createElement('li');
+    li.dataset.id = item.id;
+    if (item.type === 'task') {
+      li.className = 'fp-task' + (item.urgent ? ' fp-urgent' : '');
+      li.innerHTML = `
+        <span class="fp-check"></span>
+        <span class="fp-info">
+          <span class="fp-t"></span>
+          <span class="fp-due">${item.due}</span>
+        </span>
+        <button class="fp-x" type="button" aria-label="Delete">×</button>
+      `;
+      li.querySelector('.fp-t').textContent = item.title;
+    } else {
+      const note = DEMO_NOTES[item.theme];
+      const firstLine = note.body.trim().split('\n')[0];
+      li.className = 'fp-task fp-note';
+      li.setAttribute('role', 'button');
+      li.setAttribute('tabindex', '0');
+      li.setAttribute('aria-label', 'Open the note');
+      li.innerHTML = `
+        <span class="fp-swatch"></span>
+        <span class="fp-info">
+          <span class="fp-t"></span>
+          <span class="fp-due fp-note__sub"></span>
+        </span>
+        <button class="fp-x" type="button" aria-label="Delete">×</button>
+      `;
+      li.querySelector('.fp-t').textContent = note.title.trim() || 'Untitled note';
+      li.querySelector('.fp-note__sub').textContent = firstLine || 'Click to start writing... ✍️';
+    }
+    listEl.appendChild(li);
+  });
+}
+
 /* The pink list entry mirrors its note, as buildNoteItem does in the app. */
 function syncNoteRow() {
-  if (!noteRow || !noteRow.isConnected) return;
-  const note = DEMO_NOTES[4];
-  noteRow.querySelector('.fp-t').textContent = note.title.trim() || 'Untitled note';
-  const firstLine = note.body.trim().split('\n')[0];
-  noteRow.querySelector('.fp-note__sub').textContent = firstLine || 'Click to start writing... ✍️';
+  renderList();
 }
 
 function setRevealOrigin(e) {
@@ -257,22 +374,23 @@ function closeNote(e) {
   noteWs.inert = true;
 }
 
-/* Delete buttons remove the row for real; a refresh restores the demo. */
-function removeRow(row) {
-  const height = row.offsetHeight;
-  row.style.overflow = 'hidden';
-  row.style.pointerEvents = 'none';
-  row.animate(
-    [
-      { opacity: 1, height: `${height}px`, paddingTop: '14px', paddingBottom: '14px', transform: 'scale(1)' },
-      { opacity: 0, height: '0px', paddingTop: '0px', paddingBottom: '0px', transform: 'scale(0.96)' },
-    ],
-    { duration: 340, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
-  ).onfinish = () => row.remove();
+function closeNoteOrHistory(e) {
+  if (isHistoryOpen) {
+    isHistoryOpen = false;
+    paneEl.classList.remove('is-history-open');
+    const historyBtn = document.querySelector('.fp-history');
+    if (historyBtn) historyBtn.classList.remove('is-on');
+    renderList();
+  } else {
+    closeNote(e);
+  }
 }
 
-if (paneEl && noteRow && noteWs && noteExit) {
+if (paneEl && noteWs && noteExit) {
   noteWs.inert = true;
+
+  // Render initial list
+  renderList();
 
   noteWsTitle.addEventListener('input', () => {
     if (!activeTheme) return;
@@ -287,26 +405,163 @@ if (paneEl && noteRow && noteWs && noteExit) {
     if (activeTheme === 4) syncNoteRow();
   });
 
-  noteRow.addEventListener('click', (e) => openNote(4, e));
-  noteRow.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openNote(4); }
-  });
-
   document.querySelectorAll('.fp-tab').forEach((tab) => {
     tab.addEventListener('click', (e) => {
       const theme = Number(tab.dataset.theme);
       if (activeTheme === theme) closeNote(e);
-      else openNote(theme, e);
+      else {
+        // If history is open, close it first
+        if (isHistoryOpen) {
+          isHistoryOpen = false;
+          paneEl.classList.remove('is-history-open');
+          const historyBtn = document.querySelector('.fp-history');
+          if (historyBtn) historyBtn.classList.remove('is-on');
+          renderList();
+        }
+        openNote(theme, e);
+      }
     });
   });
 
-  noteExit.addEventListener('click', closeNote);
+  noteExit.addEventListener('click', closeNoteOrHistory);
 
-  document.querySelectorAll('.fp-x').forEach((x) =>
-    x.addEventListener('click', (e) => {
-      e.stopPropagation();
-      removeRow(x.closest('.fp-task'));
-    }));
+  // Click handler delegation for the list
+  if (listEl) {
+    listEl.addEventListener('click', (e) => {
+      const check = e.target.closest('.fp-check');
+      const xBtn = e.target.closest('.fp-x');
+      const noteRow = e.target.closest('.fp-note');
+      const li = e.target.closest('.fp-task');
+
+      if (check && li) {
+        e.stopPropagation();
+        const id = li.dataset.id;
+        
+        if (isHistoryOpen) {
+          // Restore task
+          const idx = completedTasks.findIndex(t => t.id === id);
+          if (idx !== -1) {
+            const task = completedTasks[idx];
+            completedTasks.splice(idx, 1);
+            task.completed = false;
+            task.urgent = false;
+            activeItems.push(task);
+            renderList();
+          }
+        } else {
+          // Complete task
+          const idx = activeItems.findIndex(t => t.id === id);
+          if (idx !== -1) {
+            li.classList.add('task-completing');
+
+            // History icon animation
+            const historyBtn = document.querySelector('.fp-history');
+            if (historyBtn) {
+              setTimeout(() => {
+                historyBtn.classList.add('history-uplift');
+                setTimeout(() => historyBtn.classList.remove('history-uplift'), 600);
+              }, 50);
+            }
+
+            // Speak congrats bubble
+            const CONGRATS_LINES = [
+              'well done! 🎉',
+              'completed! ✨',
+              'nice focus! 💪',
+              'crushing it! 🚀',
+              'keep it up! 🌊'
+            ];
+            const congrats = CONGRATS_LINES[Math.floor(Math.random() * CONGRATS_LINES.length)];
+            showBubble(congrats);
+
+            setTimeout(() => {
+              const task = activeItems[idx];
+              activeItems.splice(idx, 1);
+
+              const date = new Date();
+              let hours = date.getHours();
+              const minutes = String(date.getMinutes()).padStart(2, '0');
+              const ampm = hours >= 12 ? 'pm' : 'am';
+              hours = hours % 12;
+              hours = hours ? hours : 12;
+              const timeStr = `${hours}:${minutes} ${ampm}`;
+
+              task.completed = true;
+              task.completedTime = `at ${timeStr}`;
+              completedTasks.push(task);
+              renderList();
+            }, 500);
+          }
+        }
+      } else if (xBtn && li) {
+        e.stopPropagation();
+        const id = li.dataset.id;
+        const height = li.offsetHeight;
+        li.style.overflow = 'hidden';
+        li.style.pointerEvents = 'none';
+        li.animate(
+          [
+            { opacity: 1, height: `${height}px`, paddingTop: '14px', paddingBottom: '14px', transform: 'scale(1)' },
+            { opacity: 0, height: '0px', paddingTop: '0px', paddingBottom: '0px', transform: 'scale(0.96)' },
+          ],
+          { duration: 340, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+        ).onfinish = () => {
+          activeItems = activeItems.filter(item => item.id !== id);
+          completedTasks = completedTasks.filter(item => item.id !== id);
+          renderList();
+        };
+      } else if (noteRow) {
+        e.stopPropagation();
+        openNote(4, e);
+      }
+    });
+
+    listEl.addEventListener('keydown', (e) => {
+      const noteRow = e.target.closest('.fp-note');
+      if (noteRow && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        openNote(4);
+      }
+    });
+  }
+
+  // Filter bar pills logic
+  const pills = document.querySelectorAll('.fp-filter__pills b');
+  pills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      // Close history if active
+      if (isHistoryOpen) {
+        isHistoryOpen = false;
+        paneEl.classList.remove('is-history-open');
+        const historyBtn = document.querySelector('.fp-history');
+        if (historyBtn) historyBtn.classList.remove('is-on');
+      }
+      pills.forEach(p => p.classList.remove('is-on'));
+      pill.classList.add('is-on');
+      activeFilter = pill.textContent.toLowerCase();
+      renderList();
+    });
+  });
+
+  // History button toggle logic
+  const historyBtn = document.querySelector('.fp-history');
+  if (historyBtn) {
+    historyBtn.addEventListener('click', () => {
+      // Toggle history view
+      if (isHistoryOpen) {
+        isHistoryOpen = false;
+        paneEl.classList.remove('is-history-open');
+        historyBtn.classList.remove('is-on');
+      } else {
+        // If note is open, close it first
+        if (activeTheme) closeNote();
+        isHistoryOpen = true;
+        paneEl.classList.add('is-history-open');
+        historyBtn.classList.add('is-on');
+      }
+      renderList();
+    });
+  }
 }
 
 /* ═════════ MOBILE DRAWER ═════════ */

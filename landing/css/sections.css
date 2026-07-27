@@ -434,9 +434,16 @@
 }
 
 /* Navbar swaps to the note's title while a note is open, as in the app */
-.fp-title__note { display: none; }
+.fp-title__note,
+.fp-title__history { display: none; }
+
 .is-note-open .fp-title__app { display: none; }
 .is-note-open .fp-title__note { display: inline; }
+
+.is-history-open .fp-title__app { display: none; }
+.is-history-open .fp-title__history { display: inline; }
+.is-history-open .fp-input { display: none; }
+.is-history-open .fp-filter { display: none; }
 
 /* The app's exit button (src/css/titlebar.css .btn-exit) */
 .fp-exit {
@@ -466,9 +473,13 @@
 .is-note-open .fp-guide { display: none; }
 .is-note-open .fp-exit { display: flex; }
 
+.is-history-open .fp-guide { display: none; }
+.is-history-open .fp-exit { display: flex; }
+
 /* Stars fade while a note is open, exactly like #app.notes-active */
 .fp-sky { transition: opacity var(--dur-4) var(--ease-flat); }
 .is-note-open .fp-sky { opacity: 0; }
+.is-history-open .fp-sky { opacity: 0; }
 
 .fp-guide {
   display: flex;
@@ -606,6 +617,13 @@
   border-radius: 16px;
   color: var(--text-1);
   opacity: 0.5;
+  cursor: pointer;
+  transition: opacity var(--dur-2) ease, background var(--dur-2) ease;
+}
+
+.fp-filter__pills b:hover {
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .fp-filter__pills b.is-on {
@@ -626,6 +644,52 @@
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
   color: var(--text-1);
   opacity: 0.5;
+  cursor: pointer;
+  transition: opacity var(--dur-2) ease, background var(--dur-2) ease, transform var(--dur-2) ease;
+}
+
+.fp-history:hover {
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.05);
+}
+
+.fp-history:active {
+  transform: scale(0.95);
+}
+
+.fp-history.is-on {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* History Icon Uplift animation when completing a task */
+@keyframes historyUplift {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.25); filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3)); }
+  100% { transform: scale(1); }
+}
+
+.history-uplift {
+  animation: historyUplift 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  opacity: 1 !important;
+}
+
+/* Completion Animation */
+@keyframes taskToHistory {
+  0% { transform: scale(1); opacity: 1; }
+  30% { transform: scale(1.02); opacity: 0.8; }
+  100% { 
+    transform: translate(120px, -150px) scale(0.1) rotate(10deg); 
+    opacity: 0; 
+  }
+}
+
+.task-completing {
+  animation: taskToHistory 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  pointer-events: none;
+  z-index: 100;
 }
 
 /* Task cards and note entry (src/css/tasks.css .task-item / .note-entry) */
@@ -634,6 +698,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
 }
 
 .fp-task {
@@ -657,6 +722,16 @@
   transform: scale(1.02);
 }
 
+.fp-task.fp-completed {
+  cursor: default;
+}
+
+.fp-task.fp-completed:hover {
+  transform: none;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 .fp-check {
   flex-shrink: 0;
   width: 22px; height: 22px;
@@ -664,6 +739,62 @@
   border-radius: 8px;
   border: 1.5px solid rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  position: relative;
+  transition: background var(--dur-2) ease, border-color var(--dur-2) ease;
+}
+
+.fp-check:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.fp-check.is-checked {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+.fp-check.is-checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #000;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* Empty State */
+.fp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: rgba(255, 255, 255, 0.35);
+  height: 140px;
+  width: 100%;
+}
+
+.fp-empty__icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+  opacity: 0.6;
+}
+
+.fp-empty__text {
+  font-size: 12px;
+  font-weight: var(--w-normal);
+  line-height: 1.4;
+  opacity: 0.6;
+}
+
+.fp-empty__sub {
+  font-size: 10px;
+  opacity: 0.4;
+  margin-top: 4px;
 }
 
 .fp-info { min-width: 0; }
