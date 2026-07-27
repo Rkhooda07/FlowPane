@@ -529,6 +529,17 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   font-size: 14px;
+  transition: border-color var(--dur-2) var(--ease-glide), box-shadow var(--dur-2) var(--ease-glide), background var(--dur-2) var(--ease-glide);
+}
+
+/* The ring belongs to the field's own rounded edge, not the borderless
+   input inside it — so the glow is drawn here via :focus-within, and the
+   input's native ring (Safari draws one even through outline: none) is
+   stripped with appearance: none. */
+.fp-field:focus-within {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--ember-rim);
+  box-shadow: 0 0 0 1px var(--ember-rim), 0 0 20px var(--ember-glow), inset 0 0 10px rgba(255, 255, 255, 0.05);
 }
 
 .fp-field__ph { color: rgba(255, 255, 255, 0.35); }
@@ -536,6 +547,8 @@
 .fp-field__input {
   flex: 1;
   min-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
   border: none;
   outline: none;
   background: transparent;
@@ -610,6 +623,7 @@
   display: flex;
   flex-direction: column;
   padding: 8px 16px 16px;
+  min-height: 0; /* let .fp-list actually scroll instead of overflowing pane-app */
 }
 
 .fp-filter {
@@ -719,7 +733,14 @@
   gap: 8px;
   position: relative;
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
+
+.fp-list::-webkit-scrollbar { width: 4px; }
+.fp-list::-webkit-scrollbar-track { background: transparent; }
+.fp-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+.fp-list:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); }
 
 .fp-task {
   display: flex;
