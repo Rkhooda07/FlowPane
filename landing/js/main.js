@@ -15,6 +15,19 @@ const stage = document.querySelector('.hero__stage');
 if (stage) {
   stage.addEventListener('animationend', () => stage.classList.add('is-settled'), { once: true });
   if (reduced.matches) stage.classList.add('is-settled');
+
+  /* .hero__grid centers its two columns (align-items: center), so the
+     stage's own height feeds back into where it sits — collapsing the pane
+     to a 42px bar shrinks the stage, which re-centers the row, which
+     silently drags the stage's untransformed position down mid-animation.
+     The docked/collapsed math below assumes that position is fixed once a
+     drag starts; without this it'd be computing against a moving target,
+     which reads as the pane sliding away from an edge right after locking
+     to it. Pin the footprint to its tallest natural size once, up front,
+     so shrinking the pane later never reflows the row around it. */
+  requestAnimationFrame(() => {
+    stage.style.minHeight = `${stage.getBoundingClientRect().height}px`;
+  });
 }
 
 const entering = new IntersectionObserver((entries) => {

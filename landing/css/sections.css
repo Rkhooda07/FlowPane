@@ -320,16 +320,19 @@
   will-change: transform;
 }
 
-/* Once it's been dropped somewhere on the page, it needs to actually win
-   hit-testing there too, not just paint on top. Several later sections have
-   their own position: relative descendants (.rail-seq, .seq__viz, etc.) —
-   without z-index, stacking falls back to DOM order and those, being later
-   in the document, would paint (and catch hover/clicks) above the dragged
-   pane despite it visually looking on top in a plain screenshot. An
-   explicit z-index beats every z-index: auto sibling regardless of DOM
-   order, which is what actually needed fixing here. */
+/* Once it's being dragged (or has been dropped) it needs to actually win
+   hit-testing everywhere it can reach, not just paint on top. Several later
+   sections have their own position: relative descendants (.rail-seq,
+   .seq__viz, etc.) — without z-index, stacking falls back to DOM order and
+   those, being later in the document, would paint (and catch hover/clicks)
+   above the dragged pane despite it visually looking on top in a plain
+   screenshot. It also needs to clear the fixed site nav (z-index 1000):
+   the whole product is a pane that floats above everything, including here
+   — dragged up to the top of the page, it should sit on top of the nav,
+   not slide underneath it. */
+.pane-rig.is-dragging,
 .pane-rig.is-docked {
-  z-index: 500;
+  z-index: 1100;
 }
 
 body.is-dragging-pane {
@@ -413,14 +416,6 @@ body.is-dragging-pane {
 .pane-app.is-collapsed-x {
   width: 42px;
   height: 310px;
-}
-
-/* A top-collapsed bar tucks in above the nav (it's dragged past the nav's
-   own bottom edge to get here) rather than sliding underneath it — the nav
-   itself never moves, so without this it would render the bar invisible,
-   hidden behind the nav's own higher stacking order. */
-.pane-rig.is-collapsed-y {
-  z-index: 1050;
 }
 
 /* Peeking: briefly back to full size on hover, without actually leaving
