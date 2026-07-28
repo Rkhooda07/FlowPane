@@ -92,6 +92,19 @@ if (dragHandle && dragRig) {
   dragHandle.addEventListener('pointercancel', endDrag);
 }
 
+/* ═════════ UNFOCUSED DIMMING ═════════
+   The real app dims to 40% opacity + desaturates when the OS moves focus to
+   another window (src/css/reset.css #app:not(.focused)). There's no OS focus
+   here, so a click outside the pane stands in for "focus moved elsewhere". */
+
+const focusPane = document.getElementById('pane');
+if (focusPane) {
+  document.addEventListener('pointerdown', (e) => {
+    const insidePane = e.target.closest('#pane');
+    focusPane.classList.toggle('is-unfocused', !insidePane);
+  });
+}
+
 /* ═════════ EYES ═════════
    Every .eye on the page tracks the real cursor, exactly as the app tracks
    the OS cursor. Pupil travel is clamped so it stays inside the sclera. */
