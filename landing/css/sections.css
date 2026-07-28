@@ -376,6 +376,99 @@ body.is-dragging-pane {
   filter: saturate(0.6) grayscale(0.3) brightness(0.8);
 }
 
+/* ── Edge collapse (src/css/collapsed.css, ported) ──
+   Drop the pane against the top, left or right edge of the viewport and it
+   folds into a thin bar flush with that edge — the same collapsed state the
+   real app snaps into against a screen edge. Hover the bar to peek the full
+   pane back open; move away and it folds back up. No bottom collapse: the
+   real app docks to a taskbar/dock down there, which a page has no
+   equivalent of. */
+
+.pane-rig.is-dragging .pane-app {
+  transition: none; /* picking a collapsed bar back up must be instant, not eased */
+}
+
+.pane-app.is-collapsed-y,
+.pane-app.is-collapsed-x {
+  transition: height var(--dur-4) var(--ease-glide),
+              width var(--dur-4) var(--ease-glide);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pane-app.is-collapsed-y {
+  height: 42px;
+}
+
+.pane-app.is-collapsed-x {
+  width: 42px;
+  height: 310px;
+}
+
+.pane-app.is-collapsed-x.is-docked-right {
+  margin-left: auto;
+}
+
+/* Peeking: briefly back to full size on hover, without actually leaving
+   the collapsed state — same trick as the app's peek.mode. Every rule below
+   that reshapes the bar into a vertical/thin layout is scoped to
+   :not(.is-peeking), so a peek just reverts to the normal bar look with
+   nothing to override back. */
+.pane-app.is-peeking.is-collapsed-y { height: 280px; }
+.pane-app.is-peeking.is-collapsed-x { width: 280px; height: 335px; }
+
+.pane-app.is-collapsed-y:not(.is-peeking) .fp-bar {
+  height: 42px;
+  min-height: 42px;
+}
+
+.pane-app.is-collapsed-x:not(.is-peeking) .fp-bar {
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  padding: 14px 0;
+  justify-content: center;
+  gap: 16px;
+}
+
+.pane-app.is-collapsed-x:not(.is-peeking) .fp-title {
+  position: static;
+  top: auto; left: auto;
+  transform: rotate(180deg);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 13px;
+}
+
+.pane-app.is-collapsed-x.is-docked-right:not(.is-peeking) .fp-title {
+  transform: rotate(0deg);
+}
+
+.pane-app.is-collapsed-x:not(.is-peeking) .googly {
+  flex-direction: column;
+}
+
+.pane-app.is-collapsed-y .fp-input,
+.pane-app.is-collapsed-y .fp-main,
+.pane-app.is-collapsed-x .fp-input,
+.pane-app.is-collapsed-x .fp-main {
+  opacity: 0;
+  transform: translateY(-14px) scale(0.95);
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out, height 0.2s ease-out;
+}
+
+.pane-app.is-peeking .fp-input,
+.pane-app.is-peeking .fp-main {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  height: auto;
+  overflow: visible;
+  transition: opacity 0.25s ease-out 0.05s, transform 0.25s ease-out 0.05s;
+}
+
 /* ── The replica interior: styles lifted from the app's own CSS ──
    Sources: src/css/stars.css, titlebar.css, input.css, notes.css, tasks.css */
 

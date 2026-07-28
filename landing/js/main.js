@@ -50,6 +50,12 @@ const focusPane = document.getElementById('pane');
 let isActive = true;
 let isHovering = false;
 
+/* Which edge the pane is folded against, or null when it's a normal
+   floating pane — read by the bubble logic further down too, so it's
+   hoisted alongside the focus state above. */
+let collapsedEdge = null;
+let peeking = false;
+
 function updateFocusVisual() {
   if (!focusPane || !dragRig) return;
   if (!dragRig.classList.contains('is-docked')) {
@@ -67,22 +73,98 @@ if (dragHandle && dragRig) {
   let dragX = 0, dragY = 0;     // current translate
   let minX = 0, maxX = 0, minY = 0, maxY = 0;
   let hasMoved = false;
+  let rigWidth = 0;
+  let navH = 0;
 
   let docked = false;
   let dockBaseX = 0, dockBaseY = 0, dockScrollY = 0;
-  let dockFrame = null;
 
   const EDGE_MARGIN = 72; // keep at least this much of the pane on screen
   const MOVE_THRESHOLD = 3; // px of pointer travel before a click counts as a drag
+
+  /* ── Edge collapse ──
+     src/js/main.js collapses the real window once it's dropped within a
+     few px of a monitor edge (dTop/dLeft/dRight in the onMoved handler).
+     There's no OS window here, so the equivalent is "dropped within reach
+     of the viewport edge" — checked once on release, against the same
+     three edges the app collapses to (top, left, right; never bottom). */
+  const EDGE_COLLAPSE_PX = 46;
+  const PEEK_DELAY_MS = 150;      // src/js/constants.js HOVER_PEEK_DELAY_MS
+  const UNPEEK_DELAY_MS = 260;
+  let peekTimer = null;
+
+  function collapseTo(edge) {
+    collapsedEdge = edge;
+    focusPane.classList.remove('is-collapsed-y', 'is-collapsed-x', 'is-docked-right', 'is-peeking');
+    peeking = false;
+
+    if (edge === 'top') {
+      focusPane.classList.add('is-collapsed-y');
+      dragY = navH - originTopAtDrop;
+    } else {
+      focusPane.classList.add('is-collapsed-x');
+      if (edge === 'right') {
+        focusPane.classList.add('is-docked-right');
+        dragX = window.innerWidth - rigWidth - originLeftAtDrop;
+      } else {
+        dragX = -originLeftAtDrop;
+      }
+    }
+    dragRig.style.transform = `translate3d(${dragX}px, ${dragY}px, 0)`;
+  }
+
+  // Set by pointerdown each drag, read by collapseTo() and endDrag() on release.
+  let originLeftAtDrop = 0;
+  let originTopAtDrop = 0;
+
+  function schedulePeek() {
+    if (!collapsedEdge || dragging) return;
+    clearTimeout(peekTimer);
+    peekTimer = setTimeout(() => {
+      if (!collapsedEdge || dragging) return;
+      peeking = true;
+      focusPane.classList.add('is-peeking');
+    }, PEEK_DELAY_MS);
+  }
+
+  function scheduleUnpeek() {
+    clearTimeout(peekTimer);
+    if (!peeking) return;
+    peekTimer = setTimeout(() => {
+      peeking = false;
+      focusPane.classList.remove('is-peeking');
+    }, UNPEEK_DELAY_MS);
+  }
 
   dragHandle.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target.closest('#note-exit')) return;
 
+    // Picking a collapsed bar back up expands it instantly (no eased
+    // transition — is-dragging kills that via CSS) so the drag tracks the
+    // pointer from a full-size pane, same as the app forcing full size on
+    // manual move (src/js/main.js onMoved: peek.active -> animateWindowSize).
+    dragRig.classList.add('is-dragging');
+    if (collapsedEdge) {
+      clearTimeout(peekTimer);
+      const before = focusPane.getBoundingClientRect();
+      focusPane.classList.remove('is-collapsed-y', 'is-collapsed-x', 'is-docked-right', 'is-peeking');
+      collapsedEdge = null;
+      peeking = false;
+      const after = focusPane.getBoundingClientRect();
+      dragX += before.left - after.left;
+      dragY += before.top - after.top;
+      dragRig.style.transform = `translate3d(${dragX}px, ${dragY}px, 0)`;
+    }
+
     const rect = dragRig.getBoundingClientRect();
     const originLeft = rect.left - dragX;
     const originTop = rect.top - dragY;
-    const navH = document.getElementById('nav')?.getBoundingClientRect().height || 0;
+    navH = document.getElementById('nav')?.getBoundingClientRect().height || 0;
+
+    rigWidth = rect.width;
+    originLeftAtDrop = originLeft;
+    originTopAtDrop = originTop;
 
     minX = EDGE_MARGIN - rect.width - originLeft;
     maxX = window.innerWidth - EDGE_MARGIN - originLeft;
@@ -98,7 +180,6 @@ if (dragHandle && dragRig) {
     dragging = true;
     pointerId = e.pointerId;
     dragHandle.setPointerCapture(pointerId);
-    dragRig.classList.add('is-dragging');
     document.body.classList.add('is-dragging-pane');
     if (bubbleOpen) hideBubble();
   });
@@ -121,16 +202,34 @@ if (dragHandle && dragRig) {
     if (hasMoved) {
       docked = true;
       dragRig.classList.add('is-docked');
+      isActive = true;
+
+      const screenLeft = originLeftAtDrop + dragX;
+      const screenRight = window.innerWidth - (screenLeft + rigWidth);
+      const screenTop = originTopAtDrop + dragY - navH;
+
+      const notOverANote = !focusPane.classList.contains('is-note-open') && !focusPane.classList.contains('is-focus-open');
+
+      if (notOverANote && screenTop <= EDGE_COLLAPSE_PX) {
+        collapseTo('top');
+      } else if (notOverANote && screenLeft <= EDGE_COLLAPSE_PX) {
+        collapseTo('left');
+      } else if (notOverANote && screenRight <= EDGE_COLLAPSE_PX) {
+        collapseTo('right');
+      }
+
       dockBaseX = dragX;
       dockBaseY = dragY;
       dockScrollY = window.scrollY;
-      isActive = true;
       updateFocusVisual();
     }
   }
 
   dragHandle.addEventListener('pointerup', endDrag);
   dragHandle.addEventListener('pointercancel', endDrag);
+
+  focusPane.addEventListener('pointerenter', schedulePeek);
+  focusPane.addEventListener('pointerleave', scheduleUnpeek);
 
   /* A continuous rAF loop rather than a scroll-event listener: scroll events
      can fire a frame or two behind the compositor's own scroll updates,
@@ -270,6 +369,9 @@ function showBubble(customMsg) {
   if (bubbleOpen || !bubble || reduced.matches) return;
   /* Never speak over an open note, as in the app */
   if (paneEl && paneEl.classList.contains('is-note-open')) return;
+  /* Nor over a collapsed edge bar — there's nowhere for it to pop out of
+     until the visitor peeks it back open */
+  if (collapsedEdge && !peeking) return;
   bubbleOpen = true;
 
   const msg = customMsg || LINES[lineIndex % LINES.length];
