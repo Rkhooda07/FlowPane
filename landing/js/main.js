@@ -208,7 +208,6 @@ if (!reduced.matches) {
   window.addEventListener('pointermove', (e) => {
     cursor = { x: e.clientX, y: e.clientY };
     idleSince = performance.now();
-    if (bubbleOpen) hideBubble();
     if (!eyeFrame) eyeFrame = requestAnimationFrame(aimEyes);
   }, { passive: true });
 
