@@ -309,8 +309,13 @@
 }
 
 /* While the title bar is being dragged, the transform must track the
-   pointer 1:1 — the eased transition above would make it lag. */
-.pane-rig.is-dragging {
+   pointer 1:1 — the eased transition above would make it lag. Once it's
+   been dropped and docked to the screen, it stays untransitioned for good:
+   every scroll tick nudges the transform to hold its position, and an
+   eased transition there would make it swim behind the page instead of
+   sitting still on top of it. */
+.pane-rig.is-dragging,
+.pane-rig.is-docked {
   transition: none;
   will-change: transform;
 }

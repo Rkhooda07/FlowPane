@@ -31,7 +31,14 @@ document.querySelectorAll('.enter, .rail-seq').forEach((el) => entering.observe(
    The title bar drags the whole preview around the page, exactly like the
    real app's frameless window drags by its title bar. Bounded to the
    viewport so it can't be dragged out of reach, with the site nav (fixed,
-   above everything) left as the one thing it can't slide under. */
+   above everything) left as the one thing it can't slide under.
+
+   Once the visitor actually drags it somewhere, it docks: it keeps its
+   screen position through scrolling instead of riding along with the page,
+   the way a real floating window ignores the document under it. This is
+   done with transform math (compensating translateY by the scroll delta)
+   rather than switching to position: fixed, so the hero layout never
+   reflows out from under it. */
 
 const dragHandle = document.querySelector('.fp-bar');
 const dragRig = document.getElementById('rig');
@@ -43,8 +50,14 @@ if (dragHandle && dragRig) {
   let originX = 0, originY = 0; // translate this drag started from
   let dragX = 0, dragY = 0;     // current translate
   let minX = 0, maxX = 0, minY = 0, maxY = 0;
+  let hasMoved = false;
+
+  let docked = false;
+  let dockBaseX = 0, dockBaseY = 0, dockScrollY = 0;
+  let dockFrame = null;
 
   const EDGE_MARGIN = 72; // keep at least this much of the pane on screen
+  const MOVE_THRESHOLD = 3; // px of pointer travel before a click counts as a drag
 
   dragHandle.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
@@ -64,6 +77,7 @@ if (dragHandle && dragRig) {
     startY = e.clientY;
     originX = dragX;
     originY = dragY;
+    hasMoved = false;
 
     dragging = true;
     pointerId = e.pointerId;
@@ -75,6 +89,7 @@ if (dragHandle && dragRig) {
 
   dragHandle.addEventListener('pointermove', (e) => {
     if (!dragging || e.pointerId !== pointerId) return;
+    if (!hasMoved && Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_THRESHOLD) hasMoved = true;
     dragX = Math.min(maxX, Math.max(minX, originX + (e.clientX - startX)));
     dragY = Math.min(maxY, Math.max(minY, originY + (e.clientY - startY)));
     dragRig.style.transform = `translate3d(${dragX}px, ${dragY}px, 0)`;
@@ -86,10 +101,30 @@ if (dragHandle && dragRig) {
     pointerId = null;
     dragRig.classList.remove('is-dragging');
     document.body.classList.remove('is-dragging-pane');
+
+    if (hasMoved) {
+      docked = true;
+      dragRig.classList.add('is-docked');
+      dockBaseX = dragX;
+      dockBaseY = dragY;
+      dockScrollY = window.scrollY;
+    }
   }
 
   dragHandle.addEventListener('pointerup', endDrag);
   dragHandle.addEventListener('pointercancel', endDrag);
+
+  function applyDockOffset() {
+    dockFrame = null;
+    if (!docked || dragging) return;
+    dragX = dockBaseX;
+    dragY = dockBaseY + (window.scrollY - dockScrollY);
+    dragRig.style.transform = `translate3d(${dragX}px, ${dragY}px, 0)`;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (docked && !dragging && !dockFrame) dockFrame = requestAnimationFrame(applyDockOffset);
+  }, { passive: true });
 }
 
 /* ═════════ UNFOCUSED DIMMING ═════════
@@ -156,6 +191,7 @@ const bubbleText = document.getElementById('bubble-text');
 const hint = document.querySelector('.stage__hint');
 
 const LINES = [
+  'you can drag<br>me around',
   'i got my<br>eyes on you',
   'still on<br>that one?',
   'shall we<br>start the clock',
