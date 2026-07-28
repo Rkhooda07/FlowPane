@@ -357,14 +357,26 @@ body.is-dragging-pane {
   flex-direction: column;
   overflow: visible;
   height: 440px;
+  /* Explicit, not the block-default "auto" it'd otherwise resolve to (fills
+     the rig either way) — a transition can't animate to/from "auto", so
+     un-collapsing from a fixed collapsed width back to "auto" would snap
+     instead of easing, the same issue right-docking's old margin:auto had. */
+  width: 100%;
   /* The one in-flow surface with real glass: it sits over the ambient
      wash, which is what the blur resolves against. */
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-color: var(--rim);
   box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.85);
+  /* height/width are declared here, unconditionally, rather than only
+     inside the .is-collapsed-* rules below — a transition only animates a
+     property change if the *ending* style declares it, so leaving the
+     collapsed state (the classes come off, landing back on this base rule)
+     needs its own copy or the un-collapse snaps instead of easing. */
   transition: min-height var(--dur-5) var(--ease-glide),
               max-width var(--dur-5) var(--ease-glide),
+              height var(--dur-4) var(--ease-glide),
+              width var(--dur-4) var(--ease-glide),
               opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
               filter 0.6s ease;
 }
@@ -382,12 +394,15 @@ body.is-dragging-pane {
    real app snaps into against a screen edge. Hover the bar to peek the full
    pane back open; move away and it folds back up. No bottom collapse: the
    real app docks to a taskbar/dock down there, which a page has no
-   equivalent of. */
+   equivalent of.
+
+   Right-docking positions itself via the rig's own transform (see main.js
+   lockedRightX) rather than a margin, because margin can't be eased to/from
+   "auto" — a CSS transition just snaps it, which is exactly the abrupt jump
+   this is avoiding. */
 
 .pane-app.is-collapsed-y,
 .pane-app.is-collapsed-x {
-  transition: height var(--dur-4) var(--ease-glide),
-              width var(--dur-4) var(--ease-glide);
   border-color: rgba(255, 255, 255, 0.2);
 }
 
@@ -400,8 +415,12 @@ body.is-dragging-pane {
   height: 310px;
 }
 
-.pane-app.is-collapsed-x.is-docked-right {
-  margin-left: auto;
+/* A top-collapsed bar tucks in above the nav (it's dragged past the nav's
+   own bottom edge to get here) rather than sliding underneath it — the nav
+   itself never moves, so without this it would render the bar invisible,
+   hidden behind the nav's own higher stacking order. */
+.pane-rig.is-collapsed-y {
+  z-index: 1050;
 }
 
 /* Peeking: briefly back to full size on hover, without actually leaving

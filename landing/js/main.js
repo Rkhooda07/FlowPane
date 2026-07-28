@@ -75,7 +75,6 @@ if (dragHandle && dragRig) {
   let minX = 0, maxX = 0, minY = 0, maxY = 0;
   let hasMoved = false;
   let rigWidth = 0;
-  let navH = 0;
   let originLeftAtDrop = 0, originTopAtDrop = 0; // set each drag, read while it's live
 
   let docked = false;
@@ -94,27 +93,47 @@ if (dragHandle && dragRig) {
      EXPAND_PX un-collapses immediately, same as the app's dTop/dLeft/dRight
      checks. TRIGGER_PX stays tight (the app's own TRIGGER_TOP_SIDES is 6px)
      so it only folds once it's genuinely reached the edge, not merely near
-     it. Never bottom — the app docks to a taskbar/dock there, which a page
-     has no equivalent of. */
+     it. The top edge means the very top of the *page*, past the nav bar —
+     the nav is fixed and never moves for this, the pane just tucks in
+     above it (elevated z-index, see sections.css) so it stays visible.
+     Never bottom — the app docks to a taskbar/dock there, which a page has
+     no equivalent of. */
   const EDGE_TRIGGER_PX = 10;
   const EDGE_EXPAND_PX = 30;
   const COLLAPSE_DEBOUNCE_MS = 150;
   const COLLAPSE_LOCK_MS = 400; // hysteresis: ignore expand checks right after collapsing
   const PEEK_DELAY_MS = 150;    // src/js/constants.js HOVER_PEEK_DELAY_MS
   const UNPEEK_DELAY_MS = 260;
+  const GROW_MS = 600; // >= --dur-4 (520ms): how long the right-edge grow-tracking runs
 
   let collapseTimer = null;
   let lastCollapseAt = -Infinity;
   let peekTimer = null;
+  let rightTrackUntil = 0; // performance.now() deadline; while in the future, the
+                            // right edge keeps re-measuring the pane's live (mid-
+                            // transition) width instead of using a fixed value
+
+  /* Where the pane's right edge should sit while collapsed (or freshly
+     un-collapsing) against the right side of the screen. Reads the pane's
+     *actual current* width every time, so it tracks correctly whichever
+     direction it's animating — shrinking in as it collapses, growing back
+     out as it's picked up — instead of jumping or overshooting off-screen
+     mid-transition. Returns null when the right edge currently has no
+     say over the x position. */
+  function lockedRightX() {
+    if (collapsedEdge !== 'right' && performance.now() >= rightTrackUntil) return null;
+    return window.innerWidth - focusPane.getBoundingClientRect().width - originLeftAtDrop;
+  }
 
   /* Paints the pane at its current position: the locked axis (if any) snaps
      to its edge, the other keeps following the raw drag. Returns what it
      applied, so callers can seed the post-drag dock baseline with it. */
   function renderTransform() {
     let rx = dragX, ry = dragY;
-    if (collapsedEdge === 'top') ry = navH - originTopAtDrop;
+    const lockedX = lockedRightX();
+    if (lockedX !== null) rx = lockedX;
     else if (collapsedEdge === 'left') rx = -originLeftAtDrop;
-    else if (collapsedEdge === 'right') rx = window.innerWidth - rigWidth - originLeftAtDrop;
+    if (collapsedEdge === 'top') ry = -originTopAtDrop;
     dragRig.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
     return { rx, ry };
   }
@@ -123,16 +142,24 @@ if (dragHandle && dragRig) {
     collapsedEdge = edge;
     peeking = false;
     focusPane.classList.remove('is-collapsed-y', 'is-collapsed-x', 'is-docked-right', 'is-peeking');
+    dragRig.classList.remove('is-collapsed-y', 'is-collapsed-x');
     focusPane.classList.add(edge === 'top' ? 'is-collapsed-y' : 'is-collapsed-x');
+    dragRig.classList.add(edge === 'top' ? 'is-collapsed-y' : 'is-collapsed-x');
     if (edge === 'right') focusPane.classList.add('is-docked-right');
     lastCollapseAt = performance.now();
     renderTransform();
   }
 
   function clearCollapse() {
+    // Leaving a right-docked collapse: the bar is about to grow back to full
+    // width. Keep tracking its live width against the right edge for a bit
+    // longer so it un-collapses in place — an instant width change with no
+    // position compensation would send it shooting off past the screen edge.
+    if (collapsedEdge === 'right') rightTrackUntil = performance.now() + GROW_MS;
     collapsedEdge = null;
     peeking = false;
     focusPane.classList.remove('is-collapsed-y', 'is-collapsed-x', 'is-docked-right', 'is-peeking');
+    dragRig.classList.remove('is-collapsed-y', 'is-collapsed-x');
   }
 
   /* Checked on every pointermove (debounced entry) and once more, immediate,
@@ -142,7 +169,7 @@ if (dragHandle && dragRig) {
     if (focusPane.classList.contains('is-note-open') || focusPane.classList.contains('is-focus-open')) return;
 
     const screenLeft = originLeftAtDrop + dragX;
-    const dTop = originTopAtDrop + dragY - navH;
+    const dTop = originTopAtDrop + dragY;
     const dLeft = screenLeft;
     const dRight = window.innerWidth - (screenLeft + rigWidth);
 
@@ -190,13 +217,6 @@ if (dragHandle && dragRig) {
 
     dragRig.classList.add('is-dragging');
 
-    // Picking a collapsed bar back up expands it instantly — no eased
-    // transition — so the drag tracks the pointer from a full-size pane
-    // right away, same as the app forcing full size on manual move
-    // (src/js/main.js onMoved: peek.active -> animateWindowSize). The jump
-    // from the collapsed rect to the expanded one is folded straight back
-    // into dragX/dragY so nothing visibly hops before the pointer moves.
-    //
     // dragX/dragY only track the pointer while a drag is actually in
     // progress — once it ends, the pane is repositioned by dockLoop's own
     // scroll-compensated transform instead, and while collapsed the locked
@@ -207,23 +227,21 @@ if (dragHandle && dragRig) {
     dragX = liveTransform.m41;
     dragY = liveTransform.m42;
 
+    // Picking a collapsed bar back up un-collapses it with the same eased
+    // grow the app uses on manual move (src/js/main.js onMoved: peek.active
+    // -> animateWindowSize, ~250-500ms) instead of snapping instantly — the
+    // width/height transition on the pane classes handles that on its own.
+    // The one exception is a right-docked bar: clearCollapse() keeps
+    // tracking it against the right edge for the duration of that grow (see
+    // lockedRightX), so it un-collapses in place instead of overshooting.
     if (collapsedEdge) {
       clearTimeout(peekTimer);
-      focusPane.style.transition = 'none';
-      const before = focusPane.getBoundingClientRect();
       clearCollapse();
-      const after = focusPane.getBoundingClientRect();
-      dragX += before.left - after.left;
-      dragY += before.top - after.top;
-      dragRig.style.transform = `translate3d(${dragX}px, ${dragY}px, 0)`;
-      focusPane.getBoundingClientRect(); // flush the transition:none before re-enabling it
-      requestAnimationFrame(() => { focusPane.style.transition = ''; });
     }
 
     const rect = dragRig.getBoundingClientRect();
     const originLeft = rect.left - dragX;
     const originTop = rect.top - dragY;
-    navH = document.getElementById('nav')?.getBoundingClientRect().height || 0;
 
     rigWidth = rect.width;
     originLeftAtDrop = originLeft;
@@ -231,7 +249,7 @@ if (dragHandle && dragRig) {
 
     minX = EDGE_MARGIN - rect.width - originLeft;
     maxX = window.innerWidth - EDGE_MARGIN - originLeft;
-    minY = navH - originTop;
+    minY = -originTop; // the very top of the page — past the nav, which stays put
     maxY = window.innerHeight - EDGE_MARGIN - originTop;
 
     startX = e.clientX;
@@ -249,7 +267,17 @@ if (dragHandle && dragRig) {
 
   dragHandle.addEventListener('pointermove', (e) => {
     if (!dragging || e.pointerId !== pointerId) return;
-    if (!hasMoved && Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_THRESHOLD) hasMoved = true;
+    if (!hasMoved && Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_THRESHOLD) {
+      hasMoved = true;
+      // Real dragging has begun while still growing out of a right-docked
+      // collapse: hand off from the live edge-tracking to plain pointer
+      // -follow right now, rebasing so the cut-over doesn't jump.
+      if (performance.now() < rightTrackUntil) {
+        const liveX = lockedRightX();
+        if (liveX !== null) originX = liveX - (e.clientX - startX);
+        rightTrackUntil = 0;
+      }
+    }
     dragX = Math.min(maxX, Math.max(minX, originX + (e.clientX - startX)));
     dragY = Math.min(maxY, Math.max(minY, originY + (e.clientY - startY)));
     renderTransform();
@@ -288,10 +316,23 @@ if (dragHandle && dragRig) {
   /* A continuous rAF loop rather than a scroll-event listener: scroll events
      can fire a frame or two behind the compositor's own scroll updates,
      which reads as jitter. Sampling window.scrollY every painted frame
-     keeps it glued to the same spot with no lag. */
+     keeps it glued to the same spot with no lag.
+
+     It also repaints while actively dragging, not just once docked —
+     pointermove already calls renderTransform() on every move for
+     zero-lag pointer tracking, but a pickup that hasn't moved yet (still
+     mid-grow, no pointermove fired at all) would otherwise sit frozen at
+     whatever renderTransform last painted, since nothing else would be
+     calling it. Same story for the right edge specifically (lockedRightX):
+     a collapse/grow animation still running when the pointer is released
+     needs to keep being repainted, not freeze wherever dockBaseX happened
+     to land at that instant. */
   function dockLoop() {
-    if (docked && !dragging) {
-      dragRig.style.transform = `translate3d(${dockBaseX}px, ${dockBaseY + (window.scrollY - dockScrollY)}px, 0)`;
+    if (dragging) {
+      renderTransform();
+    } else if (docked) {
+      const x = lockedRightX() ?? dockBaseX;
+      dragRig.style.transform = `translate3d(${x}px, ${dockBaseY + (window.scrollY - dockScrollY)}px, 0)`;
     }
     requestAnimationFrame(dockLoop);
   }
