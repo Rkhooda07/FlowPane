@@ -70,11 +70,13 @@ if (dragHandle && dragRig) {
   let pointerId = null;
   let startX = 0, startY = 0;
   let originX = 0, originY = 0; // translate this drag started from
-  let dragX = 0, dragY = 0;     // current translate
+  let dragX = 0, dragY = 0;     // raw pointer-follow translate — always where the
+                                 // cursor wants the pane, regardless of collapse
   let minX = 0, maxX = 0, minY = 0, maxY = 0;
   let hasMoved = false;
   let rigWidth = 0;
   let navH = 0;
+  let originLeftAtDrop = 0, originTopAtDrop = 0; // set each drag, read while it's live
 
   let docked = false;
   let dockBaseX = 0, dockBaseY = 0, dockScrollY = 0;
@@ -83,39 +85,85 @@ if (dragHandle && dragRig) {
   const MOVE_THRESHOLD = 3; // px of pointer travel before a click counts as a drag
 
   /* ── Edge collapse ──
-     src/js/main.js collapses the real window once it's dropped within a
-     few px of a monitor edge (dTop/dLeft/dRight in the onMoved handler).
-     There's no OS window here, so the equivalent is "dropped within reach
-     of the viewport edge" — checked once on release, against the same
-     three edges the app collapses to (top, left, right; never bottom). */
-  const EDGE_COLLAPSE_PX = 46;
-  const PEEK_DELAY_MS = 150;      // src/js/constants.js HOVER_PEEK_DELAY_MS
+     Ported from src/js/main.js's onMoved handler: while dragging, once the
+     pane is within TRIGGER_PX of a screen edge it collapses right there —
+     live, mid-drag, after a short debounce (src/js/main.js collapseTimer,
+     150ms) — rather than waiting for the drop. Only one axis locks to the
+     edge; the other keeps tracking the cursor, so a collapsed bar still
+     slides along its edge with the pointer. Dragging back out past
+     EXPAND_PX un-collapses immediately, same as the app's dTop/dLeft/dRight
+     checks. TRIGGER_PX stays tight (the app's own TRIGGER_TOP_SIDES is 6px)
+     so it only folds once it's genuinely reached the edge, not merely near
+     it. Never bottom — the app docks to a taskbar/dock there, which a page
+     has no equivalent of. */
+  const EDGE_TRIGGER_PX = 10;
+  const EDGE_EXPAND_PX = 30;
+  const COLLAPSE_DEBOUNCE_MS = 150;
+  const COLLAPSE_LOCK_MS = 400; // hysteresis: ignore expand checks right after collapsing
+  const PEEK_DELAY_MS = 150;    // src/js/constants.js HOVER_PEEK_DELAY_MS
   const UNPEEK_DELAY_MS = 260;
+
+  let collapseTimer = null;
+  let lastCollapseAt = -Infinity;
   let peekTimer = null;
 
-  function collapseTo(edge) {
-    collapsedEdge = edge;
-    focusPane.classList.remove('is-collapsed-y', 'is-collapsed-x', 'is-docked-right', 'is-peeking');
-    peeking = false;
-
-    if (edge === 'top') {
-      focusPane.classList.add('is-collapsed-y');
-      dragY = navH - originTopAtDrop;
-    } else {
-      focusPane.classList.add('is-collapsed-x');
-      if (edge === 'right') {
-        focusPane.classList.add('is-docked-right');
-        dragX = window.innerWidth - rigWidth - originLeftAtDrop;
-      } else {
-        dragX = -originLeftAtDrop;
-      }
-    }
-    dragRig.style.transform = `translate3d(${dragX}px, ${dragY}px, 0)`;
+  /* Paints the pane at its current position: the locked axis (if any) snaps
+     to its edge, the other keeps following the raw drag. Returns what it
+     applied, so callers can seed the post-drag dock baseline with it. */
+  function renderTransform() {
+    let rx = dragX, ry = dragY;
+    if (collapsedEdge === 'top') ry = navH - originTopAtDrop;
+    else if (collapsedEdge === 'left') rx = -originLeftAtDrop;
+    else if (collapsedEdge === 'right') rx = window.innerWidth - rigWidth - originLeftAtDrop;
+    dragRig.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
+    return { rx, ry };
   }
 
-  // Set by pointerdown each drag, read by collapseTo() and endDrag() on release.
-  let originLeftAtDrop = 0;
-  let originTopAtDrop = 0;
+  function applyCollapse(edge) {
+    collapsedEdge = edge;
+    peeking = false;
+    focusPane.classList.remove('is-collapsed-y', 'is-collapsed-x', 'is-docked-right', 'is-peeking');
+    focusPane.classList.add(edge === 'top' ? 'is-collapsed-y' : 'is-collapsed-x');
+    if (edge === 'right') focusPane.classList.add('is-docked-right');
+    lastCollapseAt = performance.now();
+    renderTransform();
+  }
+
+  function clearCollapse() {
+    collapsedEdge = null;
+    peeking = false;
+    focusPane.classList.remove('is-collapsed-y', 'is-collapsed-x', 'is-docked-right', 'is-peeking');
+  }
+
+  /* Checked on every pointermove (debounced entry) and once more, immediate,
+     on release — so a fast flick straight into a corner still collapses
+     even if it never lingered past the debounce. */
+  function evaluateEdges(immediate) {
+    if (focusPane.classList.contains('is-note-open') || focusPane.classList.contains('is-focus-open')) return;
+
+    const screenLeft = originLeftAtDrop + dragX;
+    const dTop = originTopAtDrop + dragY - navH;
+    const dLeft = screenLeft;
+    const dRight = window.innerWidth - (screenLeft + rigWidth);
+
+    if (!collapsedEdge) {
+      let edge = null;
+      if (dTop <= EDGE_TRIGGER_PX) edge = 'top';
+      else if (dLeft <= EDGE_TRIGGER_PX) edge = 'left';
+      else if (dRight <= EDGE_TRIGGER_PX) edge = 'right';
+
+      clearTimeout(collapseTimer);
+      if (edge) {
+        if (immediate) applyCollapse(edge);
+        else collapseTimer = setTimeout(() => applyCollapse(edge), COLLAPSE_DEBOUNCE_MS);
+      }
+    } else if (performance.now() - lastCollapseAt >= COLLAPSE_LOCK_MS) {
+      const movedAway = collapsedEdge === 'top'
+        ? dTop > EDGE_EXPAND_PX
+        : dLeft > EDGE_EXPAND_PX && dRight > EDGE_EXPAND_PX;
+      if (movedAway) clearCollapse();
+    }
+  }
 
   function schedulePeek() {
     if (!collapsedEdge || dragging) return;
@@ -140,21 +188,36 @@ if (dragHandle && dragRig) {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target.closest('#note-exit')) return;
 
-    // Picking a collapsed bar back up expands it instantly (no eased
-    // transition — is-dragging kills that via CSS) so the drag tracks the
-    // pointer from a full-size pane, same as the app forcing full size on
-    // manual move (src/js/main.js onMoved: peek.active -> animateWindowSize).
     dragRig.classList.add('is-dragging');
+
+    // Picking a collapsed bar back up expands it instantly — no eased
+    // transition — so the drag tracks the pointer from a full-size pane
+    // right away, same as the app forcing full size on manual move
+    // (src/js/main.js onMoved: peek.active -> animateWindowSize). The jump
+    // from the collapsed rect to the expanded one is folded straight back
+    // into dragX/dragY so nothing visibly hops before the pointer moves.
+    //
+    // dragX/dragY only track the pointer while a drag is actually in
+    // progress — once it ends, the pane is repositioned by dockLoop's own
+    // scroll-compensated transform instead, and while collapsed the locked
+    // axis is repositioned by renderTransform(). Neither writes back into
+    // dragX/dragY, so both would be stale here; read the transform that's
+    // truly on screen right now instead of trusting them.
+    const liveTransform = new DOMMatrixReadOnly(getComputedStyle(dragRig).transform);
+    dragX = liveTransform.m41;
+    dragY = liveTransform.m42;
+
     if (collapsedEdge) {
       clearTimeout(peekTimer);
+      focusPane.style.transition = 'none';
       const before = focusPane.getBoundingClientRect();
-      focusPane.classList.remove('is-collapsed-y', 'is-collapsed-x', 'is-docked-right', 'is-peeking');
-      collapsedEdge = null;
-      peeking = false;
+      clearCollapse();
       const after = focusPane.getBoundingClientRect();
       dragX += before.left - after.left;
       dragY += before.top - after.top;
       dragRig.style.transform = `translate3d(${dragX}px, ${dragY}px, 0)`;
+      focusPane.getBoundingClientRect(); // flush the transition:none before re-enabling it
+      requestAnimationFrame(() => { focusPane.style.transition = ''; });
     }
 
     const rect = dragRig.getBoundingClientRect();
@@ -189,7 +252,8 @@ if (dragHandle && dragRig) {
     if (!hasMoved && Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_THRESHOLD) hasMoved = true;
     dragX = Math.min(maxX, Math.max(minX, originX + (e.clientX - startX)));
     dragY = Math.min(maxY, Math.max(minY, originY + (e.clientY - startY)));
-    dragRig.style.transform = `translate3d(${dragX}px, ${dragY}px, 0)`;
+    renderTransform();
+    if (hasMoved) evaluateEdges(false);
   });
 
   function endDrag(e) {
@@ -198,28 +262,18 @@ if (dragHandle && dragRig) {
     pointerId = null;
     dragRig.classList.remove('is-dragging');
     document.body.classList.remove('is-dragging-pane');
+    clearTimeout(collapseTimer);
 
     if (hasMoved) {
+      if (!collapsedEdge) evaluateEdges(true);
+
       docked = true;
       dragRig.classList.add('is-docked');
       isActive = true;
 
-      const screenLeft = originLeftAtDrop + dragX;
-      const screenRight = window.innerWidth - (screenLeft + rigWidth);
-      const screenTop = originTopAtDrop + dragY - navH;
-
-      const notOverANote = !focusPane.classList.contains('is-note-open') && !focusPane.classList.contains('is-focus-open');
-
-      if (notOverANote && screenTop <= EDGE_COLLAPSE_PX) {
-        collapseTo('top');
-      } else if (notOverANote && screenLeft <= EDGE_COLLAPSE_PX) {
-        collapseTo('left');
-      } else if (notOverANote && screenRight <= EDGE_COLLAPSE_PX) {
-        collapseTo('right');
-      }
-
-      dockBaseX = dragX;
-      dockBaseY = dragY;
+      const { rx, ry } = renderTransform();
+      dockBaseX = rx;
+      dockBaseY = ry;
       dockScrollY = window.scrollY;
       updateFocusVisual();
     }
@@ -237,9 +291,7 @@ if (dragHandle && dragRig) {
      keeps it glued to the same spot with no lag. */
   function dockLoop() {
     if (docked && !dragging) {
-      dragX = dockBaseX;
-      dragY = dockBaseY + (window.scrollY - dockScrollY);
-      dragRig.style.transform = `translate3d(${dragX}px, ${dragY}px, 0)`;
+      dragRig.style.transform = `translate3d(${dockBaseX}px, ${dockBaseY + (window.scrollY - dockScrollY)}px, 0)`;
     }
     requestAnimationFrame(dockLoop);
   }

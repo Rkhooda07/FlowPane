@@ -384,10 +384,6 @@ body.is-dragging-pane {
    real app docks to a taskbar/dock down there, which a page has no
    equivalent of. */
 
-.pane-rig.is-dragging .pane-app {
-  transition: none; /* picking a collapsed bar back up must be instant, not eased */
-}
-
 .pane-app.is-collapsed-y,
 .pane-app.is-collapsed-x {
   transition: height var(--dur-4) var(--ease-glide),
@@ -415,6 +411,20 @@ body.is-dragging-pane {
    nothing to override back. */
 .pane-app.is-peeking.is-collapsed-y { height: 280px; }
 .pane-app.is-peeking.is-collapsed-x { width: 280px; height: 335px; }
+
+/* The bar's own frosted fill only ever had rounded *top* corners (it's
+   normally the cap of a taller card) — stretched to fill a collapsed pill
+   that's rounded on every corner, its square bottom edge sheared a hard
+   seam across the fill. Matches src/css/collapsed.css's own fix: go
+   transparent and let the pane's single background (.pane, base.css) show
+   through uninterrupted instead of layering a second, differently-shaped
+   one on top. */
+.pane-app.is-collapsed-y:not(.is-peeking) .fp-bar,
+.pane-app.is-collapsed-x:not(.is-peeking) .fp-bar {
+  background: transparent;
+  border-bottom-color: transparent;
+  border-radius: inherit;
+}
 
 .pane-app.is-collapsed-y:not(.is-peeking) .fp-bar {
   height: 42px;
@@ -445,6 +455,14 @@ body.is-dragging-pane {
 
 .pane-app.is-collapsed-x:not(.is-peeking) .googly {
   flex-direction: column;
+}
+
+/* The drag-grip hint only makes sense against a full-width bar with room
+   for it — drop it in the collapsed states rather than let it float as a
+   stray dot cluster in the middle of a thin strip. */
+.pane-app.is-collapsed-y:not(.is-peeking) .fp-guide,
+.pane-app.is-collapsed-x:not(.is-peeking) .fp-guide {
+  display: none;
 }
 
 .pane-app.is-collapsed-y .fp-input,
