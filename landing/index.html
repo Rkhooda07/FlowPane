@@ -267,29 +267,57 @@
       </div>
 
       <!-- Genuinely a sequence, so it is numbered and physically connected.
-           Nowhere else on the page is numbered. -->
+           Nowhere else on the page is numbered. Each viz is a tiny, looping
+           replay of that exact state using the same chrome as the real
+           pane (title bar + googly eyes) — not a static diagram, a
+           miniature of the actual behaviour, playing on its own. -->
       <ol class="rail-seq pane" role="list">
         <li class="seq">
           <span class="mono seq__n">01</span>
-          <div class="seq__viz" aria-hidden="true"><span class="chip"></span></div>
+          <div class="seq__viz seq__viz--float" aria-hidden="true">
+            <span class="mini-pane">
+              <span class="mini-pane__bar"><i></i><i></i></span>
+              <span class="mini-pane__line"></span>
+              <span class="mini-pane__line mini-pane__line--sm"></span>
+            </span>
+          </div>
           <h3 class="seq__t">Float</h3>
           <p class="seq__d">Sits above every window, in every space. Your list never falls behind a browser tab.</p>
         </li>
         <li class="seq">
           <span class="mono seq__n">02</span>
-          <div class="seq__viz" aria-hidden="true"><span class="chip chip--snap"></span></div>
+          <div class="seq__viz seq__viz--snap" aria-hidden="true">
+            <span class="mini-pane">
+              <span class="mini-pane__bar"><i></i><i></i></span>
+              <span class="mini-pane__line"></span>
+              <span class="mini-pane__line mini-pane__line--sm"></span>
+            </span>
+          </div>
           <h3 class="seq__t">Snap</h3>
           <p class="seq__d">Push it toward any edge and it locks flush, aligned to the pixel.</p>
         </li>
         <li class="seq">
           <span class="mono seq__n">03</span>
-          <div class="seq__viz" aria-hidden="true"><span class="chip chip--slim"></span></div>
+          <div class="seq__viz seq__viz--slim" aria-hidden="true">
+            <span class="mini-pane">
+              <span class="mini-pane__bar"><i></i><i></i></span>
+              <span class="mini-pane__line"></span>
+              <span class="mini-pane__line mini-pane__line--sm"></span>
+            </span>
+          </div>
           <h3 class="seq__t">Collapse</h3>
           <p class="seq__d">Push further and it folds to a sliver — just the eyes and a running clock.</p>
         </li>
         <li class="seq">
           <span class="mono seq__n">04</span>
-          <div class="seq__viz" aria-hidden="true"><span class="chip chip--peek"></span></div>
+          <div class="seq__viz seq__viz--peek" aria-hidden="true">
+            <span class="mini-cursor"></span>
+            <span class="mini-pane">
+              <span class="mini-pane__bar"><i></i><i></i></span>
+              <span class="mini-pane__line"></span>
+              <span class="mini-pane__line mini-pane__line--sm"></span>
+            </span>
+          </div>
           <h3 class="seq__t">Peek</h3>
           <p class="seq__d">Bring the cursor close and it unfolds. Move away and it tucks back. No clicking.</p>
         </li>

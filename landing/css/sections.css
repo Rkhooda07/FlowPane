@@ -1524,49 +1524,190 @@ body.is-dragging-pane {
   color: var(--text-3);
 }
 
-/* Diagrammatic: a screen with its right edge drawn, and a pane on it.
-   No dashed placeholder box — the edge is the whole point. */
+/* Diagrammatic: a screen with its right edge drawn, and a miniature of the
+   real pane looping through that exact state on it — the same title bar
+   and googly eyes as the hero replica and the app itself, at 1/10th
+   scale, so this reads as a replay of the actual behaviour rather than an
+   abstract icon standing in for it. Runs continuously once the rail has
+   scrolled into view (.rail-seq.is-in, gated per-variant below), pausing
+   the instant a visitor hovers to read the still frame, and freezing on
+   a representative frame entirely under reduced motion. */
 .seq__viz {
   position: relative;
-  height: 56px;
+  height: 64px;
   width: 132px;
   margin-bottom: var(--s-5);
   border-right: 2px solid var(--rim);
-  border-radius: 2px;
+  border-top: 2px solid var(--rim);
+  border-radius: 3px 3px 0 0;
+  overflow: hidden;
 }
 
-.chip {
+.mini-pane {
   position: absolute;
-  top: 8px;
-  left: 4px;
+  top: 10px;
+  right: 4px;
   width: 30px;
   height: 40px;
+  display: flex;
+  flex-direction: column;
   border-radius: 5px;
   background: var(--frost-lift);
   border: 1px solid var(--rim);
-  transition:
-    transform var(--dur-4) var(--ease-glide),
-    width var(--dur-4) var(--ease-glide),
-    background-color var(--dur-4) var(--ease-flat),
-    border-color var(--dur-4) var(--ease-flat);
+  box-shadow: 0 8px 16px -10px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
 }
 
-.chip--snap,
-.chip--slim,
-.chip--peek { left: auto; right: 0; border-radius: 5px 0 0 5px; }
+.mini-pane__bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 9px;
+  padding: 0 3px;
+  flex-shrink: 0;
+}
 
-.chip--slim,
-.chip--peek { width: 10px; }
+.mini-pane__bar i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-1);
+  opacity: 0.85;
+}
 
-.chip--slim { background: var(--ember-wash); border-color: var(--ember-rim); }
+.mini-pane__line {
+  height: 3px;
+  margin: 3px 4px 0;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.14);
+}
 
-.seq:hover .chip       { transform: translateX(10px); }
-.seq:hover .chip--snap { transform: translateX(0); }
-.seq:hover .chip--slim { transform: translateX(3px); }
-.seq:hover .chip--peek { width: 30px; background: var(--ember-wash); border-color: var(--ember-rim); }
+.mini-pane__line--sm { width: 60%; }
+
+/* Specificity has to at least match the animation-shorthand rules below
+   (.rail-seq.is-in .seq__viz--x .mini-pane) — the shorthand implicitly
+   resets animation-play-state to "running" too, so a lower-specificity
+   pause rule here would just lose the cascade and never visibly pause. */
+.rail-seq.is-in .seq:hover .mini-pane,
+.rail-seq.is-in .seq:hover .mini-pane__line,
+.rail-seq.is-in .seq:hover .mini-cursor {
+  animation-play-state: paused;
+}
+
+/* 01 — Float: adrift in the open, never docked to anything */
+.seq__viz--float .mini-pane {
+  left: 12px;
+  right: auto;
+}
+
+.rail-seq.is-in .seq__viz--float .mini-pane {
+  animation: miniFloat 3.2s var(--ease-flat) infinite;
+}
+
+@keyframes miniFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+/* 02 — Snap: drifts in from the open, locks flush to the edge, holds, resets */
+.rail-seq.is-in .seq__viz--snap .mini-pane {
+  animation: miniSnap 3.6s var(--ease-glide) infinite;
+}
+
+@keyframes miniSnap {
+  0%, 8%   { transform: translateX(-78px); }
+  38%, 78% { transform: translateX(0); }
+  100%     { transform: translateX(-78px); }
+}
+
+/* 03 — Collapse: already flush at the edge, folds down to a sliver and back */
+.rail-seq.is-in .seq__viz--slim .mini-pane {
+  animation: miniCollapse 3.4s var(--ease-glide) infinite;
+}
+
+.rail-seq.is-in .seq__viz--slim .mini-pane__line {
+  animation: miniLineFade 3.4s var(--ease-flat) infinite;
+}
+
+@keyframes miniCollapse {
+  0%, 15%  { width: 30px; background: var(--frost-lift); border-color: var(--rim); }
+  45%, 75% { width: 10px; background: var(--ember-wash); border-color: var(--ember-rim); }
+  100%     { width: 30px; background: var(--frost-lift); border-color: var(--rim); }
+}
+
+@keyframes miniLineFade {
+  0%, 15%  { opacity: 1; }
+  30%, 90% { opacity: 0; }
+  100%     { opacity: 1; }
+}
+
+/* 04 — Peek: rests collapsed; a cursor arrives, it unfolds, the cursor
+   leaves and it tucks back — the one state that's cursor-driven, so the
+   cursor itself is drawn arriving and leaving, not just implied. */
+.seq__viz--peek .mini-pane { width: 10px; background: var(--ember-wash); border-color: var(--ember-rim); }
+
+.rail-seq.is-in .seq__viz--peek .mini-pane {
+  animation: miniPeek 3.8s var(--ease-glide) infinite;
+}
+
+.rail-seq.is-in .seq__viz--peek .mini-pane__line {
+  animation: miniLineFadePeek 3.8s var(--ease-flat) infinite;
+}
+
+@keyframes miniPeek {
+  0%, 22%  { width: 10px; }
+  48%, 68% { width: 30px; }
+  100%     { width: 10px; }
+}
+
+@keyframes miniLineFadePeek {
+  0%, 40%  { opacity: 0; }
+  55%, 62% { opacity: 1; }
+  100%     { opacity: 0; }
+}
+
+.mini-cursor {
+  position: absolute;
+  top: 30px;
+  right: 34px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ember);
+  box-shadow: 0 0 8px var(--ember-glow);
+  opacity: 0;
+}
+
+.rail-seq.is-in .mini-cursor {
+  animation: miniCursor 3.8s var(--ease-glide) infinite;
+}
+
+@keyframes miniCursor {
+  0%, 22%  { opacity: 0; transform: translateX(16px); }
+  38%, 68% { opacity: 1; transform: translateX(0); }
+  84%, 100% { opacity: 0; transform: translateX(16px); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .rail-seq::after { transform: scaleX(1); animation: none; }
+
+  .seq__viz--float .mini-pane,
+  .seq__viz--snap .mini-pane,
+  .seq__viz--slim .mini-pane,
+  .seq__viz--peek .mini-pane,
+  .mini-pane__line,
+  .mini-cursor {
+    animation: none !important;
+  }
+
+  /* Each freezes on the frame that best represents its named state,
+     rather than defaulting to whichever keyframe 0% happens to be. */
+  .seq__viz--snap .mini-pane { transform: translateX(0); }
+  .seq__viz--slim .mini-pane { width: 10px; background: var(--ember-wash); border-color: var(--ember-rim); }
+  .seq__viz--slim .mini-pane__line { opacity: 0; }
+  .seq__viz--peek .mini-pane { width: 30px; }
+  .seq__viz--peek .mini-pane__line { opacity: 1; }
+  .mini-cursor { opacity: 1; transform: translateX(0); }
 }
 
 /* ══════════════ LEDGER ══════════════ */
