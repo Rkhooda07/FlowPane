@@ -320,6 +320,18 @@
   will-change: transform;
 }
 
+/* Once it's been dropped somewhere on the page, it needs to actually win
+   hit-testing there too, not just paint on top. Several later sections have
+   their own position: relative descendants (.rail-seq, .seq__viz, etc.) —
+   without z-index, stacking falls back to DOM order and those, being later
+   in the document, would paint (and catch hover/clicks) above the dragged
+   pane despite it visually looking on top in a plain screenshot. An
+   explicit z-index beats every z-index: auto sibling regardless of DOM
+   order, which is what actually needed fixing here. */
+.pane-rig.is-docked {
+  z-index: 500;
+}
+
 body.is-dragging-pane {
   cursor: grabbing;
   user-select: none;

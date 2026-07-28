@@ -42,6 +42,22 @@ document.querySelectorAll('.enter, .rail-seq').forEach((el) => entering.observe(
 
 const dragHandle = document.querySelector('.fp-bar');
 const dragRig = document.getElementById('rig');
+const focusPane = document.getElementById('pane');
+
+/* Focus/hover visual state is shared between the drag logic below (a drag
+   marks the pane "active") and the pointerenter/leave + outside-click
+   listeners further down — declared here so both can reach it. */
+let isActive = true;
+let isHovering = false;
+
+function updateFocusVisual() {
+  if (!focusPane || !dragRig) return;
+  if (!dragRig.classList.contains('is-docked')) {
+    focusPane.classList.remove('is-unfocused');
+    return;
+  }
+  focusPane.classList.toggle('is-unfocused', !(isHovering || isActive));
+}
 
 if (dragHandle && dragRig) {
   let dragging = false;
@@ -108,35 +124,53 @@ if (dragHandle && dragRig) {
       dockBaseX = dragX;
       dockBaseY = dragY;
       dockScrollY = window.scrollY;
+      isActive = true;
+      updateFocusVisual();
     }
   }
 
   dragHandle.addEventListener('pointerup', endDrag);
   dragHandle.addEventListener('pointercancel', endDrag);
 
-  function applyDockOffset() {
-    dockFrame = null;
-    if (!docked || dragging) return;
-    dragX = dockBaseX;
-    dragY = dockBaseY + (window.scrollY - dockScrollY);
-    dragRig.style.transform = `translate3d(${dragX}px, ${dragY}px, 0)`;
+  /* A continuous rAF loop rather than a scroll-event listener: scroll events
+     can fire a frame or two behind the compositor's own scroll updates,
+     which reads as jitter. Sampling window.scrollY every painted frame
+     keeps it glued to the same spot with no lag. */
+  function dockLoop() {
+    if (docked && !dragging) {
+      dragX = dockBaseX;
+      dragY = dockBaseY + (window.scrollY - dockScrollY);
+      dragRig.style.transform = `translate3d(${dragX}px, ${dragY}px, 0)`;
+    }
+    requestAnimationFrame(dockLoop);
   }
-
-  window.addEventListener('scroll', () => {
-    if (docked && !dragging && !dockFrame) dockFrame = requestAnimationFrame(applyDockOffset);
-  }, { passive: true });
+  requestAnimationFrame(dockLoop);
 }
 
-/* ═════════ UNFOCUSED DIMMING ═════════
+/* ═════════ FOCUS / HOVER DIMMING ═════════
    The real app dims to 40% opacity + desaturates when the OS moves focus to
-   another window (src/css/reset.css #app:not(.focused)). There's no OS focus
-   here, so a click outside the pane stands in for "focus moved elsewhere". */
+   another window, but brightens back up on hover even then — src/js/main.js
+   updateFocusState(): focused if hovered, or if no window is hovered and
+   this one was the last active one (src/css/reset.css #app:not(.focused)).
+   There's no OS window focus on a page, so a drag stands in for "this one
+   is active" and a click outside for "focus moved elsewhere" — but until
+   the visitor actually drags it once, it stays put, bright, undimmable
+   (see updateFocusVisual above). */
 
-const focusPane = document.getElementById('pane');
 if (focusPane) {
+  focusPane.addEventListener('pointerenter', () => {
+    isHovering = true;
+    updateFocusVisual();
+  });
+
+  focusPane.addEventListener('pointerleave', () => {
+    isHovering = false;
+    updateFocusVisual();
+  });
+
   document.addEventListener('pointerdown', (e) => {
-    const insidePane = e.target.closest('#pane');
-    focusPane.classList.toggle('is-unfocused', !insidePane);
+    isActive = !!e.target.closest('#pane');
+    updateFocusVisual();
   });
 }
 
@@ -263,8 +297,12 @@ function hideBubble() {
   }, 500);
 }
 
-/* Speak only when the visitor has actually gone still. */
+/* The very first line introduces the drag affordance, so it fires fast on
+   its own timer rather than waiting for the visitor to go idle. After that,
+   speak only when they've actually gone still. */
 if (!reduced.matches && bubble) {
+  later(() => { if (!bubbleOpen) showBubble(); }, 1000);
+
   setInterval(() => {
     if (bubbleOpen) return;
     if (performance.now() - idleSince > 1500) showBubble();
