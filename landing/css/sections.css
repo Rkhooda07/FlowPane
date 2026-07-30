@@ -1609,61 +1609,44 @@ body.is-dragging-pane {
   50%      { transform: translateY(-6px); }
 }
 
-/* 02 — Snap: drifts in from the open toward the edge (the screen edge is
-   the vertical rule this whole diagram is drawn against) and locks flush
-   to it — a small overshoot-and-settle on the pane plus a brief glow on
-   both itself and the edge line it just met make the lock read as a
-   distinct event, not just the pane sliding and stopping. */
-.rail-seq.is-in .seq__viz--snap {
-  animation: miniEdgeFlash 3.6s var(--ease-flat) infinite;
+/* 02 — Collapse: drifts in from the open and, the instant it reaches the
+   edge, folds straight down to a sliver — one continuous motion, not a
+   slide-and-lock followed by a separate shrink. The real app has no
+   in-between "docked but full-size" state: reaching an edge *is* the
+   collapse trigger. A brief glow on the edge line and the pane marks the
+   instant of contact without implying it pauses there. */
+.rail-seq.is-in .seq__viz--collapse {
+  animation: miniEdgeFlash 3.8s var(--ease-flat) infinite;
 }
 
 @keyframes miniEdgeFlash {
-  0%, 32%  { border-right-color: var(--rim); }
-  38%, 52% { border-right-color: var(--ember); }
-  68%, 100% { border-right-color: var(--rim); }
+  0%, 30%  { border-right-color: var(--rim); }
+  38%, 50% { border-right-color: var(--ember); }
+  66%, 100% { border-right-color: var(--rim); }
 }
 
-.rail-seq.is-in .seq__viz--snap .mini-pane {
-  animation: miniSnap 3.6s var(--ease-glide) infinite,
-             miniSnapGlow 3.6s var(--ease-flat) infinite;
+.rail-seq.is-in .seq__viz--collapse .mini-pane {
+  animation: miniCollapseFlow 3.8s var(--ease-glide) infinite;
 }
 
-@keyframes miniSnap {
-  0%, 8%   { transform: translateX(-78px); }
-  33%      { transform: translateX(4px); }  /* a hair of overshoot past the edge */
-  40%, 78% { transform: translateX(0); }     /* settled, flush */
-  100%     { transform: translateX(-78px); }
+.rail-seq.is-in .seq__viz--collapse .mini-pane__line {
+  animation: miniLineFade 3.8s var(--ease-flat) infinite;
 }
 
-@keyframes miniSnapGlow {
-  0%, 32%   { box-shadow: 0 8px 16px -10px rgba(0, 0, 0, 0.7); border-color: var(--rim); }
-  38%, 52%  { box-shadow: 0 0 10px 1px var(--ember-glow); border-color: var(--ember-rim); }
-  68%, 100% { box-shadow: 0 8px 16px -10px rgba(0, 0, 0, 0.7); border-color: var(--rim); }
-}
-
-/* 03 — Collapse: already flush at the edge, folds down to a sliver and back */
-.rail-seq.is-in .seq__viz--slim .mini-pane {
-  animation: miniCollapse 3.4s var(--ease-glide) infinite;
-}
-
-.rail-seq.is-in .seq__viz--slim .mini-pane__line {
-  animation: miniLineFade 3.4s var(--ease-flat) infinite;
-}
-
-@keyframes miniCollapse {
-  0%, 15%  { width: 30px; background: var(--frost-lift); border-color: var(--rim); }
-  45%, 75% { width: 10px; background: var(--ember-wash); border-color: var(--ember-rim); }
-  100%     { width: 30px; background: var(--frost-lift); border-color: var(--rim); }
+@keyframes miniCollapseFlow {
+  0%, 8%   { transform: translateX(-78px); width: 30px; background: var(--frost-lift); border-color: var(--rim); box-shadow: 0 8px 16px -10px rgba(0, 0, 0, 0.7); }
+  34%      { transform: translateX(0); width: 30px; background: var(--frost-lift); border-color: var(--rim); box-shadow: 0 8px 16px -10px rgba(0, 0, 0, 0.7); }
+  46%, 72% { transform: translateX(0); width: 10px; background: var(--ember-wash); border-color: var(--ember-rim); box-shadow: 0 0 10px 1px var(--ember-glow); }
+  100%     { transform: translateX(-78px); width: 30px; background: var(--frost-lift); border-color: var(--rim); box-shadow: 0 8px 16px -10px rgba(0, 0, 0, 0.7); }
 }
 
 @keyframes miniLineFade {
-  0%, 15%  { opacity: 1; }
-  30%, 90% { opacity: 0; }
-  100%     { opacity: 1; }
+  0%, 30% { opacity: 1; }
+  42%, 78% { opacity: 0; }
+  92%, 100% { opacity: 1; }
 }
 
-/* 04 — Peek: rests collapsed; a cursor arrives, it unfolds, the cursor
+/* 03 — Peek: rests collapsed; a cursor arrives, it unfolds, the cursor
    leaves and it tucks back — the one state that's cursor-driven, so the
    cursor itself is drawn arriving and leaving, not just implied. */
 .seq__viz--peek .mini-pane { width: 10px; background: var(--ember-wash); border-color: var(--ember-rim); }
@@ -1710,14 +1693,40 @@ body.is-dragging-pane {
   84%, 100% { opacity: 0; transform: translateX(16px); }
 }
 
+/* 04 — Restore: rests collapsed at the edge, then gets pulled away and
+   springs straight back to full size — width and position change
+   together, unlike Peek's grow-in-place, so it reads as leaving the edge
+   rather than just previewing itself. */
+.seq__viz--restore .mini-pane { width: 10px; background: var(--ember-wash); border-color: var(--ember-rim); }
+
+.rail-seq.is-in .seq__viz--restore .mini-pane {
+  animation: miniRestore 3.6s var(--ease-glide) infinite;
+}
+
+.rail-seq.is-in .seq__viz--restore .mini-pane__line {
+  animation: miniLineFadeRestore 3.6s var(--ease-flat) infinite;
+}
+
+@keyframes miniRestore {
+  0%, 20%  { transform: translateX(0); width: 10px; background: var(--ember-wash); border-color: var(--ember-rim); }
+  55%, 80% { transform: translateX(-78px); width: 30px; background: var(--frost-lift); border-color: var(--rim); }
+  100%     { transform: translateX(0); width: 10px; background: var(--ember-wash); border-color: var(--ember-rim); }
+}
+
+@keyframes miniLineFadeRestore {
+  0%, 45%  { opacity: 0; }
+  62%, 75% { opacity: 1; }
+  100%     { opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rail-seq::after { transform: scaleX(1); animation: none; }
 
-  .seq__viz--snap,
+  .seq__viz--collapse,
   .seq__viz--float .mini-pane,
-  .seq__viz--snap .mini-pane,
-  .seq__viz--slim .mini-pane,
+  .seq__viz--collapse .mini-pane,
   .seq__viz--peek .mini-pane,
+  .seq__viz--restore .mini-pane,
   .mini-pane__line,
   .mini-cursor {
     animation: none !important;
@@ -1725,16 +1734,19 @@ body.is-dragging-pane {
 
   /* Each freezes on the frame that best represents its named state,
      rather than defaulting to whichever keyframe 0% happens to be. */
-  .seq__viz--snap { border-right-color: var(--ember); }
-  .seq__viz--snap .mini-pane {
+  .seq__viz--collapse { border-right-color: var(--ember); }
+  .seq__viz--collapse .mini-pane {
     transform: translateX(0);
-    box-shadow: 0 0 10px 1px var(--ember-glow);
+    width: 10px;
+    background: var(--ember-wash);
     border-color: var(--ember-rim);
+    box-shadow: 0 0 10px 1px var(--ember-glow);
   }
-  .seq__viz--slim .mini-pane { width: 10px; background: var(--ember-wash); border-color: var(--ember-rim); }
-  .seq__viz--slim .mini-pane__line { opacity: 0; }
+  .seq__viz--collapse .mini-pane__line { opacity: 0; }
   .seq__viz--peek .mini-pane { width: 30px; }
   .seq__viz--peek .mini-pane__line { opacity: 1; }
+  .seq__viz--restore .mini-pane { transform: translateX(-78px); width: 30px; background: var(--frost-lift); border-color: var(--rim); }
+  .seq__viz--restore .mini-pane__line { opacity: 1; }
   .mini-cursor { opacity: 1; transform: translateX(0); }
 }
 

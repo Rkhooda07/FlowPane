@@ -561,7 +561,7 @@ let activeTheme = null;
 // Dynamic list items
 let activeItems = [
   { id: 'task-1', type: 'task', title: 'Ship it before the coffee dies ☕', due: 'Due in 9 mins', urgent: true },
-  { id: 'task-2', type: 'task', title: 'Cancel that gym membership from March 🏋️', due: '<b>∞</b> Plenty of time', urgent: false },
+  { id: 'task-2', type: 'task', title: 'Rename tempFixDoNotUse() before code review 😅', due: '<b>∞</b> Plenty of time', urgent: false },
   { id: 'note-4', type: 'note', theme: 4 }
 ];
 
