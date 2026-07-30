@@ -32,6 +32,14 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Safari before 16 doesn't know clip and falls back to visible, which hands
+   that same bleed back to a horizontal scrollbar. hidden is the lesser evil
+   there — it does make the document a scroll container, but only on the
+   browsers that leave us no choice. */
+@supports not (overflow-x: clip) {
+  html { overflow-x: hidden; }
+}
+
 html::-webkit-scrollbar {
   width: 0;
   height: 0;

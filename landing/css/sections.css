@@ -1073,7 +1073,7 @@ body.is-dragging-pane {
 .fp-note__sub {
   display: block;
   font-weight: var(--w-light);
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.56);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2053,7 +2053,7 @@ body.is-dragging-pane {
   text-transform: uppercase;
   letter-spacing: 1px;
   line-height: 1.3;
-  color: rgba(255, 220, 150, 0.45);
+  color: rgba(255, 220, 150, 0.62);
 }
 
 .fdemo__clock {
@@ -2128,7 +2128,7 @@ body.is-dragging-pane {
 .fdemo__mode {
   margin-top: 10px;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.52);
 }
 
 /* Set Timer: src/css/focus-mode.css .timer-modal, at pane scale */
