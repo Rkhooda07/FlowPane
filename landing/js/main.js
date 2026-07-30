@@ -38,7 +38,29 @@ const entering = new IntersectionObserver((entries) => {
   }
 }, { rootMargin: '0px 0px -12% 0px', threshold: 0.15 });
 
-document.querySelectorAll('.enter, .rail-seq').forEach((el) => entering.observe(el));
+document.querySelectorAll('.enter, .rail-seq, .install').forEach((el) => entering.observe(el));
+
+/* The install icon walks the exact distance to the folder, so the loop
+   stays honest at any card width. */
+const install = document.querySelector('.install');
+if (install) {
+  const icon = install.querySelector('.install__icon');
+  /* The folder column, not its SVG: SVG elements have no offsetLeft, and
+     the glyph is centred in the column anyway. */
+  const folder = install.querySelector('.install__folder');
+
+  /* offsetLeft, not getBoundingClientRect: the icon is mid-animation most
+     of the time, and layout offsets ignore the transform. */
+  const measureWalk = () => {
+    const walk = (folder.offsetLeft + folder.offsetWidth / 2)
+      - (icon.offsetLeft + icon.offsetWidth / 2);
+    if (walk > 0) install.style.setProperty('--walk', `${Math.round(walk)}px`);
+  };
+
+  measureWalk();
+  addEventListener('resize', measureWalk);
+  if (document.fonts) document.fonts.ready.then(measureWalk);
+}
 
 /* ═════════ WINDOW DRAG ═════════
    The title bar drags the whole preview around the page, exactly like the
@@ -1026,6 +1048,315 @@ if (paneEl && noteWs && noteExit) {
   }
 }
 
+/* ═════════ FOCUS MODE DEMO ═════════
+   The anchor card in "Inside the pane" isn't a screenshot of Focus Mode —
+   it runs the app's own session loop: countdown or stopwatch, the quote
+   list from src/js/constants.js, and the same congrats card at the end.
+   It runs itself while it's on screen and stops the moment it isn't. */
+
+const fdemo = document.getElementById('fdemo');
+if (fdemo) {
+  const clockEl = document.getElementById('fd-clock');
+  const quoteEl = document.getElementById('fd-quote');
+  const modeEl = document.getElementById('fd-mode');
+  const ringEl = document.getElementById('fd-ring');
+  const iconEl = document.getElementById('fd-icon');
+  const toggleBtn = document.getElementById('fd-toggle');
+  const cheerEl = document.getElementById('fd-cheer');
+  const elapsedEl = document.getElementById('fd-elapsed');
+  const funEl = document.getElementById('fd-fun');
+
+  /* Both lists are copies of src/js/constants.js, not paraphrases. */
+  const QUOTES = [
+    'Flow with the moment, focus on the task.',
+    'Your focus determines your reality.',
+    'One task at a time, one step closer.',
+    'Stay in the flow, the rest will follow.',
+    'Focus is the art of knowing what to ignore.',
+    'Deep work is the superpower of the 21st century.',
+    'The secret to getting ahead is getting started.',
+    "Don't stop until you're proud.",
+    'Small steps lead to big results.',
+    'Flow is the state of effortless action.',
+  ];
+
+  const CHEERS = [
+    'Great focus. Keep this momentum going.',
+    'One step closer to your goals. Well done.',
+    'Task completed successfully. You’re doing great.',
+    'Outstanding focus session. Ready for the next challenge?',
+    'Consistency is key. Excellent job staying on track.',
+    'Progress is made one task at a time. Keep it up.',
+  ];
+
+  const modalEl = document.getElementById('fd-modal');
+  const minsEl = document.getElementById('fd-mins');
+
+  const CIRCUMFERENCE = 578.05; /* 2πr, r = 92 */
+  const CONFETTI = ['#ffcc66', '#ff9933', '#34c759', '#f47fca', '#a6d907', '#ffffff'];
+
+  /* Session length in minutes; 0 is the app's no-timer case, which counts
+     up instead of down. */
+  let mins = 25;
+  let remaining = mins * 60000;
+  let elapsed = 0;
+  let running = false;
+  let heldByUser = false; /* paused by a click, not by scrolling away */
+  let lastTick = 0;
+  let ticker = 0;
+  let quoteIx = 0;
+  let quoteAt = 0;
+
+  const total = () => mins * 60000;
+  const isStopwatch = () => mins === 0;
+  const modeLabel = () => (mins ? `${mins} min countdown` : 'stopwatch · counting up');
+
+  function clock(ms) {
+    const secs = Math.max(0, Math.round(ms / 1000));
+    const m = String(Math.floor(secs / 60)).padStart(2, '0');
+    const s = String(secs % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function render() {
+    clockEl.textContent = clock(isStopwatch() ? elapsed : remaining);
+    modeEl.textContent = modeLabel();
+    fdemo.classList.toggle('is-stopwatch', isStopwatch());
+    fdemo.classList.toggle('is-running', running);
+
+    /* Counting down empties the ring; counting up sweeps it once a minute. */
+    const left = isStopwatch()
+      ? 1 - (elapsed % 60000) / 60000
+      : (total() ? remaining / total() : 0);
+    ringEl.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - left));
+
+    iconEl.textContent = running ? '⏸' : '▶';
+    toggleBtn.setAttribute('aria-label', running ? 'Pause the session' : 'Start the session');
+  }
+
+  function swapQuote() {
+    quoteIx = (quoteIx + 1) % QUOTES.length;
+    quoteEl.classList.add('is-swapping');
+    setTimeout(() => {
+      quoteEl.textContent = QUOTES[quoteIx];
+      quoteEl.classList.remove('is-swapping');
+    }, 320);
+  }
+
+  function tick() {
+    const now = performance.now();
+    const delta = now - lastTick;
+    lastTick = now;
+
+    elapsed += delta;
+    if (!isStopwatch()) {
+      remaining -= delta;
+      if (remaining <= 0) {
+        remaining = 0;
+        finish();
+        return;
+      }
+    }
+
+    if (now - quoteAt > 15000) {
+      quoteAt = now;
+      swapQuote();
+    }
+
+    render();
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    lastTick = performance.now();
+    quoteAt = performance.now();
+    clearInterval(ticker);
+    ticker = setInterval(tick, 250);
+    render();
+  }
+
+  function stop() {
+    running = false;
+    clearInterval(ticker);
+    ticker = 0;
+    render();
+  }
+
+  function reset(keepRunning = false) {
+    stop();
+    remaining = total();
+    elapsed = 0;
+    render();
+    if (keepRunning) start();
+  }
+
+  /* Eight scraps of the app's palette, thrown from the middle of the pane */
+  function confetti() {
+    if (reduced.matches) return;
+    for (let i = 0; i < 12; i += 1) {
+      const bit = document.createElement('span');
+      bit.className = 'fdemo__bit';
+      bit.style.left = `${12 + Math.random() * 76}%`;
+      bit.style.background = CONFETTI[i % CONFETTI.length];
+      bit.style.setProperty('--bx', `${(Math.random() - 0.5) * 120}px`);
+      bit.style.setProperty('--br', `${(Math.random() - 0.5) * 720}deg`);
+      bit.style.animationDelay = `${Math.random() * 160}ms`;
+      bit.addEventListener('animationend', () => bit.remove());
+      fdemo.appendChild(bit);
+    }
+  }
+
+  function finish() {
+    stop();
+    closeModal(false);
+    heldByUser = true; /* don't restart behind the celebration */
+    elapsedEl.textContent = clock(isStopwatch() ? elapsed : total() - remaining);
+    funEl.textContent = CHEERS[Math.floor(Math.random() * CHEERS.length)];
+    cheerEl.hidden = false;
+    confetti();
+  }
+
+  /* ── Set Timer ── the app opens a modal off the ⏱ button; so does this.
+     The clock face opens it too, since that's the thing people click. */
+
+  let wasRunning = false;
+
+  function openModal() {
+    if (!cheerEl.hidden) return;
+    wasRunning = running;
+    stop();
+    minsEl.value = String(mins || 25);
+    modalEl.hidden = false;
+    minsEl.focus();
+    minsEl.select();
+  }
+
+  function closeModal(resume = true) {
+    if (modalEl.hidden) return;
+    modalEl.hidden = true;
+    if (resume && wasRunning) start();
+  }
+
+  function applyTimer(minutes) {
+    mins = minutes;
+    closeModal(false);
+    heldByUser = false;
+    reset(true);
+  }
+
+  document.getElementById('fd-toggle').addEventListener('click', () => {
+    if (running) {
+      heldByUser = true;
+      stop();
+    } else {
+      heldByUser = false;
+      start();
+    }
+  });
+
+  document.getElementById('fd-set').addEventListener('click', openModal);
+  clockEl.addEventListener('click', openModal);
+  document.getElementById('fd-cancel').addEventListener('click', () => closeModal());
+  document.getElementById('fd-countup').addEventListener('click', () => applyTimer(0));
+
+  document.getElementById('fd-start').addEventListener('click', () => {
+    const value = Math.round(Number(minsEl.value));
+    applyTimer(Number.isFinite(value) ? Math.min(180, Math.max(1, value)) : 25);
+  });
+
+  minsEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('fd-start').click();
+  });
+
+  modalEl.addEventListener('click', (e) => {
+    if (e.target === modalEl) closeModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  document.getElementById('fd-reset').addEventListener('click', () => {
+    heldByUser = true;
+    reset(false);
+  });
+
+  document.getElementById('fd-complete').addEventListener('click', finish);
+
+  document.getElementById('fd-again').addEventListener('click', () => {
+    cheerEl.hidden = true;
+    heldByUser = false;
+    reset(!reduced.matches);
+  });
+
+  /* Runs only while it's actually being looked at. Scrolling away is a
+     pause, not a stop: the clock picks up where it left off on return,
+     the way the app's resume prompt does. */
+  const watching = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting && !heldByUser && !reduced.matches && modalEl.hidden) start();
+      else if (!entry.isIntersecting) stop();
+    }
+  }, { threshold: 0.35 });
+
+  watching.observe(fdemo);
+  render();
+}
+
+/* ═════════ NOTE TABS ═════════
+   Four notes per task, in the app's own colours. The sheet takes the
+   colour of whichever tab you point at; left alone, it cycles them. */
+
+const noteviz = document.getElementById('noteviz');
+if (noteviz) {
+  const THEMES = {
+    1: ['#eff226', '#171600'],
+    2: ['#ffc928', '#201300'],
+    3: ['#ace322', '#102400'],
+    4: ['#f3a8d5', '#301628'],
+  };
+
+  const titleEl = document.getElementById('nv-title');
+  const tabs = [...noteviz.querySelectorAll('.noteviz__tab')];
+  let ix = 0;
+  let cycler = 0;
+
+  function showNote(i) {
+    ix = i;
+    const tab = tabs[i];
+    const [bg, fg] = THEMES[tab.dataset.note];
+    noteviz.style.setProperty('--nv-bg', bg);
+    noteviz.style.setProperty('--nv-fg', fg);
+    titleEl.textContent = tab.dataset.title;
+    tabs.forEach((t, n) => t.classList.toggle('is-on', n === i));
+  }
+
+  function cycle(on) {
+    clearInterval(cycler);
+    cycler = 0;
+    if (on && !reduced.matches) {
+      cycler = setInterval(() => showNote((ix + 1) % tabs.length), 2800);
+    }
+  }
+
+  tabs.forEach((tab, i) => {
+    const pick = () => showNote(i);
+    tab.addEventListener('pointerenter', pick);
+    tab.addEventListener('focus', pick);
+    tab.addEventListener('click', pick);
+  });
+
+  noteviz.addEventListener('pointerenter', () => cycle(false));
+  noteviz.addEventListener('pointerleave', () => cycle(true));
+
+  new IntersectionObserver((entries) => {
+    for (const entry of entries) cycle(entry.isIntersecting);
+  }, { threshold: 0.4 }).observe(noteviz);
+
+  showNote(0);
+}
+
 /* ═════════ MOBILE DRAWER ═════════ */
 
 const burger = document.getElementById('burger');
@@ -1079,7 +1410,30 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
     if (!target) return;
 
     e.preventDefault();
-    const top = target.getBoundingClientRect().top + window.scrollY - nav.offsetHeight - 12;
-    window.scrollTo({ top, behavior: reduced.matches ? 'auto' : 'smooth' });
+    scrollToSection(target);
+  });
+});
+
+function scrollToSection(target) {
+  const top = target.getBoundingClientRect().top + window.scrollY - nav.offsetHeight - 12;
+  window.scrollTo({ top, behavior: reduced.matches ? 'auto' : 'smooth' });
+}
+
+/* ═════════ DOWNLOAD LINKS ═════════
+   The hero button downloads the .dmg outright rather than sending anyone
+   further down the page. The download is the link's own doing — this only
+   brings the install steps into view behind it, and only if they aren't
+   already on screen. */
+
+document.querySelectorAll('a[data-dl]').forEach((link) => {
+  link.addEventListener('click', () => {
+    const get = document.getElementById('get');
+    if (!get) return;
+
+    const box = get.getBoundingClientRect();
+    const alreadyThere = box.top < window.innerHeight * 0.5 && box.bottom > 0;
+    if (alreadyThere) return;
+
+    setTimeout(() => scrollToSection(get), 220);
   });
 });

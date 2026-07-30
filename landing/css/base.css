@@ -120,6 +120,9 @@ body {
 .band {
   position: relative;
   padding-block: clamp(4rem, 11vw, 9rem);
+  /* Landing on a section via #hash (not just an in-page click) must clear
+     the fixed nav. */
+  scroll-margin-top: calc(var(--nav-h) + 12px);
 }
 
 /* ── Type primitives ── */

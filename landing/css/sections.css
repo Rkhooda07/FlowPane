@@ -1433,6 +1433,29 @@ body.is-dragging-pane {
 /* ══════════════ BEHAVIOUR STEPS ══════════════ */
 .band--tight { padding-top: 0; }
 
+/* "Inside the pane" is meant to be read in one screenful, so its heading
+   sits closer to the cards than a normal band's does — and on a desktop
+   screen the lede sits beside the title rather than under it. */
+#focus { padding-bottom: clamp(2rem, 4vw, 3rem); }
+#focus .band-mark { margin-bottom: var(--s-4); }
+#focus .band-lede { margin-bottom: var(--s-5); }
+
+@media (min-width: 1000px) {
+  #focus .enter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 40ch);
+    align-items: start;
+    column-gap: var(--s-7);
+  }
+
+  #focus .band-mark { grid-column: 1 / -1; }
+
+  /* One line at this size, which buys the cards the air they need under
+     the heading without making the section any taller. */
+  #focus .band-title { font-size: clamp(1.75rem, 3.1vw, 2.25rem); margin-bottom: var(--s-6); }
+  #focus .band-lede { margin: 0 0 var(--s-6); }
+}
+
 /* One surface, four segments — a strip of film, not four cards.
    Reads as a single continuous gesture, which is what it describes. */
 .rail-seq {
@@ -1767,8 +1790,8 @@ body.is-dragging-pane {
   .ledger { grid-template-columns: repeat(3, 1fr); }
   /* Deliberately unequal: the anchor is twice as wide and twice as tall */
   .card--anchor { grid-column: span 2; grid-row: span 2; }
-  .card--type   { grid-column: 3; }
-  .card--tabs   { grid-column: 3; }
+  .card--due    { grid-column: 3; }
+  .card--notes  { grid-column: 3; }
   .card--rail   { grid-column: 1 / -1; }
 }
 
@@ -1804,7 +1827,7 @@ body.is-dragging-pane {
   max-width: 44ch;
 }
 
-/* Anchor card */
+/* ── Anchor card: the working Focus Mode ── */
 .card--anchor {
   gap: var(--s-6);
   padding: clamp(1.5rem, 3.5vw, 2.5rem);
@@ -1813,79 +1836,673 @@ body.is-dragging-pane {
 
 .card--anchor .card__t { font-size: var(--t-2xl); }
 
-.card__viz--clock {
+/* Side by side only when the card is genuinely two columns wide */
+@media (min-width: 1000px) {
+  .card--anchor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 310px;
+    align-items: center;
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+    padding: var(--s-5);
+  }
+
+  /* Sized to its own content and to the screen — the whole section is meant
+     to land in one viewport, so the demo never grows past its share of it. */
+  /* Stretched to the card, which the two side cards already size: that
+     lands the demo at roughly the real window's 335×405, with no dead
+     glass above or below it. */
+  .card--anchor .fdemo {
+    align-self: stretch;
+    min-height: clamp(320px, 40vh, 380px);
+    max-height: 460px;
+  }
+
+  /* Both side cards are compact so the two of them stack to the demo's
+     height; nothing here is allowed to push the section past one screen. */
+  #focus .card--due,
+  #focus .card--notes { gap: var(--s-2); padding: var(--s-3) var(--s-5); }
+  #focus .card--due .card__t,
+  #focus .card--notes .card__t { font-size: var(--t-lg); }
+  #focus .card--due .card__d,
+  #focus .card--notes .card__d { font-size: var(--t-xs); }
+  #focus .card--rail { padding: var(--s-4) var(--s-5); }
+}
+
+/* Laptop screens: give back the last few pixels rather than spilling the
+   section onto a second scroll. */
+@media (min-width: 1000px) and (max-height: 840px) {
+  #focus .band-title { font-size: var(--t-2xl); }
+  #focus .band-mark { margin-bottom: var(--s-2); }
+  #focus .band-lede { margin-bottom: var(--s-4); }
+  #focus .ledger { gap: var(--s-3); }
+  #focus .card--anchor { padding: var(--s-4); }
+  #focus .card--due,
+  #focus .card--notes,
+  #focus .card--rail { padding: var(--s-3) var(--s-4); }
+  #focus .beats { gap: var(--s-1); }
+  #focus .rail { gap: var(--s-3); }
+  #focus .rail dd { font-size: var(--t-xs); }
+  #focus .dueviz__menu li { padding: 2px 8px; }
+  #focus .noteviz { padding-top: var(--s-3); }
+}
+
+.card__say { display: flex; flex-direction: column; gap: var(--s-3); }
+
+/* The three things Focus Mode actually does, as a list rather than prose */
+.beats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+
+.beats li {
   position: relative;
+  padding-left: var(--s-5);
+  font-size: var(--t-sm);
+  line-height: var(--lead-body);
+  color: var(--text-2);
+}
+
+.beats li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.62em;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ember);
+  opacity: 0.5;
+  transition: opacity var(--dur-3) var(--ease-flat), box-shadow var(--dur-3) var(--ease-flat);
+}
+
+.card--anchor:hover .beats li::before {
+  opacity: 1;
+  box-shadow: 0 0 10px 1px var(--ember-glow);
+}
+
+.card--anchor:hover .beats li:nth-child(2)::before { transition-delay: 60ms; }
+.card--anchor:hover .beats li:nth-child(3)::before { transition-delay: 120ms; }
+
+/* The demo itself — src/css/focus-mode.css, rebuilt at pane scale */
+.fdemo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 340px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--rim-quiet);
+  overflow: hidden;
+  background:
+    radial-gradient(65% 55% at 50% 34%, rgba(255, 180, 60, 0.16), transparent 72%),
+    #0b0b12;
+  user-select: none;
+  transition: border-color var(--dur-3) var(--ease-flat), box-shadow var(--dur-4) var(--ease-flat);
+}
+
+.card--anchor:hover .fdemo,
+.fdemo.is-running {
+  border-color: var(--ember-rim);
+  box-shadow: 0 0 40px -12px var(--ember-glow);
+}
+
+/* Title bar: same 48px chrome, same eyes, same green ✓ as the real window */
+.fdemo__bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 44px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+
+.fdemo__name {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: var(--w-semi);
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.fdemo__tick {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #28c840;
+  background: rgba(40, 200, 64, 0.10);
+  border: 1px solid rgba(40, 200, 64, 0.25);
+  transition:
+    transform var(--dur-2) var(--ease-pop),
+    background-color var(--dur-2) var(--ease-flat),
+    box-shadow var(--dur-2) var(--ease-flat);
+}
+
+.fdemo__tick:hover {
+  color: #fff;
+  background: rgba(40, 200, 64, 0.30);
+  border-color: rgba(40, 200, 64, 0.4);
+  transform: scale(1.1) translateY(-1px);
+  box-shadow: 0 0 15px rgba(40, 200, 64, 0.3);
+}
+
+.fdemo__tick:active { transform: scale(0.94); }
+
+.fdemo__scene {
+  position: relative;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--s-2);
-  min-height: 190px;
-  padding: var(--s-6) var(--s-4);
-  border-radius: var(--r-lg);
-  background: var(--frost-sunk);
-  border: 1px solid var(--rim-quiet);
-  overflow: hidden;
+  padding: var(--s-3) var(--s-4);
+  text-align: center;
 }
 
-.bigclock {
-  font-size: clamp(3rem, 9vw, 4.75rem);
+/* The clock sits inside its ring — the one liberty taken with the app:
+   the ring reads the countdown the clock is already counting. */
+.fdemo__dial {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 152px; height: 152px;
+}
+
+.fdemo__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+  opacity: 0.9;
+  transition: opacity var(--dur-3) var(--ease-flat);
+}
+
+.fdemo.is-stopwatch .fdemo__ring { opacity: 0.35; }
+
+.fdemo__ring circle {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.fdemo__ring-track { stroke: rgba(255, 255, 255, 0.07); }
+
+.fdemo__ring-run {
+  stroke: var(--ember);
+  opacity: 0.55;
+  stroke-dasharray: 578.05;
+  stroke-dashoffset: 0;
+  filter: drop-shadow(0 0 6px var(--ember-glow));
+  transition: stroke-dashoffset 480ms linear;
+}
+
+.fdemo__task {
+  max-width: 220px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: var(--w-medium);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  line-height: 1.3;
+  color: rgba(255, 220, 150, 0.45);
+}
+
+.fdemo__clock {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 40px;
   font-weight: var(--w-hair);
   line-height: 1;
-  letter-spacing: -0.045em;
-  color: var(--ember);
+  letter-spacing: -1px;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 40px rgba(255, 180, 50, 0.28);
+  color: var(--ember);
+  text-shadow: 0 0 30px rgba(255, 180, 50, 0.3);
+  transition: text-shadow var(--dur-4) var(--ease-flat);
 }
 
-.bigclock__l { color: rgba(255, 204, 102, 0.6); }
+.fdemo.is-running .fdemo__clock { text-shadow: 0 0 44px rgba(255, 180, 50, 0.5); }
 
-.bigclock__ring {
-  position: absolute;
-  width: 260px; height: 260px;
+.fdemo__quote {
+  min-height: 2.5em;
+  max-width: 210px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.4;
+  color: rgba(255, 204, 102, 0.6);
+  transition: opacity var(--dur-3) var(--ease-flat);
+}
+
+.fdemo__quote.is-swapping { opacity: 0; }
+
+.fdemo__ctl {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.fd-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
   border-radius: 50%;
-  border: 1px solid var(--ember-rim);
-  opacity: 0.35;
-  pointer-events: none;
-  transition: transform var(--dur-5) var(--ease-glide), opacity var(--dur-4) var(--ease-flat);
+  cursor: pointer;
+  font-size: 14px;
+  color: rgba(255, 220, 150, 0.8);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  transition:
+    transform var(--dur-3) var(--ease-glide),
+    box-shadow var(--dur-3) var(--ease-glide),
+    filter var(--dur-3) var(--ease-glide);
 }
 
-.card--anchor:hover .bigclock__ring { transform: scale(1.06); opacity: 0.55; }
+.fd-btn--play {
+  width: 48px; height: 48px;
+  font-size: 16px;
+  color: #000;
+  border: none;
+  background: linear-gradient(135deg, var(--ember-hot), var(--ember-deep));
+  box-shadow: 0 15px 30px rgba(255, 153, 51, 0.3);
+}
 
-/* Type-led card */
-.card__input {
+.fd-btn:hover { transform: translateY(-5px) scale(1.05); }
+.fd-btn--play:hover { box-shadow: 0 20px 40px rgba(255, 153, 51, 0.4); filter: brightness(1.1); }
+.fd-btn:active { transform: translateY(0) scale(0.95); }
+
+.fdemo__mode {
+  margin-top: 10px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Set Timer: src/css/focus-mode.css .timer-modal, at pane scale */
+.fdemo__modal {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  animation: cheerIn var(--dur-2) var(--ease-flat) both;
+}
+
+.fdemo__modal[hidden] { display: none; }
+
+.fdemo__sheet {
+  width: 208px;
+  padding: 20px;
+  text-align: center;
+  border-radius: var(--r-lg);
+  background: rgba(30, 30, 30, 0.92);
+  border: 1px solid var(--rim-quiet);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  animation: sheetIn var(--dur-3) var(--ease-pop) both;
+}
+
+@keyframes sheetIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.fdemo__sheet-t {
+  margin-bottom: 14px;
+  font-size: var(--t-base);
+  font-weight: var(--w-semi);
+  color: var(--text-1);
+}
+
+.fdemo__sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+.fdemo__mins {
+  width: 64px;
+  padding: 7px;
+  text-align: center;
+  font-family: inherit;
+  font-size: var(--t-sm);
+  color: var(--text-1);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--rim);
+  border-radius: var(--r-sm);
+  outline: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.fdemo__mins:focus {
+  border-color: var(--ember);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.fdemo__sheet-acts { display: flex; gap: 10px; }
+
+.fd-mbtn {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--t-sm);
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
+  transition: background-color var(--dur-2) var(--ease-flat), filter var(--dur-2) var(--ease-flat), color var(--dur-2) var(--ease-flat);
+}
+
+.fd-mbtn:hover { background: rgba(255, 255, 255, 0.2); color: #fff; }
+
+.fd-mbtn--go {
+  color: #000;
+  font-weight: var(--w-semi);
+  background: var(--ember);
+}
+
+.fd-mbtn--go:hover { filter: brightness(1.1); background: var(--ember); }
+
+/* The app counts up when no timer is set; this is that path, made visible */
+.fdemo__countup {
+  width: 100%;
+  margin-top: 12px;
+  padding: 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+  transition: color var(--dur-2) var(--ease-flat);
+}
+
+.fdemo__countup:hover { color: var(--ember); }
+
+/* The end of a session: src/index.html #congrats-modal, same words */
+.fdemo__cheer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-5);
+  text-align: center;
+  background: rgba(10, 10, 16, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: cheerIn var(--dur-4) var(--ease-glide) both;
+}
+
+.fdemo__cheer[hidden] { display: none; }
+
+@keyframes cheerIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.fdemo__cheer-face {
+  font-size: 34px;
+  line-height: 1;
+  animation: cheerPop var(--dur-5) var(--ease-pop) both 80ms;
+}
+
+@keyframes cheerPop {
+  from { opacity: 0; transform: scale(0.4) rotate(-18deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.fdemo__cheer-t {
+  margin-top: 10px;
+  font-size: var(--t-lg);
+  font-weight: var(--w-semi);
+  color: var(--text-1);
+}
+
+.fdemo__cheer-d { margin-top: 4px; font-size: var(--t-sm); color: var(--text-3); }
+.fdemo__cheer-d b { color: var(--ember); font-weight: var(--w-medium); font-variant-numeric: tabular-nums; }
+
+.fdemo__cheer-fun {
+  max-width: 230px;
+  margin-top: 10px;
+  font-size: var(--t-xs);
+  line-height: var(--lead-body);
+  color: var(--text-3);
+}
+
+.fdemo__cheer-btn {
+  margin-top: var(--s-5);
+  padding: 9px 18px;
+  border-radius: var(--r-pill);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--t-sm);
+  font-weight: var(--w-semi);
+  color: #0c0c12;
+  background: var(--ember);
+  transition: transform var(--dur-2) var(--ease-pop), filter var(--dur-2) var(--ease-flat);
+}
+
+.fdemo__cheer-btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.fdemo__cheer-btn:active { transform: translateY(0) scale(0.97); }
+
+/* Confetti: eight scraps of the app's palette, thrown once per session */
+.fdemo__bit {
+  position: absolute;
+  top: 42%;
+  width: 7px; height: 10px;
+  border-radius: 1px;
+  z-index: 3;
+  pointer-events: none;
+  animation: bitFall 1.5s var(--ease-flat) forwards;
+}
+
+@keyframes bitFall {
+  from { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg); }
+  to   { opacity: 0; transform: translate3d(var(--bx), 190px, 0) rotate(var(--br)); }
+}
+
+/* ── Due + reminder card ── */
+.dueviz {
   margin-top: auto;
-  padding: var(--s-3) var(--s-4);
+  padding-top: var(--s-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.dueviz__field {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 7px 10px;
+  border-radius: 10px;
   background: var(--frost-sunk);
   border: 1px solid var(--rim-quiet);
-  border-radius: var(--r-sm);
+  transition: border-color var(--dur-3) var(--ease-flat), background-color var(--dur-3) var(--ease-flat);
+}
+
+.card--due:hover .dueviz__field {
+  border-color: var(--ember-rim);
+  background: var(--ember-wash);
+}
+
+.dueviz__ic { color: rgba(255, 255, 255, 0.4); flex-shrink: 0; }
+.dueviz__val { color: var(--text-2); letter-spacing: 0.04em; text-transform: none; }
+
+.dueviz__bell {
+  margin-left: auto;
+  display: flex;
+  color: var(--ember);
+  transform-origin: 50% 15%;
+}
+
+/* The bell only rings when you look at it */
+.card--due:hover .dueviz__bell { animation: bellRing 900ms var(--ease-flat); }
+
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0deg); }
+  12% { transform: rotate(16deg); }
+  28% { transform: rotate(-13deg); }
+  44% { transform: rotate(9deg); }
+  60% { transform: rotate(-6deg); }
+  76% { transform: rotate(3deg); }
+}
+
+.dueviz__menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 10px;
+  background: rgba(20, 20, 26, 0.6);
+  border: 1px solid var(--rim-quiet);
+}
+
+.dueviz__menu li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: var(--t-xs);
+  line-height: 1.45;
   color: var(--text-3);
-  text-transform: none;
-  letter-spacing: 0;
-  line-height: 1.7;
+  transform: translateX(-4px);
+  opacity: 0.7;
+  transition: transform var(--dur-3) var(--ease-glide), opacity var(--dur-3) var(--ease-flat), background-color var(--dur-2) var(--ease-flat), color var(--dur-2) var(--ease-flat);
 }
 
-.card__input b { color: var(--ember); font-weight: var(--w-semi); }
+.card--due:hover .dueviz__menu li { transform: translateX(0); opacity: 1; }
+.card--due:hover .dueviz__menu li:nth-child(2) { transition-delay: 50ms; }
+.card--due:hover .dueviz__menu li:nth-child(3) { transition-delay: 100ms; }
+.card--due:hover .dueviz__menu li:nth-child(4) { transition-delay: 150ms; }
 
-/* Tabs card */
-.tabs { display: flex; gap: 5px; margin-top: auto; }
+.dueviz__menu li.is-on {
+  color: var(--ember);
+  background: var(--ember-wash);
+}
 
-.tab {
-  height: 6px;
-  border-radius: var(--r-pill);
+.dueviz__menu li.is-on i { font-style: normal; font-size: 10px; }
+.dueviz__custom { color: var(--text-3); opacity: 0.55; }
+
+/* ── Notes card ── the app's four tabs, colours and angles unchanged ── */
+.noteviz {
+  --nv-bg: #eff226;
+  --nv-fg: #171600;
+  margin-top: auto;
+  padding-top: var(--s-4);
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s-4);
+}
+
+.noteviz__sheet {
   flex: 1;
-  transition: flex-grow var(--dur-3) var(--ease-glide), opacity var(--dur-2) var(--ease-flat);
-  opacity: 0.75;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 12px 11px;
+  border-radius: 8px;
+  background: var(--nv-bg);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  transition: background-color var(--dur-3) var(--ease-flat), transform var(--dur-3) var(--ease-glide);
 }
 
-.tab--a { background: var(--signal); flex-grow: 2.4; }
-.tab--b { background: var(--urgent); }
-.tab--c { background: var(--success); }
-.tab--d { background: var(--ember); }
+.card--notes:hover .noteviz__sheet { transform: translateY(-2px); }
 
-.card--tabs:hover .tab { opacity: 1; }
-.card--tabs:hover .tab--a { flex-grow: 1; }
-.card--tabs:hover .tab--c { flex-grow: 2.4; }
+.noteviz__title {
+  font-size: 15px;
+  font-weight: var(--w-semi);
+  letter-spacing: 0.1px;
+  color: var(--nv-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.noteviz__line {
+  height: 5px;
+  border-radius: var(--r-pill);
+  background: var(--nv-fg);
+  opacity: 0.24;
+}
+
+.noteviz__line--sm { width: 55%; }
+
+/* Fanned from the bottom edge, exactly like .task-note-tab */
+.noteviz__tabs {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.noteviz__tab {
+  --nt-rot: 0deg;
+  width: 21px; height: 26px;
+  margin-left: -6px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  transform-origin: bottom center;
+  transform: rotate(var(--nt-rot));
+  cursor: pointer;
+  transition:
+    transform 260ms var(--ease-glide),
+    box-shadow 260ms var(--ease-glide),
+    filter 260ms var(--ease-glide);
+}
+
+.noteviz__tab:hover {
+  transform: translateY(-2px) scale(1.2) rotate(var(--nt-rot));
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.28);
+  filter: brightness(1.06) saturate(1.06);
+}
+
+.noteviz__tab.is-on {
+  transform: translateY(-3px) scale(1.25) rotate(var(--nt-rot));
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.3);
+  filter: brightness(1.08) saturate(1.08);
+}
+
+.nv-1 { background: #dfdf13; --nt-rot: -14deg; }
+.nv-2 { background: #ffc20f; --nt-rot: -7deg; }
+.nv-3 { background: #a6d907; --nt-rot: 2deg; }
+.nv-4 { background: #f47fca; --nt-rot: 11deg; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card--due:hover .dueviz__bell { animation: none; }
+  .fdemo__cheer,
+  .fdemo__cheer-face { animation: none; }
+  .fdemo__bit { display: none; }
+  .fdemo__ring-run { transition: none; }
+}
 
 /* Rail — a spec ledger, not three more cards with icons */
 .card--rail { padding: clamp(1.25rem, 3vw, 2rem); }
@@ -1900,7 +2517,12 @@ body.is-dragging-pane {
   .rail > div:not(:first-child) { padding-left: var(--s-6); border-left: 1px solid var(--rim-quiet); }
 }
 
-.rail dt { margin-bottom: var(--s-2); }
+.rail dt {
+  margin-bottom: var(--s-2);
+  transition: color var(--dur-3) var(--ease-flat);
+}
+
+.card--rail:hover .rail dt { color: rgba(255, 204, 102, 0.8); }
 .rail dd { font-size: var(--t-sm); line-height: var(--lead-body); color: var(--text-2); }
 
 .rail code,
@@ -1915,30 +2537,193 @@ body.is-dragging-pane {
 }
 
 /* ══════════════ DOWNLOAD ══════════════ */
+
+/* Arriving here from a nav link should put the section at the top of the
+   screen and fill it, rather than leaving it stranded near the fold. */
+#get {
+  display: flex;
+  align-items: center;
+  min-height: calc(100svh - var(--nav-h));
+  padding-block: clamp(1.5rem, 3vw, 2.25rem);
+  scroll-margin-top: var(--nav-h);
+}
+
+#get .shell { width: 100%; }
+
 .get {
   display: grid;
-  gap: var(--s-7);
-  padding: clamp(1.75rem, 5vw, 3.5rem);
-  align-items: end;
+  gap: var(--s-6);
+  padding: clamp(1.5rem, 4vw, 2.75rem);
+  align-items: center;
 }
 
 @media (min-width: 900px) {
-  .get { grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: var(--s-8); }
+  .get { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: var(--s-8); }
 }
 
 .get__acts {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-3);
-  margin-top: var(--s-6);
+  margin-top: var(--s-5);
 }
 
 .get__specs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--s-5);
+  gap: var(--s-4) var(--s-5);
+  margin-top: var(--s-5);
   padding-top: var(--s-5);
   border-top: 1px solid var(--rim-quiet);
+}
+
+/* One row of four once there's room: the section has to hold a screen. */
+@media (min-width: 900px) {
+  .get__specs { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-4); }
+}
+
+.get__specs dt { transition: color var(--dur-3) var(--ease-flat); }
+.get:hover .get__specs dt { color: rgba(255, 204, 102, 0.8); }
+
+/* ── Install ritual ── the .dmg window, with the app icon walking itself
+   into Applications. Same eyes as the nav mark and the pane's title bar. */
+.install {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--frost-sunk);
+  border: 1px solid var(--rim-quiet);
+  transition: border-color var(--dur-3) var(--ease-flat), background-color var(--dur-3) var(--ease-flat);
+}
+
+.install:hover { border-color: var(--rim); background: var(--frost); }
+.install .band-mark { margin-bottom: 0; }
+
+.install__win {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  border: 1px solid var(--rim-quiet);
+  background:
+    radial-gradient(80% 90% at 20% 0%, rgba(255, 204, 102, 0.08), transparent 70%),
+    rgba(18, 18, 24, 0.9);
+}
+
+/* Three traffic lights, the one bit of macOS chrome FlowPane doesn't have */
+.install__bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+
+.install__bar i {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.install__bar i:first-child { background: rgba(255, 95, 86, 0.7); }
+.install__bar i:nth-child(2) { background: rgba(255, 189, 46, 0.7); }
+.install__bar i:nth-child(3) { background: rgba(40, 200, 64, 0.7); }
+
+.install__floor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-5) var(--s-5);
+}
+
+.install__icon {
+  position: relative;
+  z-index: 2;
+  width: 54px; height: 54px;
+  border-radius: 12px;
+  box-shadow: 0 10px 22px -8px rgba(0, 0, 0, 0.9);
+}
+
+/* The dotted path it travels, drawn between the icon and the folder */
+.install__trail {
+  flex: 1;
+  height: 1px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--rim) 0 5px,
+    transparent 5px 11px
+  );
+  opacity: 0.5;
+}
+
+.install__folder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: rgba(255, 255, 255, 0.45);
+  transition: color var(--dur-3) var(--ease-flat), transform var(--dur-3) var(--ease-pop);
+}
+
+.install__folder b { font-weight: var(--w-medium); color: inherit; }
+
+.install.is-in .install__icon { animation: dropWalk 4.2s var(--ease-glide) infinite; }
+.install.is-in .install__folder { animation: folderTake 4.2s var(--ease-flat) infinite; }
+
+@keyframes dropWalk {
+  0%, 16%   { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+  48%       { transform: translate3d(var(--walk, 150px), 0, 0) scale(0.9); opacity: 1; }
+  56%       { transform: translate3d(var(--walk, 150px), 0, 0) scale(0.62); opacity: 0; }
+  68%       { transform: translate3d(0, 0, 0) scale(0.62); opacity: 0; }
+  80%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+}
+
+@keyframes folderTake {
+  0%, 46%   { color: rgba(255, 255, 255, 0.45); transform: scale(1); }
+  56%       { color: var(--ember); transform: scale(1.12); }
+  72%, 100% { color: rgba(255, 255, 255, 0.45); transform: scale(1); }
+}
+
+.install__steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.install__steps li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-4);
+  transition: transform var(--dur-3) var(--ease-glide);
+}
+
+.install:hover .install__steps li { transform: translateX(3px); }
+.install:hover .install__steps li:nth-child(2) { transition-delay: 50ms; }
+.install:hover .install__steps li:nth-child(3) { transition-delay: 100ms; }
+
+.install__n {
+  flex-shrink: 0;
+  color: var(--ember);
+  opacity: 0.55;
+  transition: opacity var(--dur-3) var(--ease-flat);
+}
+
+.install:hover .install__n { opacity: 1; }
+
+.install__step { display: flex; flex-direction: column; gap: 2px; }
+.install__step b { font-size: var(--t-sm); font-weight: var(--w-medium); color: var(--text-1); }
+.install__step span { font-size: var(--t-xs); line-height: var(--lead-body); color: var(--text-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .install.is-in .install__icon,
+  .install.is-in .install__folder { animation: none; }
 }
 
 .get__specs dt { margin-bottom: var(--s-1); }
@@ -1957,8 +2742,8 @@ body.is-dragging-pane {
 .qa {
   display: flex;
   flex-direction: column;
-  gap: var(--s-3);
-  margin-top: var(--s-6);
+  gap: var(--s-2);
+  margin-top: var(--s-4);
 }
 
 .qa__item {
@@ -1973,7 +2758,7 @@ body.is-dragging-pane {
   display: flex;
   align-items: center;
   gap: var(--s-4);
-  padding: var(--s-5);
+  padding: var(--s-4) var(--s-5);
   font-size: var(--t-md);
   font-weight: var(--w-light);
   color: var(--text-1);
