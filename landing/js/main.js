@@ -553,7 +553,7 @@ const DEMO_NOTES = {
   1: { title: 'ideas that slap', body: 'a pane that cheers when you finish 🎉\nkeyboard-only mode\ntiny rain sounds for focus' },
   2: { title: 'do not forget', body: 'cancel that one free trial 💸\nreply to mum\nstretch. actually stretch.' },
   3: { title: 'weekend quests', body: 'find the best croissant in town 🥐\nfix the squeaky chair\nbeat my 25:00 focus record' },
-  4: { title: '3am shower thoughts', body: 'what if the eyes blink back…\n\nteach the pane to wink 😉\nadopt a plant it can watch\nname the googly eyes' },
+  4: { title: 'sunday brain dump', body: 'stop checking email before coffee\nblock deep work before lunch, not after\nthat 2pm meeting could\'ve been a message\nnew plant for the desk — apparently it helps' },
 };
 
 let activeTheme = null;
@@ -561,7 +561,7 @@ let activeTheme = null;
 // Dynamic list items
 let activeItems = [
   { id: 'task-1', type: 'task', title: 'Ship it before the coffee dies ☕', due: 'Due in 9 mins', urgent: true },
-  { id: 'task-2', type: 'task', title: 'Slay the inbox dragon 🐉', due: '<b>∞</b> Plenty of time', urgent: false },
+  { id: 'task-2', type: 'task', title: 'Cancel that gym membership from March 🏋️', due: '<b>∞</b> Plenty of time', urgent: false },
   { id: 'note-4', type: 'note', theme: 4 }
 ];
 

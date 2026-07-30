@@ -1609,15 +1609,37 @@ body.is-dragging-pane {
   50%      { transform: translateY(-6px); }
 }
 
-/* 02 — Snap: drifts in from the open, locks flush to the edge, holds, resets */
+/* 02 — Snap: drifts in from the open toward the edge (the screen edge is
+   the vertical rule this whole diagram is drawn against) and locks flush
+   to it — a small overshoot-and-settle on the pane plus a brief glow on
+   both itself and the edge line it just met make the lock read as a
+   distinct event, not just the pane sliding and stopping. */
+.rail-seq.is-in .seq__viz--snap {
+  animation: miniEdgeFlash 3.6s var(--ease-flat) infinite;
+}
+
+@keyframes miniEdgeFlash {
+  0%, 32%  { border-right-color: var(--rim); }
+  38%, 52% { border-right-color: var(--ember); }
+  68%, 100% { border-right-color: var(--rim); }
+}
+
 .rail-seq.is-in .seq__viz--snap .mini-pane {
-  animation: miniSnap 3.6s var(--ease-glide) infinite;
+  animation: miniSnap 3.6s var(--ease-glide) infinite,
+             miniSnapGlow 3.6s var(--ease-flat) infinite;
 }
 
 @keyframes miniSnap {
   0%, 8%   { transform: translateX(-78px); }
-  38%, 78% { transform: translateX(0); }
+  33%      { transform: translateX(4px); }  /* a hair of overshoot past the edge */
+  40%, 78% { transform: translateX(0); }     /* settled, flush */
   100%     { transform: translateX(-78px); }
+}
+
+@keyframes miniSnapGlow {
+  0%, 32%   { box-shadow: 0 8px 16px -10px rgba(0, 0, 0, 0.7); border-color: var(--rim); }
+  38%, 52%  { box-shadow: 0 0 10px 1px var(--ember-glow); border-color: var(--ember-rim); }
+  68%, 100% { box-shadow: 0 8px 16px -10px rgba(0, 0, 0, 0.7); border-color: var(--rim); }
 }
 
 /* 03 — Collapse: already flush at the edge, folds down to a sliver and back */
@@ -1691,6 +1713,7 @@ body.is-dragging-pane {
 @media (prefers-reduced-motion: reduce) {
   .rail-seq::after { transform: scaleX(1); animation: none; }
 
+  .seq__viz--snap,
   .seq__viz--float .mini-pane,
   .seq__viz--snap .mini-pane,
   .seq__viz--slim .mini-pane,
@@ -1702,7 +1725,12 @@ body.is-dragging-pane {
 
   /* Each freezes on the frame that best represents its named state,
      rather than defaulting to whichever keyframe 0% happens to be. */
-  .seq__viz--snap .mini-pane { transform: translateX(0); }
+  .seq__viz--snap { border-right-color: var(--ember); }
+  .seq__viz--snap .mini-pane {
+    transform: translateX(0);
+    box-shadow: 0 0 10px 1px var(--ember-glow);
+    border-color: var(--ember-rim);
+  }
   .seq__viz--slim .mini-pane { width: 10px; background: var(--ember-wash); border-color: var(--ember-rim); }
   .seq__viz--slim .mini-pane__line { opacity: 0; }
   .seq__viz--peek .mini-pane { width: 30px; }
