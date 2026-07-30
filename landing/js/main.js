@@ -1410,30 +1410,11 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
     if (!target) return;
 
     e.preventDefault();
-    scrollToSection(target);
+    const top = target.getBoundingClientRect().top + window.scrollY - nav.offsetHeight - 12;
+    window.scrollTo({ top, behavior: reduced.matches ? 'auto' : 'smooth' });
   });
 });
 
-function scrollToSection(target) {
-  const top = target.getBoundingClientRect().top + window.scrollY - nav.offsetHeight - 12;
-  window.scrollTo({ top, behavior: reduced.matches ? 'auto' : 'smooth' });
-}
-
-/* ═════════ DOWNLOAD LINKS ═════════
-   The hero button downloads the .dmg outright rather than sending anyone
-   further down the page. The download is the link's own doing — this only
-   brings the install steps into view behind it, and only if they aren't
-   already on screen. */
-
-document.querySelectorAll('a[data-dl]').forEach((link) => {
-  link.addEventListener('click', () => {
-    const get = document.getElementById('get');
-    if (!get) return;
-
-    const box = get.getBoundingClientRect();
-    const alreadyThere = box.top < window.innerHeight * 0.5 && box.bottom > 0;
-    if (alreadyThere) return;
-
-    setTimeout(() => scrollToSection(get), 220);
-  });
-});
+/* Download links are plain links: the browser takes the .dmg straight from
+   GitHub Releases. Nothing here intercepts them — no scrolling, no
+   redirect — so a click does one thing only. */
