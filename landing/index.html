@@ -11,21 +11,21 @@
   <meta property="og:description" content="A translucent, always-on-top task pane for macOS. Snaps to the edge, collapses to a sliver, focuses with a timer.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://flowpane.app/">
-  <meta property="og:image" content="/landing/assets/images/og-image.png">
+  <meta property="og:image" content="assets/images/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="FlowPane — floats above, never in the way">
   <meta name="twitter:description" content="A translucent, always-on-top task pane for macOS.">
-  <meta name="twitter:image" content="/landing/assets/images/og-image.png">
+  <meta name="twitter:image" content="assets/images/og-image.png">
 
   <title>FlowPane — floats above, never in the way</title>
 
-  <link rel="preload" as="font" type="font/woff2" crossorigin href="/landing/assets/fonts/outfit-latin.woff2">
-  <link rel="icon" type="image/png" sizes="32x32" href="/landing/assets/images/favicon.png">
-  <link rel="icon" type="image/x-icon" href="/landing/assets/images/favicon.ico">
-  <link rel="apple-touch-icon" href="/landing/assets/images/apple-touch-icon.png">
-  <link rel="manifest" href="/landing/site.webmanifest">
-  <link rel="stylesheet" href="/landing/css/base.css">
-  <link rel="stylesheet" href="/landing/css/sections.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="assets/fonts/outfit-latin.woff2">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon.png">
+  <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+  <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/sections.css">
 </head>
 <body>
   <div class="sky" aria-hidden="true"></div>
@@ -484,7 +484,7 @@
         <!-- Wide, low: a ledger row, deliberately not a card-with-icon -->
         <article class="card card--rail pane">
           <dl class="rail" role="list">
-            <div><dt class="mono">Windows</dt><dd>Up to 8 independent panes, each with its own list and position</dd></div>
+            <div><dt class="mono">Windows</dt><dd>Up to 8 panes of one shared list, each floating and snapping on its own</dd></div>
             <div><dt class="mono">Storage</dt><dd>One local <code>tasks.json</code>. Nothing leaves the machine</dd></div>
             <div><dt class="mono">Runtime</dt><dd>Native Tauri 2 — an 8.5 MB binary, not a bundled browser</dd></div>
           </dl>
@@ -526,7 +526,7 @@
           <div class="install__win" aria-hidden="true">
             <span class="install__bar"><i></i><i></i><i></i></span>
             <span class="install__floor">
-              <img class="install__icon" src="/landing/assets/images/apple-touch-icon.png" alt="" width="54" height="54" decoding="async" />
+              <img class="install__icon" src="assets/images/apple-touch-icon.png" alt="" width="54" height="54" decoding="async" />
               <span class="install__trail"></span>
               <span class="install__folder">
                 <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -599,6 +599,6 @@
     </div>
   </footer>
 
-  <script type="module" src="/landing/js/main.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
