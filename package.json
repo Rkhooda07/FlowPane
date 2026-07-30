@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "tauri": "tauri",
-    "check:windows": "sh scripts/check-windows.sh"
+    "check:windows": "sh scripts/check-windows.sh",
+    "build:dock-frames": "node scripts/build-dock-frames.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"
