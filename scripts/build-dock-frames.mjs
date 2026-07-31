@@ -53,10 +53,24 @@ const LID_GRAFT = { core: 60, feather: 100 };
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
+// Where the pupils sit at rest in the reference logo, per eye, as a fraction of
+// that eye's half-size. This is the shipped brand pose, so it is the neutral the
+// animation departs from and returns to — `idle-center` reproduces it rather
+// than centring the pupils, and every gaze offset is measured from here.
+//
+// The two eyes differ: the left pupil sits further right than the right one,
+// which converges the gaze slightly. That asymmetry is deliberate in the
+// artwork, so it is preserved per eye rather than averaged away.
+const REST = [
+  [0.351, -0.269],
+  [0.233, -0.268],
+];
+
 // ── Pupil appearance, sampled from src/assets/FlowPane_logo.png ──────────────
 // See the table in scripts/README-dock-frames.md for how these were measured.
 const PUPIL = {
   radiusRatio: 0.353,           // of the eye white's half-width
+  clearance: 1.18,              // eye white kept visible around the pupil, in units of r
   bodyShadow: [30, 25, 21],     // warm charcoal on the side facing away from the light
   bodyLit: [58, 50, 41],        // and on the side facing into it
   rim: [74, 63, 51],            // slight warm lift at the very edge, from the surrounding glow
@@ -107,13 +121,10 @@ function deriveBasePlate() {
   const image = decodePNG(readFileSync(logoPath));
   const eyes = findEyes(image);
 
-  // Measured pupil offsets in the reference, as a fraction of each eye's half-size.
-  const restOffsets = [[0.351, -0.269], [0.233, -0.268]];
-
   for (const [n, eye] of eyes.entries()) {
     const r = eye.halfWidth * PUPIL.radiusRatio;
-    const px = eye.cx + eye.halfWidth * restOffsets[n][0];
-    const py = eye.cy + eye.halfHeight * restOffsets[n][1];
+    const px = eye.cx + eye.halfWidth * REST[n][0];
+    const py = eye.cy + eye.halfHeight * REST[n][1];
 
     // Stay well clear of the rim light — it is a wide bright band, and sampling
     // it drags streaks into the fill.
@@ -203,19 +214,69 @@ function drawPupil(image, cx, cy, r) {
   }
 }
 
-/** Render one frame: base plate + both pupils at a normalised gaze offset. */
-function renderFrame(plate, eyes, gazeX, gazeY, travel) {
+/**
+ * Shrink a gaze offset until the pupil sits fully inside the eye white, with a
+ * sliver of white still showing around it.
+ *
+ * The eye is egg-shaped, so the ellipse implied by its bounding box overstates
+ * how far the pupil can travel — most at the narrow top, but enough at the sides
+ * that an unclamped rightward gaze visibly clips off the edge. `eye.spans` holds
+ * the real per-row outline, so test against that instead.
+ */
+function fitInsideEye(eye, radius, dx, dy) {
+  const fits = (ox, oy) => {
+    const cx = eye.cx + ox;
+    const cy = eye.cy + oy;
+    for (let y = Math.floor(cy - radius); y <= Math.ceil(cy + radius); y++) {
+      const span = eye.spans[y];
+      if (!span) return false;
+      const half = Math.sqrt(Math.max(0, radius * radius - (y - cy) ** 2));
+      if (cx - half < span[0] || cx + half > span[1]) return false;
+    }
+    return true;
+  };
+
+  if (fits(dx, dy)) return [dx, dy, 1];
+
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2;
+    if (fits(dx * mid, dy * mid)) lo = mid;
+    else hi = mid;
+  }
+  return [dx * lo, dy * lo, lo];
+}
+
+/**
+ * Render one frame: base plate + both pupils at a normalised gaze offset.
+ *
+ * Gaze is measured from the artwork's rest pose, not from the middle of the eye,
+ * so that a direction reads the way it is named. Anchoring it at the eye centre
+ * instead would put `look-up` up and to the *left* of a rest pose that already
+ * sits up and to the right, and would leave `look-right` barely distinguishable
+ * from idle.
+ *
+ * Rest already sits at ~54% of the available travel toward the right edge, so
+ * there is less room to look further right than left; those extremes get
+ * shortened by the fit rather than the rest pose being pulled off-brand.
+ */
+function renderFrame(plate, eyes, gazeX, gazeY, travel, onFit = null) {
   const frame = {
     width: plate.width,
     height: plate.height,
     data: Uint8Array.from(plate.data),
   };
 
-  for (const eye of eyes) {
+  for (const [n, eye] of eyes.entries()) {
     const r = eye.halfWidth * PUPIL.radiusRatio;
-    const rangeX = (eye.halfWidth - r) * travel;
-    const rangeY = (eye.halfHeight - r) * travel;
-    drawPupil(frame, eye.cx + gazeX * rangeX, eye.cy + gazeY * rangeY, r);
+    const dx = REST[n][0] * eye.halfWidth + gazeX * (eye.halfWidth - r) * travel;
+    const dy = REST[n][1] * eye.halfHeight + gazeY * (eye.halfHeight - r) * travel;
+
+    const [fx, fy, scale] = fitInsideEye(eye, r * PUPIL.clearance, dx, dy);
+    if (onFit) onFit(n, fx, fy, scale);
+
+    drawPupil(frame, eye.cx + fx, eye.cy + fy, r);
   }
 
   return frame;
@@ -353,7 +414,8 @@ function main() {
     console.log(
       `  eye${n}: centre=(${eye.cx.toFixed(1)}, ${eye.cy.toFixed(1)}) ` +
         `size=${(eye.halfWidth * 2).toFixed(0)}x${(eye.halfHeight * 2).toFixed(0)} ` +
-        `pupil r=${(eye.halfWidth * PUPIL.radiusRatio).toFixed(1)}`
+        `pupil r=${(eye.halfWidth * PUPIL.radiusRatio).toFixed(1)} ` +
+        `rest=(${(REST[n][0] * eye.halfWidth).toFixed(1)}, ${(REST[n][1] * eye.halfHeight).toFixed(1)})`
     );
   }
 
@@ -381,7 +443,19 @@ function main() {
   let toOutput = null;
 
   for (const [name, gx, gy] of specs) {
-    const native = renderFrame(plate, eyes, gx, gy, args.travel);
+    const fits = [];
+    const native = renderFrame(plate, eyes, gx, gy, args.travel, (n, fx, fy, scale) =>
+      fits.push({ n, fx, fy, scale })
+    );
+    const shortened = fits.filter((f) => f.scale < 1);
+    if (shortened.length) {
+      console.log(
+        `  ${name}: fitted inside the eye — ` +
+          shortened
+            .map((f) => `eye${f.n} to ${(f.scale * 100).toFixed(0)}% (${f.fx.toFixed(0)}, ${f.fy.toFixed(0)})`)
+            .join(', ')
+      );
+    }
     const placed = placeOnGrid(native, {
       bounds: plateBounds,
       size: args.size,
@@ -408,7 +482,13 @@ function main() {
           y1: Math.ceil(y1) + 1,
         };
       };
-      eyeBoxes = eyes.map((eye) => toOutput(eye.bounds));
+      // A gaze frame may touch the eye white plus however far the pupil's
+      // contact shadow reaches past it — the pupil itself is fitted inside the
+      // white, but its shadow falls on the surrounding glow. Anything beyond
+      // that is drift, not shading.
+      eyeBoxes = eyes.map((eye) =>
+        toOutput(eye.bounds, eye.halfWidth * PUPIL.radiusRatio * (PUPIL.aoOuter - 1))
+      );
       console.log(
         `  placed: body x=[${placed.bounds.x0}..${placed.bounds.x1}] ` +
           `y=[${placed.bounds.y0}..${placed.bounds.y1}] on a ${args.size}px canvas ` +

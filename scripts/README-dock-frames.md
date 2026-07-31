@@ -97,18 +97,41 @@ units of the pupil radius `r`; `r` itself is a fraction of the eye's half-width.
 | Edge rim | `rgb(74,63,51)` at 0.95r | `rim`, `rimStart` |
 | Specular colour | `rgb(233,189,134)` | `specular` |
 | Specular position | (−0.57r, −0.63r) | `specularAt` |
-| Rest gaze (left eye) | +0.351 / −0.269 of half-size | — |
-| Rest gaze (right eye) | +0.233 / −0.268 of half-size | — |
+| Rest gaze (left eye) | +0.351 / −0.269 of half-size | `REST[0]` |
+| Rest gaze (right eye) | +0.233 / −0.268 of half-size | `REST[1]` |
 
 The key light direction is derived from `specularAt` rather than stored
 separately: the surface normal at the highlight points straight at the light.
 
+## Rest pose
+
+`REST` is where the pupils sit in the reference logo — up and to the right, with
+the left pupil further right than the right one, which converges the gaze
+slightly. That is the shipped brand pose, so `idle-center` reproduces it rather
+than centring the pupils, and **every gaze offset is measured from it**.
+
+Anchoring gaze at the middle of the eye instead does not work once idle is off
+centre: `look-up` would land up and to the *left* of a rest pose that already
+sits up and to the right, and `look-right` would be almost indistinguishable from
+idle. The asymmetry between the two eyes is preserved per eye rather than
+averaged away.
+
 ## Gaze travel
 
 `--travel` is the gaze offset as a fraction of the maximum in-eye travel
-(`halfWidth − r`), so the pupil can never leave the eye. The reference logo's own
-pupils sit at roughly 0.54 of that maximum, and the shipped frames are built with
-`--travel 0.5` to match it. The 0.3 default reads noticeably calmer.
+(`halfWidth − r`). The reference logo's own pupils sit at roughly 0.54 of that
+maximum, and the shipped frames are built with `--travel 0.5` to match it. The
+0.3 default reads noticeably calmer.
+
+Because rest already sits ~54% of the way toward the right edge, there is less
+room to look further right than left. `fitInsideEye()` shrinks any offset that
+would push the pupil out, testing against the eye's real per-row outline
+(`eye.spans`) rather than the ellipse implied by its bounding box — the eye is
+egg-shaped, and the ellipse overstates the reach enough that an unclamped
+rightward gaze visibly clips off the edge. `clearance` keeps a band of eye white
+showing around the pupil, so the extremes read as *looking* rather than as the
+pupil hitting a wall. The rightward extremes are shortened by ~18% as a result;
+the rest pose itself is never shrunk.
 
 The roll traces an ellipse sized to each axis independently, so it follows the
 egg shape instead of clipping at the narrow top. Frame 1 is at the top, running
