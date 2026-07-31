@@ -4,18 +4,34 @@
 step: run it when the source artwork changes, commit the output, and let the
 Rust side load the pre-rendered PNGs. Nothing here runs at runtime.
 
+The command that produced the committed frames:
+
 ```
-node scripts/build-dock-frames.mjs --base path/to/base-plate.png --blink path/to/blink-closed.png
+node scripts/build-dock-frames.mjs \
+  --base src/assets/base-plate.png \
+  --blink src/assets/blink-closed.png \
+  --travel 0.5
 ```
 
 Output lands in `src-tauri/assets/dock/`.
+
+The static bundled icon is a separate step — see [Icon grid](#icon-grid):
+
+```
+node scripts/build-app-icon.mjs
+npm run tauri icon src-tauri/icons/1024x1024.png
+```
 
 ## Why compositing instead of generated frames
 
 Generating each frame separately re-renders the background, oval geometry and
 glow every time, so a swap sequence jitters. Compositing one moving pupil onto a
-single base plate keeps every non-pupil pixel byte-identical — verified: frames
-differ in ~5% of pixels, all inside the pupil regions.
+single base plate keeps every non-pupil pixel byte-identical.
+
+The build checks this rather than assuming it: every frame is compared against
+`idle-center`, and the run fails if any differing pixel falls outside the region
+that frame is allowed to touch. Current output — gaze frames differ in ~4% of
+pixels, the blink in ~30%, none of them outside the eyes.
 
 ## Base plate
 
@@ -50,9 +66,22 @@ the mask instead:
 If the supplied base plate already has an alpha channel, the mask is skipped and
 the existing transparency is preserved.
 
-Note the icon body currently fills **95.4%** of the canvas. Apple's macOS grid
-puts it near 80%, so the icon renders noticeably larger than its Dock neighbours.
-Fixing that means rescaling the body inside the canvas — not currently done.
+## Icon grid
+
+The artwork fills **95.4%** of its canvas, which renders noticeably larger than
+its Dock neighbours. Apple's macOS grid puts the body at 824/1024 — **80.5%** —
+so `placeOnGrid()` rescales it to that and centres it. `--grid` overrides the
+fraction.
+
+The rescale and the downsize to `--size` are a single resampling pass, so no
+frame is filtered twice. Scale is uniform, taken from the body's longer edge, so
+a body that measures a pixel off square is not stretched.
+
+The same grid is applied to the static bundled icon by
+`scripts/build-app-icon.mjs`, which shares the `APPLE_GRID` and
+`FLOWPANE_SQUIRCLE` constants from `lib/raster.mjs`. That matters: the static
+icon is what the Dock falls back to if the animated frames fail to load, and if
+the two used different grids the icon would visibly change size on fallback.
 
 ## Pupil constants
 
@@ -78,8 +107,8 @@ separately: the surface normal at the highlight points straight at the light.
 
 `--travel` is the gaze offset as a fraction of the maximum in-eye travel
 (`halfWidth − r`), so the pupil can never leave the eye. The reference logo's own
-pupils sit at roughly 0.54 of that maximum; the default 0.3 reads noticeably
-calmer than the shipped logo.
+pupils sit at roughly 0.54 of that maximum, and the shipped frames are built with
+`--travel 0.5` to match it. The 0.3 default reads noticeably calmer.
 
 The roll traces an ellipse sized to each axis independently, so it follows the
 egg shape instead of clipping at the narrow top. Frame 1 is at the top, running
@@ -88,5 +117,27 @@ clockwise.
 ## Frames
 
 `idle-center`, `look-left`, `look-right`, `look-up`, `look-down`, `roll-1`…`roll-8`,
-plus `blink-closed` when `--blink` is supplied. The blink frame is a separate
-piece of artwork — it is passed through and resized, not composited.
+plus `blink-closed` when `--blink` is supplied.
+
+## The blink frame
+
+`blink-closed` is separate artwork rather than something the script can composite
+— there is no way to derive closed lids from open eyes. It is therefore an
+independent render, and its backdrop differs from the base plate's by about
+2/255 **across the whole canvas**, even where nothing changed. Resizing it and
+shipping it as-is would make every blink nudge the entire icon.
+
+So only the lids and the glow they cast are grafted onto the base plate;
+everything else comes from the plate itself. Measured falloff of the plate/blink
+difference, in source pixels beyond the eye bounding box:
+
+| Distance | 0–25 | 25–50 | 50–75 | 75–100 | 100–150 | 150+ |
+| --- | --- | --- | --- | --- | --- | --- |
+| Mean Δ | 12.7 | 6.7 | 4.5 | 3.4 | 2.5 | ~1 |
+
+`LID_GRAFT` takes the blink verbatim out to 60px and fades it out by 160px, well
+inside the noise floor. Past that the plate's pixels are copied rather than
+blended, so they stay byte-identical rather than merely close.
+
+This only works if both pieces of artwork agree on where the icon body sits; the
+build fails if they are more than a pixel apart.

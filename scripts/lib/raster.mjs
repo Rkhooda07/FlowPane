@@ -1,4 +1,14 @@
-// Small raster helpers shared by the dock-frame build step.
+// Small raster helpers shared by the icon build steps.
+
+/**
+ * Apple's macOS icon grid: an 824pt body on a 1024pt canvas. Everything that
+ * ends up in the Dock — the animated frames and the static bundled icon alike —
+ * is placed on this grid, so the app never changes size when it falls back.
+ */
+export const APPLE_GRID = 824 / 1024;
+
+/** Superellipse exponent measured against the FlowPane artwork's corners. */
+export const FLOWPANE_SQUIRCLE = 5.4;
 
 /** Perceptual luma of pixel `i` in an RGBA Uint8Array. */
 export const luma = (data, i) =>
@@ -144,6 +154,34 @@ export function hasAlpha({ width, height, data }) {
 }
 
 /**
+ * Locate the icon body — the rounded-square shape sitting on the flat backdrop.
+ *
+ * Prefers the alpha channel when the artwork already carries one, and falls back
+ * to thresholding just above the canvas-edge background level otherwise.
+ */
+export function bodyBounds(image) {
+  if (hasAlpha(image)) {
+    const { width, height, data } = image;
+    let x0 = width;
+    let x1 = 0;
+    let y0 = height;
+    let y1 = 0;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (data[(y * width + x) * 4 + 3] < 8) continue;
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    }
+    if (x1 < x0) throw new Error('Could not find an icon body — the canvas is fully transparent');
+    return { x0, x1, y0, y1 };
+  }
+  return findIconShape(image);
+}
+
+/**
  * Locate the icon body — the rounded-square shape sitting on the flat backdrop —
  * by thresholding just above the canvas-edge background level.
  */
@@ -212,34 +250,56 @@ export function applySquircleAlpha(image, { exponent = 5.4, feather = 1.5, bound
   return image;
 }
 
-/** Box-filter resize. Only used to go down in size, which is all this pipeline needs. */
-export function resize(image, size) {
-  if (image.width === size && image.height === size) return image;
-  const out = new Uint8Array(size * size * 4);
-  const sx = image.width / size;
-  const sy = image.height / size;
+/**
+ * Resample into a `size`×`size` canvas with the icon body scaled to `fraction`
+ * of the output edge and centred — Apple's macOS icon grid, which puts the body
+ * at 824/1024 of the canvas rather than filling it.
+ *
+ * The grid rescale and the final downsize are one box-filtered pass, so frames
+ * are never resampled twice. Scale is uniform, taken from the body's longer
+ * edge, so a body that measures a pixel off square is not stretched.
+ *
+ * Sampling clamps at the source edges: the ring between the shrunken body and
+ * the canvas edge picks up the flat backdrop, which the squircle mask then cuts
+ * away. Returns the body's new bounds and the source→output projection, so
+ * callers can carry measured features (eyes, pupils) into output space.
+ */
+export function placeOnGrid(image, { bounds, size, fraction }) {
+  const { width, height, data } = image;
+  const bw = bounds.x1 - bounds.x0 + 1;
+  const bh = bounds.y1 - bounds.y0 + 1;
 
+  const scale = (size * fraction) / Math.max(bw, bh);
+  const bcx = (bounds.x0 + bounds.x1 + 1) / 2; // body centre, continuous coords
+  const bcy = (bounds.y0 + bounds.y1 + 1) / 2;
+  const half = 0.5 / scale; // half a destination pixel, in source pixels
+
+  const out = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y++) {
-    const ya = Math.floor(y * sy);
-    const yb = Math.max(ya + 1, Math.floor((y + 1) * sy));
+    const sy = (y + 0.5 - size / 2) / scale + bcy;
+    const ya = clamp(Math.floor(sy - half), 0, height - 1);
+    const yb = clamp(Math.ceil(sy + half) - 1, 0, height - 1);
     for (let x = 0; x < size; x++) {
-      const xa = Math.floor(x * sx);
-      const xb = Math.max(xa + 1, Math.floor((x + 1) * sx));
+      const sx = (x + 0.5 - size / 2) / scale + bcx;
+      const xa = clamp(Math.floor(sx - half), 0, width - 1);
+      const xb = clamp(Math.ceil(sx + half) - 1, 0, width - 1);
+
       let r = 0;
       let g = 0;
       let b = 0;
       let a = 0;
       let n = 0;
-      for (let j = ya; j < yb; j++) {
-        for (let i = xa; i < xb; i++) {
-          const p = (j * image.width + i) * 4;
-          r += image.data[p];
-          g += image.data[p + 1];
-          b += image.data[p + 2];
-          a += image.data[p + 3];
+      for (let j = ya; j <= yb; j++) {
+        for (let i = xa; i <= xb; i++) {
+          const p = (j * width + i) * 4;
+          r += data[p];
+          g += data[p + 1];
+          b += data[p + 2];
+          a += data[p + 3];
           n++;
         }
       }
+
       const p = (y * size + x) * 4;
       out[p] = r / n;
       out[p + 1] = g / n;
@@ -248,5 +308,20 @@ export function resize(image, size) {
     }
   }
 
-  return { width: size, height: size, data: out };
+  const project = (x, y) => [
+    (x + 0.5 - bcx) * scale + size / 2 - 0.5,
+    (y + 0.5 - bcy) * scale + size / 2 - 0.5,
+  ];
+
+  return {
+    image: { width: size, height: size, data: out },
+    bounds: {
+      x0: Math.round(size / 2 - (bw * scale) / 2),
+      x1: Math.round(size / 2 + (bw * scale) / 2) - 1,
+      y0: Math.round(size / 2 - (bh * scale) / 2),
+      y1: Math.round(size / 2 + (bh * scale) / 2) - 1,
+    },
+    scale,
+    project,
+  };
 }

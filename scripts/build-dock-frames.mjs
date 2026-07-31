@@ -17,24 +17,39 @@
 //   --squircle <n>  Superellipse exponent for the alpha mask (default 5.4, the
 //                   measured fit to the FlowPane artwork). Ignored when the base
 //                   plate already carries an alpha channel.
+//   --grid <0..1>   Share of the canvas edge the icon body occupies. Default
+//                   824/1024 — Apple's macOS icon grid — so FlowPane sits at the
+//                   same visual size as its Dock neighbours.
 //
 // Run this when the source artwork changes and commit the output. The Rust side
 // loads the pre-rendered PNGs; nothing here runs at runtime.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { decodePNG, encodePNG } from './lib/png.mjs';
 import {
   findEyes,
-  findIconShape,
+  bodyBounds,
   inpaintDisc,
   applySquircleAlpha,
   hasAlpha,
-  resize,
+  placeOnGrid,
   clamp,
   smoothstep,
+  APPLE_GRID,
+  FLOWPANE_SQUIRCLE,
 } from './lib/raster.mjs';
+
+// The blink frame is separate artwork, so its backdrop is an independent render:
+// it differs from the base plate by ~2/255 across the whole canvas even where
+// nothing changed, which would make every blink nudge the entire icon. Only the
+// lids and the glow they cast are grafted onto the plate; the rest comes from
+// the plate itself. Measured falloff of the plate/blink difference, in native px
+// beyond the eye bounding box: ~13/255 at the edge, 3.4 by 100px, and level with
+// render noise past 150px — so the graft is opaque to `core` and fades out by
+// `core + feather`, well inside the noise floor.
+const LID_GRAFT = { core: 60, feather: 100 };
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -72,9 +87,10 @@ function parseArgs(argv) {
     out: join(ROOT, 'src-tauri/assets/dock'),
     size: 512,
     travel: 0.3,
-    squircle: 5.4,
+    squircle: FLOWPANE_SQUIRCLE,
+    grid: APPLE_GRID,
   };
-  const numeric = new Set(['size', 'travel', 'squircle']);
+  const numeric = new Set(['size', 'travel', 'squircle', 'grid']);
   for (let i = 0; i < argv.length; i += 2) {
     const key = argv[i].replace(/^--/, '');
     const value = argv[i + 1];
@@ -205,6 +221,109 @@ function renderFrame(plate, eyes, gazeX, gazeY, travel) {
   return frame;
 }
 
+/** Bounding box covering every supplied box. */
+function unionBox(boxes) {
+  return {
+    x0: Math.min(...boxes.map((b) => b.x0)),
+    x1: Math.max(...boxes.map((b) => b.x1)),
+    y0: Math.min(...boxes.map((b) => b.y0)),
+    y1: Math.max(...boxes.map((b) => b.y1)),
+  };
+}
+
+/** Distance from (x, y) to the box — 0 anywhere inside it. */
+function distanceOutside(box, x, y) {
+  const u = Math.max(0, box.x0 - x, x - box.x1);
+  const v = Math.max(0, box.y0 - y, y - box.y1);
+  return Math.hypot(u, v);
+}
+
+/**
+ * Take the closed lids and their glow from the blink artwork and everything else
+ * from the base plate, so a blink cannot shift the icon body or its backdrop.
+ * Pixels past the graft's reach are copied verbatim rather than blended, so they
+ * stay byte-identical rather than merely close.
+ */
+function graftLids(plate, blink, eyeBox) {
+  const out = { width: plate.width, height: plate.height, data: Uint8Array.from(plate.data) };
+  const { core, feather } = LID_GRAFT;
+
+  for (let y = 0; y < plate.height; y++) {
+    for (let x = 0; x < plate.width; x++) {
+      const w = 1 - smoothstep(core, core + feather, distanceOutside(eyeBox, x, y));
+      if (w <= 0) continue;
+
+      const i = (y * plate.width + x) * 4;
+      for (let c = 0; c < 4; c++) {
+        out.data[i + c] = clamp(
+          Math.round(plate.data[i + c] + (blink.data[i + c] - plate.data[i + c]) * w),
+          0,
+          255
+        );
+      }
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Every frame must be byte-identical to `idle-center` outside the region the
+ * animation is allowed to touch — that is what stops the swap sequence from
+ * jittering. Compare each frame against it and report where the differences
+ * actually landed.
+ */
+function checkRegistration(frames, allowed) {
+  const reference = frames.get('idle-center');
+
+  let clean = true;
+  for (const [name, frame] of frames) {
+    if (name === 'idle-center') continue;
+
+    const boxes = allowed.get(name);
+    const inside = (x, y) =>
+      boxes.some((b) => x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1);
+
+    const { width, height, data } = frame;
+    let count = 0;
+    let stray = 0;
+    let x0 = width;
+    let x1 = -1;
+    let y0 = height;
+    let y1 = -1;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        if (
+          data[i] === reference.data[i] &&
+          data[i + 1] === reference.data[i + 1] &&
+          data[i + 2] === reference.data[i + 2] &&
+          data[i + 3] === reference.data[i + 3]
+        ) {
+          continue;
+        }
+        count++;
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+        if (!inside(x, y)) stray++;
+      }
+    }
+
+    const share = ((count / (width * height)) * 100).toFixed(2);
+    const box = count ? `x=[${x0}..${x1}] y=[${y0}..${y1}]` : 'none';
+    if (stray) clean = false;
+    console.log(
+      `  ${name.padEnd(13)} ${share.padStart(5)}% differ  ${box.padEnd(28)}` +
+        (stray ? `FAIL — ${stray} px outside the eyes` : 'ok')
+    );
+  }
+
+  return clean;
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
 
@@ -217,19 +336,17 @@ function main() {
       : `base plate: derived from src/assets/FlowPane_logo.png (${plate.width}x${plate.height})`
   );
 
-  // Dock icons composite over the Dock's own backdrop, so the area outside the
-  // squircle has to be truly transparent. Image generators cannot produce an
-  // alpha channel, so cut it here unless the plate already has one.
-  if (hasAlpha(plate)) {
-    console.log('  alpha: base plate already has transparency, left as-is');
-  } else {
-    const shape = findIconShape(plate);
-    applySquircleAlpha(plate, { exponent: args.squircle, bounds: shape });
-    console.log(
-      `  alpha: cut squircle (n=${args.squircle}) at ` +
-        `x=[${shape.x0}..${shape.x1}] y=[${shape.y0}..${shape.y1}]`
-    );
-  }
+  // The artwork fills ~95% of its canvas; Apple's grid puts the body near 80%,
+  // so the icon is rescaled into the canvas rather than cropped or padded. The
+  // same transform runs on every frame — including the separately drawn blink —
+  // so nothing shifts between them.
+  const plateBounds = bodyBounds(plate);
+  const plateOpaque = !hasAlpha(plate);
+  console.log(
+    `  body: x=[${plateBounds.x0}..${plateBounds.x1}] y=[${plateBounds.y0}..${plateBounds.y1}] ` +
+      `= ${(((plateBounds.x1 - plateBounds.x0 + 1) / plate.width) * 100).toFixed(1)}% of canvas ` +
+      `-> ${(args.grid * 100).toFixed(1)}% (Apple grid)`
+  );
 
   const eyes = findEyes(plate);
   for (const [n, eye] of eyes.entries()) {
@@ -242,7 +359,7 @@ function main() {
 
   // Gaze directions as unit offsets; the roll traces an ellipse so it stays
   // inside the egg-shaped eye rather than clipping at the narrow top.
-  const frames = [
+  const specs = [
     ['idle-center', 0, 0],
     ['look-left', -1, 0],
     ['look-right', 1, 0],
@@ -251,26 +368,104 @@ function main() {
   ];
   for (let n = 1; n <= 8; n++) {
     const theta = -Math.PI / 2 + ((n - 1) / 8) * Math.PI * 2; // top, clockwise
-    frames.push([`roll-${n}`, Math.cos(theta), Math.sin(theta)]);
+    specs.push([`roll-${n}`, Math.cos(theta), Math.sin(theta)]);
   }
 
   mkdirSync(args.out, { recursive: true });
 
-  for (const [name, gx, gy] of frames) {
-    const frame = renderFrame(plate, eyes, gx, gy, args.travel);
-    writeFileSync(join(args.out, `${name}.png`), encodePNG(resize(frame, args.size)));
-    console.log(`  wrote ${name}.png`);
+  // Pupils are composited at the artwork's native resolution, then the grid
+  // rescale and the downsize to --size happen in a single resampling pass.
+  const written = new Map();
+  const allowed = new Map();
+  let eyeBoxes = null;
+  let toOutput = null;
+
+  for (const [name, gx, gy] of specs) {
+    const native = renderFrame(plate, eyes, gx, gy, args.travel);
+    const placed = placeOnGrid(native, {
+      bounds: plateBounds,
+      size: args.size,
+      fraction: args.grid,
+    });
+
+    // Dock icons composite over the Dock's own backdrop, so everything outside
+    // the squircle has to be truly transparent. Image generators cannot emit an
+    // alpha channel, so cut it here unless the artwork already has one.
+    if (plateOpaque) {
+      applySquircleAlpha(placed.image, { exponent: args.squircle, bounds: placed.bounds });
+    }
+
+    if (!eyeBoxes) {
+      // The box filter reaches about half a destination pixel into its
+      // neighbours, so allow a pixel of bleed around each mapped region.
+      toOutput = (box, pad = 0) => {
+        const [x0, y0] = placed.project(box.x0 - pad, box.y0 - pad);
+        const [x1, y1] = placed.project(box.x1 + pad, box.y1 + pad);
+        return {
+          x0: Math.floor(x0) - 1,
+          x1: Math.ceil(x1) + 1,
+          y0: Math.floor(y0) - 1,
+          y1: Math.ceil(y1) + 1,
+        };
+      };
+      eyeBoxes = eyes.map((eye) => toOutput(eye.bounds));
+      console.log(
+        `  placed: body x=[${placed.bounds.x0}..${placed.bounds.x1}] ` +
+          `y=[${placed.bounds.y0}..${placed.bounds.y1}] on a ${args.size}px canvas ` +
+          `(scale ${placed.scale.toFixed(4)})` +
+          (plateOpaque ? `, squircle n=${args.squircle}` : ', existing alpha kept')
+      );
+    }
+
+    writeFileSync(join(args.out, `${name}.png`), encodePNG(placed.image));
+    written.set(name, placed.image);
+    allowed.set(name, eyeBoxes);
   }
 
   if (args.blink) {
     const blink = decodePNG(readFileSync(resolve(args.blink)));
-    writeFileSync(join(args.out, 'blink-closed.png'), encodePNG(resize(blink, args.size)));
-    console.log('  wrote blink-closed.png');
+    const blinkBounds = bodyBounds(blink);
+    const drift = Math.max(
+      Math.abs(blinkBounds.x0 - plateBounds.x0),
+      Math.abs(blinkBounds.x1 - plateBounds.x1),
+      Math.abs(blinkBounds.y0 - plateBounds.y0),
+      Math.abs(blinkBounds.y1 - plateBounds.y1)
+    );
+    if (drift > 1) {
+      // The lids are grafted onto the plate, which only works if the two pieces
+      // of artwork agree on where the icon body sits.
+      throw new Error(
+        `blink body x=[${blinkBounds.x0}..${blinkBounds.x1}] y=[${blinkBounds.y0}..${blinkBounds.y1}] ` +
+          `is ${drift}px off the base plate's — re-export the pair from the same composition`
+      );
+    }
+
+    const eyeBox = unionBox(eyes.map((eye) => eye.bounds));
+    const placed = placeOnGrid(graftLids(plate, blink, eyeBox), {
+      bounds: plateBounds,
+      size: args.size,
+      fraction: args.grid,
+    });
+    if (plateOpaque) {
+      applySquircleAlpha(placed.image, { exponent: args.squircle, bounds: placed.bounds });
+    }
+
+    console.log(
+      `  blink: lids grafted onto the plate within ${LID_GRAFT.core}px of the eyes, ` +
+        `fading out by ${LID_GRAFT.core + LID_GRAFT.feather}px`
+    );
+    writeFileSync(join(args.out, 'blink-closed.png'), encodePNG(placed.image));
+    written.set('blink-closed', placed.image);
+    allowed.set('blink-closed', [toOutput(eyeBox, LID_GRAFT.core + LID_GRAFT.feather)]);
   } else {
     console.log('  skipped blink-closed.png (no --blink supplied)');
   }
 
-  console.log(`\n${frames.length + (args.blink ? 1 : 0)} frames -> ${args.out}`);
+  console.log(`\n${written.size} frames -> ${args.out}\n\nregistration vs idle-center:`);
+  if (!checkRegistration(written, allowed)) {
+    throw new Error('frames differ outside the eye regions — they would jitter when swapped');
+  }
+  console.log('  all frames byte-identical outside the pupil/eyelid regions');
 }
 
 try {
