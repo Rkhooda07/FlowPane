@@ -101,12 +101,30 @@
   font-weight: 400;
 }
 
-#app.notes-active .navbar-note-title {
+/* Notes view: the title stays a static, draggable label until it is clicked.
+   Only then does the editable input take its place. */
+#app.notes-active.note-title-editing .navbar-note-title {
   display: block;
 }
 
-#app.notes-active .navbar-title-text {
+#app.notes-active.note-title-editing .navbar-title-text {
   display: none;
+}
+
+#app.notes-active .navbar-title-text {
+  cursor: pointer; /* Locked label: click to unlock. The input itself uses cursor: text */
+  padding: 2px 8px;
+  border-radius: 6px;
+  transition: background 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#app.notes-active .navbar-title-text:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.navbar-title-text.is-placeholder {
+  color: rgba(255, 255, 255, 0.28);
+  font-weight: 400;
 }
 
 #app.notes-active .navbar-home-link {

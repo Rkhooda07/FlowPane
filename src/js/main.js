@@ -16,6 +16,7 @@ const MIN_EXPAND_LOCK_MS = 800;
 const REMINDER_POPUP_AUTO_CLOSE_MS = 300_000;
 const BUBBLE_TYPEWRITER_TICK_MS = 30;
 const DOCK_SAFETY_GAP_PX = 20;
+const UNTITLED_NOTE_LABEL = 'Untitled note';
 const EYE_PUPIL_MAX_BOUND = 4.0;
 let isCreatingAppWindow = false;
 
@@ -1005,7 +1006,7 @@ function buildNoteItem(note, noteId) {
 
   const title = document.createElement('div');
   title.className = 'task-title note-entry-title';
-  title.textContent = ((note.navbarTitle || '').trim() || note.title.trim() || 'Untitled note').replace(/\s+/g, ' ').slice(0, 72);
+  title.textContent = ((note.navbarTitle || '').trim() || note.title.trim() || UNTITLED_NOTE_LABEL).replace(/\s+/g, ' ').slice(0, 72);
 
   const subtitle = document.createElement('div');
   subtitle.className = 'task-due note-entry-subtitle';
@@ -1587,10 +1588,36 @@ function isNotesViewActive() {
   return Boolean(activeNoteId && appElement.classList.contains('notes-active'));
 }
 
+// Never write the class unconditionally: a class MutationObserver on #app watches
+// this element, and classList always re-sets the attribute, which would re-fire it.
+function setNoteTitleEditing(active) {
+  if (appElement.classList.contains('note-title-editing') === active) return;
+  appElement.classList.toggle('note-title-editing', active);
+}
+
 function resetNavbarNoteTitle() {
   navbarTitleSynced = true;
+  setNoteTitleEditing(false);
   const navbarNoteTitleEl = document.getElementById('navbar-note-title');
   if (navbarNoteTitleEl) navbarNoteTitleEl.value = '';
+}
+
+// The notes navbar title is a plain (draggable) label until the user clicks it.
+function beginNavbarTitleEdit() {
+  if (!isNotesViewActive() || !navbarNoteTitleInput) return;
+  if (appElement.classList.contains('note-title-editing')) return;
+  // Collapsed bars are a click-to-expand surface, not an editing surface
+  if (appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x')) return;
+  setNoteTitleEditing(true);
+  navbarNoteTitleInput.focus();
+  navbarNoteTitleInput.select();
+}
+
+function endNavbarTitleEdit() {
+  if (!appElement.classList.contains('note-title-editing')) return;
+  setNoteTitleEditing(false);
+  if (navbarNoteTitleInput) navbarNoteTitleInput.blur();
+  updateNavbarTitle(getCurrentViewTitle());
 }
 
 function restoreHomeNavbarTitle() {
@@ -1636,7 +1663,8 @@ function openNote(tab, noteId, themeIdSuggestion) {
     notesBodyEditor.setSelectionRange(bodyEnd, bodyEnd);
   }
 
-  // Swap static title text for editable input
+  // Notes open with the navbar title locked; clicking it starts editing.
+  setNoteTitleEditing(false);
   const navbarNoteTitleEl = document.getElementById('navbar-note-title');
   if (navbarNoteTitleEl) {
     if (note.navbarTitle) {
@@ -1716,6 +1744,10 @@ function goToHomeView() {
 
 new MutationObserver(() => {
   restoreHomeNavbarTitle();
+  // Collapsing while renaming locks the title back down
+  if (appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x')) {
+    endNavbarTitleEdit();
+  }
 }).observe(appElement, { attributes: true, attributeFilter: ['class'] });
 
 notesWorkspace.addEventListener('transitionend', (e) => {
@@ -1859,6 +1891,11 @@ homeNavLinks.forEach(link => {
       suppressNextClick = false;
       return;
     }
+    // In notes view a click (not a drag) unlocks the title for editing
+    if (link === mainTitle && isNotesViewActive()) {
+      beginNavbarTitleEdit();
+      return;
+    }
     // Prevent redirect to home if in focus/notes mode for better UX
     if (!isInFocusMode && !activeNoteId) {
       goToHomeView();
@@ -1866,8 +1903,13 @@ homeNavLinks.forEach(link => {
   });
 
   link.addEventListener('keydown', (e) => {
+    if (e.target !== link) return; // Ignore keys typed in the nested title input
     if (e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();
+    if (link === mainTitle && isNotesViewActive()) {
+      beginNavbarTitleEdit();
+      return;
+    }
     // Same guard for key navigation
     if (!isInFocusMode && !activeNoteId) {
       goToHomeView();
@@ -1895,6 +1937,15 @@ if (navbarNoteTitleInput) {
     if (noteAutoSaveTimeout) clearTimeout(noteAutoSaveTimeout);
     noteAutoSaveTimeout = setTimeout(persistNotesDrafts, 500);
   });
+
+  navbarNoteTitleInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== 'Escape') return;
+    e.preventDefault();
+    e.stopPropagation(); // Escape must not reach the handler that closes the note
+    endNavbarTitleEdit();
+  });
+
+  navbarNoteTitleInput.addEventListener('blur', endNavbarTitleEdit);
 }
 
 document.querySelectorAll('.title-bar').forEach(titleBar => {
@@ -3530,7 +3581,7 @@ function getCurrentViewTitle() {
     const navbarNoteTitleEl = document.getElementById('navbar-note-title');
     const navbarName = navbarNoteTitleEl ? navbarNoteTitleEl.value.trim() : '';
     const bodyTitle = notesTitleInput ? notesTitleInput.value.trim() : '';
-    return navbarName || bodyTitle || 'Untitled Note';
+    return navbarName || bodyTitle || UNTITLED_NOTE_LABEL;
   }
   return 'FlowPane';
 }
@@ -3566,6 +3617,13 @@ function updateNavbarTitle(title) {
 
   setNodeText(mainTitle, title);
   setNodeText(focusTitle, title);
+
+  // Dim the label when it stands in for an unnamed note (mirrors the input placeholder)
+  const isPlaceholder = isNotesViewActive() && title === UNTITLED_NOTE_LABEL;
+  [mainTitle, focusTitle].forEach(element => {
+    const span = element && element.querySelector('.navbar-title-text');
+    if (span) span.classList.toggle('is-placeholder', isPlaceholder);
+  });
 }
 
 // Helper function to update navbar timer
