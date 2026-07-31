@@ -124,21 +124,61 @@ function crc32(buffer) {
   return (c ^ -1) >>> 0;
 }
 
-/** Encode RGBA pixels into a PNG buffer, Paeth-filtered for a smaller file. */
+/** The byte a given filter type predicts for position `x` of row `row`. */
+function predict(type, data, row, prev, x, hasPrev) {
+  const a = x >= 4 ? data[row + x - 4] : 0;
+  const b = hasPrev ? data[prev + x] : 0;
+  const c = x >= 4 && hasPrev ? data[prev + x - 4] : 0;
+
+  switch (type) {
+    case 0: return 0;
+    case 1: return a;
+    case 2: return b;
+    case 3: return (a + b) >> 1;
+    default: return paethPredictor(a, b, c);
+  }
+}
+
+/**
+ * Encode RGBA pixels into a PNG buffer.
+ *
+ * Filters are chosen per row rather than fixed: each of the five is scored by
+ * the minimum-sum-of-absolute-differences heuristic from the PNG spec and the
+ * cheapest wins. Costs five passes over each row at build time and gives deflate
+ * a flatter stream to work with — worth it for bytes that ship in the binary.
+ */
 export function encodePNG({ width, height, data }) {
   const stride = width * 4;
   const raw = Buffer.alloc(height * (stride + 1));
+  const candidate = Buffer.alloc(stride);
+  const best = Buffer.alloc(stride);
 
   for (let y = 0; y < height; y++) {
-    const dst = y * (stride + 1);
-    raw[dst] = 4; // Paeth
-    for (let x = 0; x < stride; x++) {
-      const i = y * stride + x;
-      const a = x >= 4 ? data[i - 4] : 0;
-      const b = y > 0 ? data[i - stride] : 0;
-      const c = x >= 4 && y > 0 ? data[i - stride - 4] : 0;
-      raw[dst + 1 + x] = (data[i] - paethPredictor(a, b, c)) & 0xff;
+    const row = y * stride;
+    const prev = row - stride;
+    const hasPrev = y > 0;
+
+    let bestType = 0;
+    let bestScore = Infinity;
+
+    for (let type = 0; type <= 4; type++) {
+      let score = 0;
+      for (let x = 0; x < stride; x++) {
+        const value = (data[row + x] - predict(type, data, row, prev, x, hasPrev)) & 0xff;
+        candidate[x] = value;
+        // Bytes are scored as signed, so small corrections either way stay cheap.
+        score += value < 128 ? value : 256 - value;
+      }
+      if (score < bestScore) {
+        bestScore = score;
+        bestType = type;
+        candidate.copy(best);
+      }
     }
+
+    const dst = y * (stride + 1);
+    raw[dst] = bestType;
+    best.copy(raw, dst + 1);
   }
 
   const ihdr = Buffer.alloc(13);

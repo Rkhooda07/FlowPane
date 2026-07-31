@@ -4,7 +4,7 @@
 //   node scripts/build-app-icon.mjs [options]
 //   npm run tauri icon src-tauri/icons/1024x1024.png
 //
-//   --source <png>  Source artwork (default src/assets/FlowPane_logo.png).
+//   --source <png>  Source artwork (default artwork/FlowPane_logo.png).
 //   --out <dir>     Icon directory (default src-tauri/icons).
 //
 // This is the static icon macOS shows in Finder, Spotlight and the Cmd-Tab
@@ -41,7 +41,7 @@ const SIZES = [1024, 512, 256];
 
 function parseArgs(argv) {
   const args = {
-    source: join(ROOT, 'src/assets/FlowPane_logo.png'),
+    source: join(ROOT, 'artwork/FlowPane_logo.png'),
     out: join(ROOT, 'src-tauri/icons'),
   };
   for (let i = 0; i < argv.length; i += 2) {

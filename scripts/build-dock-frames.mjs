@@ -7,12 +7,15 @@
 //   node scripts/build-dock-frames.mjs [options]
 //
 //   --base <png>    Base plate: eye whites, glow, background, no pupils.
-//                   Defaults to deriving one from src/assets/FlowPane_logo.png
+//                   Defaults to deriving one from artwork/FlowPane_logo.png
 //                   by inpainting its pupils away.
 //   --blink <png>   Closed-eye frame. Passed through and resized; skipped if absent.
 //   --out <dir>     Output directory (default src-tauri/assets/dock).
-//   --size <px>     Output edge length (default 512). The largest standard Dock
-//                   icon is 128pt, so 512 already leaves Retina headroom.
+//   --size <px>     Output edge length (default 256). The Dock tops out at
+//                   128pt, which is 256px on a Retina display — so 256 is an
+//                   exact 1:1 match with no upscaling and nothing wasted.
+//                   These bytes ship inside the binary, so the difference is
+//                   real: 512 costs ~2.3 MB for the set, 256 costs ~0.6 MB.
 //   --travel <0..1> Gaze offset as a fraction of the maximum in-eye travel.
 //   --squircle <n>  Superellipse exponent for the alpha mask (default 5.4, the
 //                   measured fit to the FlowPane artwork). Ignored when the base
@@ -66,7 +69,7 @@ const REST = [
   [0.233, -0.268],
 ];
 
-// ── Pupil appearance, sampled from src/assets/FlowPane_logo.png ──────────────
+// ── Pupil appearance, sampled from artwork/FlowPane_logo.png ──────────────
 // See the table in scripts/README-dock-frames.md for how these were measured.
 const PUPIL = {
   radiusRatio: 0.353,           // of the eye white's half-width
@@ -99,7 +102,7 @@ function parseArgs(argv) {
     base: null,
     blink: null,
     out: join(ROOT, 'src-tauri/assets/dock'),
-    size: 512,
+    size: 256,
     travel: 0.3,
     squircle: FLOWPANE_SQUIRCLE,
     grid: APPLE_GRID,
@@ -117,7 +120,7 @@ function parseArgs(argv) {
 
 /** Derive a base plate from the shipped logo by erasing its pupils. */
 function deriveBasePlate() {
-  const logoPath = join(ROOT, 'src/assets/FlowPane_logo.png');
+  const logoPath = join(ROOT, 'artwork/FlowPane_logo.png');
   const image = decodePNG(readFileSync(logoPath));
   const eyes = findEyes(image);
 
@@ -394,7 +397,7 @@ function main() {
   console.log(
     args.base
       ? `base plate: ${args.base} (${plate.width}x${plate.height})`
-      : `base plate: derived from src/assets/FlowPane_logo.png (${plate.width}x${plate.height})`
+      : `base plate: derived from artwork/FlowPane_logo.png (${plate.width}x${plate.height})`
   );
 
   // The artwork fills ~95% of its canvas; Apple's grid puts the body near 80%,

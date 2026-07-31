@@ -8,12 +8,20 @@ The command that produced the committed frames:
 
 ```
 node scripts/build-dock-frames.mjs \
-  --base src/assets/base-plate.png \
-  --blink src/assets/blink-closed.png \
+  --base artwork/base-plate.png \
+  --blink artwork/blink-closed.png \
   --travel 0.5
 ```
 
 Output lands in `src-tauri/assets/dock/`.
+
+## Frame resolution
+
+Frames are 256px, and that is deliberate rather than conservative. The Dock tops
+out at 128pt, which is 256px on a Retina display — so 256 is an exact 1:1 match
+with no upscaling and no wasted pixels. The frames are embedded in the binary
+with `include_bytes!`, so the difference ships with every download: the set costs
+~0.6 MB at 256px against ~2.3 MB at 512px.
 
 The static bundled icon is a separate step — see [Icon grid](#icon-grid):
 
@@ -43,7 +51,7 @@ region in each half.
 Transparency is handled here, not in the artwork — see below.
 
 With no `--base`, the script derives a stand-in by inpainting the pupils out of
-`src/assets/FlowPane_logo.png`. That is a stopgap for reviewing motion — the fill
+`artwork/FlowPane_logo.png`. That is a stopgap for reviewing motion — the fill
 flattens the eye-white gradient where the old pupils were. Supply a real plate
 for shipping.
 
@@ -85,7 +93,7 @@ the two used different grids the icon would visibly change size on fallback.
 
 ## Pupil constants
 
-Measured from `src/assets/FlowPane_logo.png` (1254×1254). All positions are in
+Measured from `artwork/FlowPane_logo.png` (1254×1254). All positions are in
 units of the pupil radius `r`; `r` itself is a fraction of the eye's half-width.
 
 | Property | Measured | Constant |
