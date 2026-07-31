@@ -1,3 +1,8 @@
+/// Animated Dock icon. macOS-only — the module is not compiled on other
+/// platforms, so nothing about it reaches the Windows build.
+#[cfg(target_os = "macos")]
+mod dock_icon;
+
 #[cfg(target_os = "windows")]
 use std::sync::atomic::Ordering;
 use std::sync::atomic::AtomicU64;
@@ -426,6 +431,11 @@ pub fn run() {
             // Background task to track mouse hover for inactive windows.
             spawn_hover_tracker(app.handle().clone());
 
+            // Start the eyes blinking and glancing around in the Dock. Falls
+            // back to the bundled icon on its own if it cannot get going.
+            #[cfg(target_os = "macos")]
+            dock_icon::start(app.handle());
+
             #[cfg(target_os = "linux")]
             {
                 // Simple check for compositor on Linux
@@ -480,7 +490,17 @@ pub fn run() {
             mark_app_window_active,
             close_app_window
         ])
-        .run(tauri::generate_context!())
+        .build(tauri::generate_context!())
         // Intentional panic: if the event loop can't start there is nothing to recover to.
-        .expect("error while running tauri application");
+        .expect("error while running tauri application")
+        .run(|_app, event| {
+            // Stop the Dock animation before the event loop goes away, so no
+            // timer task is left holding a handle to it.
+            #[cfg(target_os = "macos")]
+            if matches!(event, tauri::RunEvent::Exit) {
+                dock_icon::shutdown();
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = event;
+        });
 }
