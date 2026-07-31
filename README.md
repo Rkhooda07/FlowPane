@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="src/assets/FlowPane_logo.png" alt="FlowPane Logo" width="80" />
+<img src="artwork/FlowPane_logo.png" alt="FlowPane Logo" width="80" />
 
 # FlowPane
 
@@ -26,11 +26,11 @@
 
 | Task List | Focus Mode | Edge Collapsed |
 |:---------:|:----------:|:--------------:|
-| <img src="src/assets/task-list.png" alt="Task List" width="300" /> | <img src="src/assets/focus-timer.png" alt="Focus Mode" width="300" /> | <img src="src/assets/edge-collapsed.png" alt="Edge Collapsed" width="300" /> |
+| <img src="docs/screenshots/task-list.png" alt="Task List" width="300" /> | <img src="docs/screenshots/focus-timer.png" alt="Focus Mode" width="300" /> | <img src="docs/screenshots/edge-collapsed.png" alt="Edge Collapsed" width="300" /> |
 
 | Due Date Picker | Notes | Completed Tasks |
 |:--------------:|:-----:|:---------------:|
-| <img src="src/assets/due-date-picker.png" alt="Due Date Picker" width="300" /> | <img src="src/assets/notes.png" alt="Notes" width="300" /> | <img src="src/assets/completed-task.png" alt="Completed Tasks" width="300" /> |
+| <img src="docs/screenshots/due-date-picker.png" alt="Due Date Picker" width="300" /> | <img src="docs/screenshots/notes.png" alt="Notes" width="300" /> | <img src="docs/screenshots/completed-task.png" alt="Completed Tasks" width="300" /> |
 
 ---
 

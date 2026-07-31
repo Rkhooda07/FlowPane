@@ -30,3 +30,6 @@ releases/
 *.pem
 *.p12
 *.key
+
+# Playwright MCP scratch output
+.playwright-mcp/
