@@ -1,4 +1,4 @@
-import { DUE_BLOCKS, quotes, congratsMessages, ALL_WINDOWS_SIZE, PEEK_SIZE_Y, PEEK_SIZE_X, COLLAPSED_SIZE_Y, COLLAPSED_REMINDER_SIZE_Y, COLLAPSED_SIZE_X, COLLAPSED_SIZE_Y_BUBBLE, COLLAPSED_SIZE_X_BUBBLE, HOVER_PEEK_DELAY_MS, HOVER_PEEK_RETRY_MS, SIDE_NOTIFICATION_BUBBLE_DURATION_MS, MANUAL_DRAG_EXPAND_DURATION_MS, NATIVE_EDGE_SNAP_THRESHOLD, NATIVE_SIDE_SNAP_MIN_WIDTH_RATIO, NATIVE_TOP_SNAP_MIN_WIDTH_RATIO, NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO, DRAG_GESTURE_IDLE_END_MS, SNAP_THRESHOLD } from './constants.js';
+import { DUE_BLOCKS, quotes, congratsMessages, SIGNATURE_EYE_MESSAGE, eyeBubbleMessages, ALL_WINDOWS_SIZE, PEEK_SIZE_Y, PEEK_SIZE_X, COLLAPSED_SIZE_Y, COLLAPSED_REMINDER_SIZE_Y, COLLAPSED_SIZE_X, COLLAPSED_SIZE_Y_BUBBLE, COLLAPSED_SIZE_X_BUBBLE, HOVER_PEEK_DELAY_MS, HOVER_PEEK_RETRY_MS, SIDE_NOTIFICATION_BUBBLE_DURATION_MS, MANUAL_DRAG_EXPAND_DURATION_MS, NATIVE_EDGE_SNAP_THRESHOLD, NATIVE_SIDE_SNAP_MIN_WIDTH_RATIO, NATIVE_TOP_SNAP_MIN_WIDTH_RATIO, NATIVE_EDGE_SNAP_MIN_HEIGHT_RATIO, DRAG_GESTURE_IDLE_END_MS, SNAP_THRESHOLD } from './constants.js';
 import { parseMaskedDate, formatDateTimeHuman, normalizeDueInputValue, normalizeDueBlockValue, getDueBlockFromSelection, setDueBlockValue, formatDueBlockForEditing, capitalizeFirstLetter, tokenizeBubbleHTML, renderBubbleTokens } from './utils.js';
 import { warmAudio, playReminderTone, playCollapseExpandSound, playTaskCreateSound, playTaskDeleteSound, playFallbackDeleteSound, playTimesUpSound, playVictorySound } from './audio.js';
 
@@ -17,6 +17,14 @@ const REMINDER_POPUP_AUTO_CLOSE_MS = 300_000;
 const BUBBLE_TYPEWRITER_TICK_MS = 30;
 const DOCK_SAFETY_GAP_PX = 20;
 const UNTITLED_NOTE_LABEL = 'Untitled note';
+// PERF: cursor tracking cadence. 30Hz is indistinguishable from per-frame for
+// pupil movement but costs a third of the IPC traffic.
+const CURSOR_POLL_INTERVAL_MS = 33;
+// Cursor far from the window: the eyes barely move, so sample eight times less.
+const CURSOR_POLL_IDLE_INTERVAL_MS = 250;
+const CURSOR_NEAR_MARGIN_PX = 260;
+const EYE_CENTRE_TTL_MS = 500;
+const WINDOW_FRAME_RESYNC_MS = 500;
 const EYE_PUPIL_MAX_BOUND = 4.0;
 let isCreatingAppWindow = false;
 
@@ -1050,7 +1058,24 @@ function buildNoteItem(note, noteId) {
   return li;
 }
 
+// PERF: renderTasks() rebuilds the task list and the history list from scratch.
+// Typing paths (note title/body) call it on every keystroke, while the lists sit
+// behind the notes workspace and cannot be seen — so coalesce those rebuilds.
+let renderTasksTimeout = null;
+function scheduleRenderTasks(delay = 150) {
+  if (renderTasksTimeout) clearTimeout(renderTasksTimeout);
+  renderTasksTimeout = setTimeout(() => {
+    renderTasksTimeout = null;
+    renderTasks();
+  }, delay);
+}
+
 function renderTasks() {
+  if (renderTasksTimeout) {
+    clearTimeout(renderTasksTimeout);
+    renderTasksTimeout = null;
+  }
+
   const taskList = document.getElementById('task-list');
   taskList.innerHTML = '';
 
@@ -1723,8 +1748,8 @@ function autoSaveActiveNote() {
       updatedAt: Date.now()
     };
   }
-  
-  renderTasks();
+
+  scheduleRenderTasks();
 
   // Sync navbar title in real-time
   updateNavbarTitle(getCurrentViewTitle());
@@ -1744,6 +1769,7 @@ function goToHomeView() {
 
 new MutationObserver(() => {
   restoreHomeNavbarTitle();
+  invalidateEyeCentres(); // View changes move the eyes; re-measure on next tick
   // Collapsing while renaming locks the title back down
   if (appElement.classList.contains('collapsed-y') || appElement.classList.contains('collapsed-x')) {
     endNavbarTitleEdit();
@@ -1933,7 +1959,7 @@ if (navbarNoteTitleInput) {
       navbarTitleSynced = false;
       noteDrafts[activeNoteId].navbarTitle = navbarNoteTitleInput.value;
     }
-    renderTasks();
+    scheduleRenderTasks();
     if (noteAutoSaveTimeout) clearTimeout(noteAutoSaveTimeout);
     noteAutoSaveTimeout = setTimeout(persistNotesDrafts, 500);
   });
@@ -2813,6 +2839,16 @@ let moveProcessingPending = false;
 let moveProcessingLastPos = null;
 
 appWindow.onMoved(async (event) => {
+  // PERF: feed the cursor-tracking frame from the event payload instead of
+  // polling innerPosition(). The window is undecorated, so its outer position
+  // (what the payload carries) is also its inner position.
+  if (event && event.payload) {
+    windowFrame.x = event.payload.x;
+    windowFrame.y = event.payload.y;
+    windowFrame.ready = true;
+  }
+  scheduleWindowFrameResync();
+
   if (isAnimating || drag.isDockMinimizing || drag.isRestoringFromDock) return;
 
   // Windows: stamp move time in Rust so the hover tracker can back off during drags.
@@ -3685,14 +3721,103 @@ window.addEventListener('resize', updateFilterPill);
 });
 
 // Googly Eyes Cursor Tracking
-// Clean up previous event listener if it still exists (not really needed since we replace the code, but conceptually)
-let globalEyeRafId = null;
+//
+// PERF: this is the only always-on loop in the app, so it is built to do as
+// little as possible. The original version issued three IPC round-trips per
+// animation frame (cursor position + window position + scale factor). Each of
+// those hops to the Rust main thread — the same thread that runs the native
+// event loop — so with several windows open the main thread saturated and macOS
+// showed the spinning beachball. Now:
+//   - window position/scale come from cached values refreshed by move/resize
+//     events, so the steady-state cost is one IPC call per tick;
+//   - the tick is a timer at CURSOR_POLL_INTERVAL_MS instead of every frame,
+//     and backs off to CURSOR_POLL_IDLE_INTERVAL_MS when the cursor is nowhere
+//     near the window;
+//   - DOM work is skipped entirely while the cursor is parked;
+//   - element measurements are cached and only re-read when layout changes.
+let lastCursorX = null;
+let lastCursorY = null;
+let pseudoHoverActive = false;
+
+// Physical window origin + scale, kept fresh by events rather than polled.
+const windowFrame = { x: 0, y: 0, scale: 1, ready: false };
+let windowFrameRefreshing = false;
+
+async function refreshWindowFrame() {
+  if (windowFrameRefreshing) return;
+  windowFrameRefreshing = true;
+  try {
+    const [pos, scale] = await Promise.all([appWindow.innerPosition(), appWindow.scaleFactor()]);
+    windowFrame.x = pos.x;
+    windowFrame.y = pos.y;
+    windowFrame.scale = scale || 1;
+    windowFrame.ready = true;
+  } catch (err) {
+    // Leave the previous frame in place; the next event will retry.
+  } finally {
+    windowFrameRefreshing = false;
+  }
+}
+
+refreshWindowFrame();
+
+// Move events carry the new position, so the frame is normally updated for free
+// (see onMoved). This is only a slow-cadence correction for anything that moves
+// the window without an event — never more than one round-trip every 500ms.
+let lastWindowFrameSyncAt = 0;
+function scheduleWindowFrameResync() {
+  const now = Date.now();
+  if (now - lastWindowFrameSyncAt < WINDOW_FRAME_RESYNC_MS) return;
+  lastWindowFrameSyncAt = now;
+  refreshWindowFrame();
+}
+
+// Cached eye centres. getBoundingClientRect() forces layout, so it is only
+// re-read when something that can move the eyes has happened — plus a short TTL
+// so mid-transition measurements can never stick.
+let eyeCentres = null;
+let eyeCentresAt = 0;
+function invalidateEyeCentres() {
+  eyeCentres = null;
+}
+
+function getEyeCentres() {
+  const now = Date.now();
+  if (eyeCentres && now - eyeCentresAt < EYE_CENTRE_TTL_MS) return eyeCentres;
+  eyeCentresAt = now;
+  eyeCentres = [];
+  eyes.forEach(eye => {
+    const pupil = eye.querySelector('.pupil');
+    if (!pupil) return;
+    const rect = eye.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return; // hidden in this view
+    eyeCentres.push({ pupil, cx: rect.left + rect.width / 2, cy: rect.top + rect.height / 2 });
+  });
+  return eyeCentres;
+}
+
+window.addEventListener('resize', invalidateEyeCentres);
 
 function updatePseudoHover(logicalX, logicalY) {
+  const inside = logicalX >= 0 && logicalY >= 0 &&
+    logicalX <= window.innerWidth && logicalY <= window.innerHeight;
+
+  if (!inside) {
+    // Clear once on the way out instead of querying the DOM every tick.
+    if (pseudoHoverActive) {
+      document.querySelectorAll('.pseudo-hover').forEach(el => el.classList.remove('pseudo-hover'));
+      pseudoHoverActive = false;
+    }
+    return;
+  }
+
   const hoveredEl = document.elementFromPoint(logicalX, logicalY);
-  document.querySelectorAll('.pseudo-hover').forEach(el => {
-    if (!hoveredEl || !el.contains(hoveredEl)) el.classList.remove('pseudo-hover');
-  });
+  if (pseudoHoverActive) {
+    document.querySelectorAll('.pseudo-hover').forEach(el => {
+      if (!hoveredEl || !el.contains(hoveredEl)) el.classList.remove('pseudo-hover');
+    });
+    pseudoHoverActive = false;
+  }
   if (hoveredEl) {
     let curr = hoveredEl;
     while (curr && curr !== document.body) {
@@ -3702,6 +3827,7 @@ function updatePseudoHover(logicalX, logicalY) {
           curr.classList.contains('filter-btn') ||
           curr.classList.contains('task-reminder-btn')) {
         curr.classList.add('pseudo-hover');
+        pseudoHoverActive = true;
       }
       curr = curr.parentElement;
     }
@@ -3709,35 +3835,88 @@ function updatePseudoHover(logicalX, logicalY) {
 }
 
 function updateEyePupils(logicalX, logicalY) {
-  eyes.forEach(eye => {
-    const pupil = eye.querySelector('.pupil');
-    if (!pupil) return;
-    const rect = eye.getBoundingClientRect();
-    const dx = logicalX - (rect.left + rect.width / 2);
-    const dy = logicalY - (rect.top + rect.height / 2);
+  getEyeCentres().forEach(({ pupil, cx, cy }) => {
+    const dx = logicalX - cx;
+    const dy = logicalY - cy;
     const angle = Math.atan2(dy, dx);
     const dist = Math.min(Math.sqrt(dx * dx + dy * dy), EYE_PUPIL_MAX_BOUND);
     pupil.style.transform = `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px)`;
   });
 }
 
-async function trackCursorGlobally() {
+// How close the cursor has to be before tracking runs at full rate. Beyond it
+// the pupils are barely moving on screen, so a slower cadence is invisible.
+function cursorPollDelay(logicalX, logicalY) {
+  const nearLeft = -CURSOR_NEAR_MARGIN_PX;
+  const nearTop = -CURSOR_NEAR_MARGIN_PX;
+  const nearRight = window.innerWidth + CURSOR_NEAR_MARGIN_PX;
+  const nearBottom = window.innerHeight + CURSOR_NEAR_MARGIN_PX;
+  const near = logicalX >= nearLeft && logicalX <= nearRight &&
+    logicalY >= nearTop && logicalY <= nearBottom;
+  return near ? CURSOR_POLL_INTERVAL_MS : CURSOR_POLL_IDLE_INTERVAL_MS;
+}
+
+async function pollCursor() {
+  if (!windowFrame.ready) {
+    await refreshWindowFrame();
+    if (!windowFrame.ready) return CURSOR_POLL_IDLE_INTERVAL_MS;
+  }
+
+  let pos;
   try {
-    const pos = await window.__TAURI__.core.invoke("get_cursor_position");
-    const winPos = await appWindow.innerPosition();
-    const scale = await appWindow.scaleFactor();
-    const logicalX = (pos[0] - winPos.x) / scale;
-    const logicalY = (pos[1] - winPos.y) / scale;
+    pos = await window.__TAURI__.core.invoke('get_cursor_position');
+  } catch (err) {
+    return CURSOR_POLL_IDLE_INTERVAL_MS; // Transient failure; back off and retry.
+  }
+
+  const logicalX = (pos[0] - windowFrame.x) / windowFrame.scale;
+  const logicalY = (pos[1] - windowFrame.y) / windowFrame.scale;
+
+  // A parked cursor is the common case — do no DOM work at all for it.
+  if (pos[0] !== lastCursorX || pos[1] !== lastCursorY) {
+    lastCursorX = pos[0];
+    lastCursorY = pos[1];
     updatePseudoHover(logicalX, logicalY);
     updateEyePupils(logicalX, logicalY);
-  } catch (err) {
-    // Silently continue if something temporarily fails
   }
-  globalEyeRafId = requestAnimationFrame(trackCursorGlobally);
+
+  return cursorPollDelay(logicalX, logicalY);
+}
+
+// A self-scheduling timer rather than requestAnimationFrame: the window is
+// always-on-top and therefore almost never occluded, so rAF's "pause when
+// hidden" behaviour buys nothing while its 60Hz tick keeps the whole rendering
+// pipeline awake. One timer at the cadence we actually need is cheaper.
+let cursorPollTimer = null;
+
+function scheduleCursorPoll(delay) {
+  if (cursorPollTimer != null) clearTimeout(cursorPollTimer);
+  cursorPollTimer = setTimeout(runCursorPoll, delay);
+}
+
+async function runCursorPoll() {
+  cursorPollTimer = null;
+
+  if (document.hidden) {
+    scheduleCursorPoll(CURSOR_POLL_IDLE_INTERVAL_MS);
+    return;
+  }
+
+  let delay = CURSOR_POLL_INTERVAL_MS;
+  try {
+    delay = await pollCursor();
+  } finally {
+    scheduleCursorPoll(delay);
+  }
 }
 
 // Start tracking immediately
-trackCursorGlobally();
+runCursorPoll();
+
+// Resume at full rate as soon as the window is on screen again.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) scheduleCursorPoll(CURSOR_POLL_INTERVAL_MS);
+});
 
 function clearEyeMessageAnimationTimers() {
   if (eyeTimers.reveal != null) {
@@ -3782,12 +3961,14 @@ async function showRightBubbleMessage(fullHTML, durationMs = 3000) {
     if (!appElement.classList.contains('collapsed-x') || !appElement.classList.contains('collapsed-right')) return;
     if (peek.active || appElement.classList.contains('peeking')) return;
 
+    // The message goes with the command: the overlay lives in its own window,
+    // so this is the only way it can learn what to say.
     await window.__TAURI__.core.invoke('show_eye_bubble_overlay', {
       x: Math.round(overlayX),
-      y: Math.round(currentPos.y)
+      y: Math.round(currentPos.y),
+      html: fullHTML,
+      durationMs
     });
-    const payload = JSON.stringify({ html: fullHTML, durationMs });
-    await appWindow.eval(`window.showEyeBubbleFromHost && window.showEyeBubbleFromHost(${payload})`);
 
     eyeTimers.dismissFade = setTimeout(() => {
       eyeTimers.dismissFade = null;
@@ -3851,11 +4032,17 @@ function runBubbleTypewriter(bubble, tokens, durationMs, onDone) {
   }, durationMs);
 }
 
+function canShowCollapsedBubble() {
+  const collapsed = appElement.classList.contains('collapsed-y') ||
+    appElement.classList.contains('collapsed-x');
+  if (!collapsed) return false;
+  return !(peek.active || appElement.classList.contains('peeking'));
+}
+
 async function showCollapsedBubbleMessage(fullHTML, durationMs = 3000) {
   const isCollapsedY = appElement.classList.contains('collapsed-y');
   const isCollapsedX = appElement.classList.contains('collapsed-x');
-  if (!isCollapsedY && !isCollapsedX) return;
-  if (peek.active || appElement.classList.contains('peeking')) return;
+  if (!canShowCollapsedBubble()) return;
 
   if (isCollapsedX && appElement.classList.contains('collapsed-right')) {
     await showRightBubbleMessage(fullHTML, durationMs);
@@ -4013,9 +4200,44 @@ async function suppressEyeMessageBubble() {
   }
 }
 
+// The signature line greets the first collapse of a session; after that the
+// bubble draws from a shuffled queue so no message repeats until the whole pool
+// has been seen.
+let eyeMessageQueue = [];
+let signatureEyeMessageShown = false;
+let lastEyeMessage = null;
+
+function nextEyeMessage() {
+  if (!signatureEyeMessageShown) {
+    signatureEyeMessageShown = true;
+    lastEyeMessage = SIGNATURE_EYE_MESSAGE;
+    return SIGNATURE_EYE_MESSAGE;
+  }
+
+  if (eyeMessageQueue.length === 0) {
+    eyeMessageQueue = eyeBubbleMessages.slice();
+    for (let i = eyeMessageQueue.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [eyeMessageQueue[i], eyeMessageQueue[j]] = [eyeMessageQueue[j], eyeMessageQueue[i]];
+    }
+    // A fresh shuffle can start with the line the previous one ended on, which
+    // would read as a repeat. Push it out of the way.
+    const last = eyeMessageQueue.length - 1;
+    if (last > 0 && eyeMessageQueue[last] === lastEyeMessage) {
+      [eyeMessageQueue[last], eyeMessageQueue[0]] = [eyeMessageQueue[0], eyeMessageQueue[last]];
+    }
+  }
+
+  lastEyeMessage = eyeMessageQueue.pop();
+  return lastEyeMessage;
+}
+
 async function showEyeMessage() {
   if (isNotificationActive) return;
-  await showCollapsedBubbleMessage('i got my<br>eyes on you', 3000);
+  // Check first: taking a message off the queue only to bail out would burn the
+  // signature greeting on a bubble nobody sees.
+  if (!canShowCollapsedBubble()) return;
+  await showCollapsedBubbleMessage(nextEyeMessage(), 3000);
 }
 
 // Production Release UX Polish

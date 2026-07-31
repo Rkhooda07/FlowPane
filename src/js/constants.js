@@ -43,6 +43,25 @@ export const quotes = [
   "Flow is the state of effortless action."
 ];
 
+// Eye bubble copy. The signature line is always the first one a session shows;
+// everything after it is drawn from the pool below. Keep entries to two short
+// lines — the thought bubble is small and the text is typed out character by
+// character, so anything longer overflows and outlasts its welcome.
+export const SIGNATURE_EYE_MESSAGE = 'i got my<br>eyes on you';
+
+export const eyeBubbleMessages = [
+  "how's it<br>going?",
+  'what are you<br>working on?',
+  'still here,<br>still watching',
+  'one task<br>at a time',
+  'psst...<br>i see you',
+  'need a<br>hand?',
+  'back to it<br>when ready',
+  'you got<br>this',
+  'take a<br>breather?',
+  "don't forget<br>your list"
+];
+
 export const congratsMessages = [
   "Great focus. Keep this momentum going.",
   "One step closer to your goals. Well done.",

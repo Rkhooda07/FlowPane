@@ -22,6 +22,39 @@ use {
     },
 };
 
+/// Makes a window follow the user across desktops instead of belonging to the
+/// one it was created on. FlowPane is a floating always-visible pane, so being
+/// stranded on a single macOS Space (or Windows virtual desktop) defeats it.
+///
+/// `set_visible_on_all_workspaces` covers the Spaces case on every platform. On
+/// macOS a Space running a full-screen app is a separate case that flag does not
+/// reach — that needs `NSWindowCollectionBehaviorFullScreenAuxiliary`, which is
+/// added on top of whatever collection behaviour Tauri just set.
+fn float_across_workspaces(window: &WebviewWindow) {
+    let _ = window.set_visible_on_all_workspaces(true);
+
+    #[cfg(target_os = "macos")]
+    {
+        use objc2_app_kit::{NSWindow, NSWindowCollectionBehavior};
+
+        let Ok(handle) = window.ns_window() else {
+            return;
+        };
+        if handle.is_null() {
+            return;
+        }
+
+        // Safety: ns_window() hands back the live NSWindow for this webview, and
+        // Tauri only resolves it on the main thread, where AppKit requires it.
+        unsafe {
+            let ns_window = &*(handle as *const NSWindow);
+            let behavior =
+                ns_window.collectionBehavior() | NSWindowCollectionBehavior::FullScreenAuxiliary;
+            ns_window.setCollectionBehavior(behavior);
+        }
+    }
+}
+
 /// Clears WS_THICKFRAME from the window style so Windows Snap Assist (AeroSnap)
 /// treats FlowPane as non-resizable from OS perspective and won't intercept edge drags.
 #[cfg(target_os = "windows")]
@@ -248,8 +281,17 @@ fn get_cursor_position(app: tauri::AppHandle) -> Result<(f64, f64), String> {
     }
 }
 
+/// The message is carried all the way through to the overlay window. Emitting
+/// without it would leave `bubble.html` to fall back to its built-in default,
+/// which is why the right-edge bubble used to show the same line every time.
 #[tauri::command]
-fn show_eye_bubble_overlay(app: tauri::AppHandle, x: i32, y: i32) -> Result<(), String> {
+fn show_eye_bubble_overlay(
+    app: tauri::AppHandle,
+    x: i32,
+    y: i32,
+    html: String,
+    duration_ms: u64,
+) -> Result<(), String> {
     let window = app
         .get_webview_window("eye-bubble")
         .ok_or_else(|| "Eye bubble overlay window not found".to_string())?;
@@ -261,10 +303,17 @@ fn show_eye_bubble_overlay(app: tauri::AppHandle, x: i32, y: i32) -> Result<(), 
     let _ = window.set_focusable(false);
     let _ = window.set_always_on_top(true);
     window.show().map_err(|e| e.to_string())?;
+
+    let payload = serde_json::json!({ "html": html, "durationMs": duration_ms });
     window
-        .emit("eye-bubble:show", ())
+        .emit("eye-bubble:show", payload.clone())
         .map_err(|e| e.to_string())?;
-    let _ = window.eval("window.showEyeBubbleFromHost && window.showEyeBubbleFromHost()");
+    // Belt and braces: the event is lost if the overlay's listener is not
+    // registered yet. Both paths carry the same payload and bubble.html
+    // debounces, so whichever lands first wins and the other is ignored.
+    let _ = window.eval(format!(
+        "window.showEyeBubbleFromHost && window.showEyeBubbleFromHost({payload})"
+    ));
 
     Ok(())
 }
@@ -349,6 +398,7 @@ fn create_app_window(
             .build()
             .map_err(|e| e.to_string())?;
 
+    float_across_workspaces(&new_window);
     let _ = new_window.set_focus();
     remember_app_window_order(&hover_state, &label)?;
 
@@ -390,6 +440,8 @@ pub fn run() {
             let hover_state = app.state::<HoverTrackerState>();
             remember_app_window_order(&hover_state, window.label())?;
 
+            float_across_workspaces(&window);
+
             // Windows: remove WS_THICKFRAME to suppress AeroSnap (Windows Snap Assist).
             // FlowPane manages its own edge-snap; letting the OS also snap creates a
             // feedback loop between onMoved events and the AeroSnap position/resize that
@@ -427,6 +479,8 @@ pub fn run() {
             #[cfg(target_os = "windows")]
             let _ = apply_acrylic(&bubble_window, None);
             let _ = bubble_window.set_ignore_cursor_events(true);
+            // The bubble belongs beside the pane, so it has to travel with it.
+            float_across_workspaces(&bubble_window);
 
             // Background task to track mouse hover for inactive windows.
             spawn_hover_tracker(app.handle().clone());

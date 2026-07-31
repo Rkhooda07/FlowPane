@@ -265,8 +265,11 @@
     window.showEyeBubbleFromHost = showBubble;
     window.hideEyeBubbleFromHost = resetBubble;
 
-    window.__TAURI__.event.listen('eye-bubble:show', showBubble);
-    window.__TAURI__.event.listen('eye-bubble:hide', resetBubble);
+    // listen() hands the handler the whole event object, so the message lives
+    // in `.payload` — passing the event straight to showBubble would leave
+    // payload.html undefined and fall back to the default text every time.
+    window.__TAURI__.event.listen('eye-bubble:show', (event) => showBubble(event?.payload || {}));
+    window.__TAURI__.event.listen('eye-bubble:hide', () => resetBubble());
   </script>
 </body>
 

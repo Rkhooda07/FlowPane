@@ -20,6 +20,7 @@
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
+        "visibleOnAllWorkspaces": true,
         "shadow": false,
         "acceptFirstMouse": true
       }
