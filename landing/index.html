@@ -10,12 +10,15 @@
   <meta property="og:title" content="FlowPane — floats above, never in the way">
   <meta property="og:description" content="A translucent, always-on-top task pane for macOS. Snaps to the edge, collapses to a sliver, focuses with a timer.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://flowpane.app/">
-  <meta property="og:image" content="assets/images/og-image.png">
+  <meta property="og:url" content="https://flowpane.vercel.app/">
+  <!-- Absolute, not relative: scrapers fetch these out of page context. -->
+  <meta property="og:image" content="https://flowpane.vercel.app/assets/images/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="FlowPane — floats above, never in the way">
   <meta name="twitter:description" content="A translucent, always-on-top task pane for macOS.">
-  <meta name="twitter:image" content="assets/images/og-image.png">
+  <meta name="twitter:image" content="https://flowpane.vercel.app/assets/images/og-image.png">
+
+  <link rel="canonical" href="https://flowpane.vercel.app/">
 
   <title>FlowPane — floats above, never in the way</title>
 
@@ -48,6 +51,26 @@
         <li><a href="#get" class="nav__link">Download</a></li>
       </ul>
 
+      <ul class="social nav__social" role="list">
+        <li>
+          <a class="social__link" href="https://github.com/rkhooda" target="_blank" rel="noopener noreferrer" aria-label="Rakshit Hooda on GitHub" title="GitHub">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.08 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.21.7.83.58A12 12 0 0 0 12 .5Z"/></svg>
+          </a>
+        </li>
+        <li>
+          <a class="social__link" href="https://www.linkedin.com/in/rakshit-hooda/" target="_blank" rel="noopener noreferrer" aria-label="Rakshit Hooda on LinkedIn" title="LinkedIn">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05a3.74 3.74 0 0 1 3.37-1.85c3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14Zm1.78 13.02H3.55V9h3.57v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0Z"/></svg>
+          </a>
+        </li>
+        <li>
+          <!-- Discord has no public profile URL for a username, so this copies
+               the handle instead of linking somewhere that would 404. -->
+          <button type="button" class="social__link social__copy" data-copy="rk_hooda" aria-label="Copy Discord username rk_hooda" title="Discord: rk_hooda">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.32 4.37A19.79 19.79 0 0 0 15.43 2.85a.07.07 0 0 0-.08.04c-.21.38-.44.87-.61 1.25a18.27 18.27 0 0 0-5.48 0c-.17-.39-.4-.87-.62-1.25a.08.08 0 0 0-.08-.04A19.74 19.74 0 0 0 3.68 4.37a.07.07 0 0 0-.03.03C.53 9.05-.32 13.58.1 18.06c0 .02.01.04.03.05a19.9 19.9 0 0 0 5.99 3.03.08.08 0 0 0 .08-.03c.46-.63.87-1.29 1.23-1.99a.08.08 0 0 0-.04-.11c-.65-.25-1.27-.54-1.87-.89a.08.08 0 0 1 0-.13l.37-.29a.07.07 0 0 1 .08 0 14.2 14.2 0 0 0 12.06 0 .07.07 0 0 1 .08 0l.37.29a.08.08 0 0 1 0 .13c-.6.35-1.22.64-1.87.89a.08.08 0 0 0-.04.11c.36.7.78 1.36 1.23 1.99a.08.08 0 0 0 .08.03 19.84 19.84 0 0 0 6-3.03.08.08 0 0 0 .03-.05c.5-5.18-.84-9.67-3.55-13.66a.06.06 0 0 0-.03-.03ZM8.02 15.33c-1.18 0-2.16-1.08-2.16-2.42s.95-2.42 2.16-2.42c1.21 0 2.18 1.09 2.16 2.42 0 1.34-.95 2.42-2.16 2.42Zm7.97 0c-1.18 0-2.16-1.08-2.16-2.42s.95-2.42 2.16-2.42c1.21 0 2.18 1.09 2.16 2.42 0 1.34-.94 2.42-2.16 2.42Z"/></svg>
+          </button>
+        </li>
+      </ul>
+
       <a href="#get" class="btn btn--ember nav__cta">Get FlowPane</a>
 
       <button class="nav__burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
@@ -64,6 +87,25 @@
       <li><a href="#get">Download</a></li>
     </ul>
     <a href="#get" class="btn btn--ember btn--lg drawer__cta">Get FlowPane</a>
+
+    <!-- The nav's icon row is hidden on small screens, so it lives here too. -->
+    <ul class="social drawer__social" role="list">
+      <li>
+        <a class="social__link" href="https://github.com/rkhooda" target="_blank" rel="noopener noreferrer" aria-label="Rakshit Hooda on GitHub">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.08 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.21.7.83.58A12 12 0 0 0 12 .5Z"/></svg>
+        </a>
+      </li>
+      <li>
+        <a class="social__link" href="https://www.linkedin.com/in/rakshit-hooda/" target="_blank" rel="noopener noreferrer" aria-label="Rakshit Hooda on LinkedIn">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05a3.74 3.74 0 0 1 3.37-1.85c3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14Zm1.78 13.02H3.55V9h3.57v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0Z"/></svg>
+        </a>
+      </li>
+      <li>
+        <button type="button" class="social__link social__copy" data-copy="rk_hooda" aria-label="Copy Discord username rk_hooda">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.32 4.37A19.79 19.79 0 0 0 15.43 2.85a.07.07 0 0 0-.08.04c-.21.38-.44.87-.61 1.25a18.27 18.27 0 0 0-5.48 0c-.17-.39-.4-.87-.62-1.25a.08.08 0 0 0-.08-.04A19.74 19.74 0 0 0 3.68 4.37a.07.07 0 0 0-.03.03C.53 9.05-.32 13.58.1 18.06c0 .02.01.04.03.05a19.9 19.9 0 0 0 5.99 3.03.08.08 0 0 0 .08-.03c.46-.63.87-1.29 1.23-1.99a.08.08 0 0 0-.04-.11c-.65-.25-1.27-.54-1.87-.89a.08.08 0 0 1 0-.13l.37-.29a.07.07 0 0 1 .08 0 14.2 14.2 0 0 0 12.06 0 .07.07 0 0 1 .08 0l.37.29a.08.08 0 0 1 0 .13c-.6.35-1.22.64-1.87.89a.08.08 0 0 0-.04.11c.36.7.78 1.36 1.23 1.99a.08.08 0 0 0 .08.03 19.84 19.84 0 0 0 6-3.03.08.08 0 0 0 .03-.05c.5-5.18-.84-9.67-3.55-13.66a.06.06 0 0 0-.03-.03ZM8.02 15.33c-1.18 0-2.16-1.08-2.16-2.42s.95-2.42 2.16-2.42c1.21 0 2.18 1.09 2.16 2.42 0 1.34-.95 2.42-2.16 2.42Zm7.97 0c-1.18 0-2.16-1.08-2.16-2.42s.95-2.42 2.16-2.42c1.21 0 2.18 1.09 2.16 2.42 0 1.34-.94 2.42-2.16 2.42Z"/></svg>
+        </button>
+      </li>
+    </ul>
   </div>
 
   <main>
@@ -599,8 +641,40 @@
         <li><a href="https://github.com/rkhooda/FlowPane/issues" target="_blank" rel="noopener noreferrer">Issues</a></li>
         <li><a href="mailto:hello@flowpane.app">Contact</a></li>
       </ul>
-      <p class="mono foot__note">Built with Tauri 2 · © 2026</p>
+
+      <!-- ── Credits ── -->
+      <div class="credit">
+        <p class="credit__by">
+          Designed &amp; built by
+          <a class="credit__name" href="https://github.com/rkhooda" target="_blank" rel="noopener noreferrer">Rakshit Hooda</a>
+        </p>
+
+        <ul class="social credit__social" role="list">
+          <li>
+            <a class="social__link" href="https://github.com/rkhooda" target="_blank" rel="noopener noreferrer" aria-label="Rakshit Hooda on GitHub" title="GitHub">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.08 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.21.7.83.58A12 12 0 0 0 12 .5Z"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="social__link" href="https://www.linkedin.com/in/rakshit-hooda/" target="_blank" rel="noopener noreferrer" aria-label="Rakshit Hooda on LinkedIn" title="LinkedIn">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05a3.74 3.74 0 0 1 3.37-1.85c3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14Zm1.78 13.02H3.55V9h3.57v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0Z"/></svg>
+            </a>
+          </li>
+          <li>
+            <button type="button" class="social__link social__copy" data-copy="rk_hooda" aria-label="Copy Discord username rk_hooda" title="Discord: rk_hooda">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.32 4.37A19.79 19.79 0 0 0 15.43 2.85a.07.07 0 0 0-.08.04c-.21.38-.44.87-.61 1.25a18.27 18.27 0 0 0-5.48 0c-.17-.39-.4-.87-.62-1.25a.08.08 0 0 0-.08-.04A19.74 19.74 0 0 0 3.68 4.37a.07.07 0 0 0-.03.03C.53 9.05-.32 13.58.1 18.06c0 .02.01.04.03.05a19.9 19.9 0 0 0 5.99 3.03.08.08 0 0 0 .08-.03c.46-.63.87-1.29 1.23-1.99a.08.08 0 0 0-.04-.11c-.65-.25-1.27-.54-1.87-.89a.08.08 0 0 1 0-.13l.37-.29a.07.07 0 0 1 .08 0 14.2 14.2 0 0 0 12.06 0 .07.07 0 0 1 .08 0l.37.29a.08.08 0 0 1 0 .13c-.6.35-1.22.64-1.87.89a.08.08 0 0 0-.04.11c.36.7.78 1.36 1.23 1.99a.08.08 0 0 0 .08.03 19.84 19.84 0 0 0 6-3.03.08.08 0 0 0 .03-.05c.5-5.18-.84-9.67-3.55-13.66a.06.06 0 0 0-.03-.03ZM8.02 15.33c-1.18 0-2.16-1.08-2.16-2.42s.95-2.42 2.16-2.42c1.21 0 2.18 1.09 2.16 2.42 0 1.34-.95 2.42-2.16 2.42Zm7.97 0c-1.18 0-2.16-1.08-2.16-2.42s.95-2.42 2.16-2.42c1.21 0 2.18 1.09 2.16 2.42 0 1.34-.94 2.42-2.16 2.42Z"/></svg>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <p class="mono foot__note">
+        Built with Tauri 2 · <a href="https://flowpane.vercel.app/">flowpane.vercel.app</a> · © 2026
+      </p>
     </div>
+
+    <!-- Announces the copy result to screen readers. -->
+    <p class="sr-only" role="status" aria-live="polite" id="copy-status"></p>
   </footer>
 
   <script type="module" src="js/main.js"></script>

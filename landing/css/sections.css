@@ -2850,3 +2850,142 @@ body.is-dragging-pane {
   /* Narrow screens: keep the bubble mostly over the pane so it can't clip */
   .bubble { right: calc(100% - 122px); }
 }
+
+/* ══════════════ SOCIAL & CREDITS ══════════════
+   One icon-row component, reused in the nav, the mobile drawer and the footer.
+   Icons carry no visible label, so every control names itself via aria-label. */
+
+.social {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  list-style: none;
+}
+
+.social__link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+  transition:
+    color var(--dur-2) var(--ease-flat),
+    background-color var(--dur-2) var(--ease-flat);
+}
+
+.social__link svg {
+  display: block;
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+}
+
+.social__link:hover {
+  color: var(--ember);
+  background: var(--ember-wash);
+}
+
+.social__link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Copy confirmation for the Discord handle — Discord has no public profile URL
+   for a username, so the control copies rather than navigates. */
+.social__copy::after {
+  content: 'Copied';
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  translate: -50% 4px;
+  padding: 3px 8px;
+  border-radius: var(--r-sm);
+  background: var(--ember);
+  color: var(--void);
+  font-size: var(--t-mono);
+  font-weight: var(--w-semi);
+  letter-spacing: var(--track-tight);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-2) var(--ease-flat),
+    translate var(--dur-2) var(--ease-glide);
+}
+
+.social__copy.is-copied::after {
+  opacity: 1;
+  translate: -50% 0;
+}
+
+.social__copy.is-copied {
+  color: var(--ember);
+  background: var(--ember-wash);
+}
+
+/* Nav row follows the same breakpoint as the text links. */
+.nav__social { display: none; }
+
+@media (min-width: 800px) {
+  .nav__social { display: flex; }
+}
+
+/* The drawer nudges links right on hover; icon buttons should not shift. */
+.drawer__social {
+  gap: var(--s-2);
+  margin-top: var(--s-6);
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--rim-quiet);
+}
+
+.drawer__social a.social__link:hover { padding-left: 0; }
+
+/* ── Credits ── */
+.credit {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--rim-quiet);
+}
+
+.credit__by {
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+.credit__name {
+  position: relative;
+  color: var(--text-1);
+  font-weight: var(--w-medium);
+  transition: color var(--dur-2) var(--ease-flat);
+}
+
+.credit__name::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -2px;
+  height: 1px;
+  background: var(--ember);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-3) var(--ease-glide);
+}
+
+.credit__name:hover { color: var(--ember); }
+.credit__name:hover::after { transform: scaleX(1); }
+
+/* The credit block now carries the divider, so the note below drops its own. */
+.foot__note { border-top: 0; padding-top: var(--s-4); }
+.foot__note a { color: var(--text-3); transition: color var(--dur-2) var(--ease-flat); }
+.foot__note a:hover { color: var(--ember); }

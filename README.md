@@ -6,11 +6,14 @@
 
 **A translucent, always-on-top task manager that lives at the edge of your screen.**
 
+[![Website](https://img.shields.io/badge/website-flowpane.vercel.app-ff9f43)](https://flowpane.vercel.app/)
 [![macOS](https://img.shields.io/badge/macOS-12.0%2B-black?logo=apple&logoColor=white)](https://github.com/rkhooda/FlowPane/releases)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/rkhooda/FlowPane/releases)
 [![License](https://img.shields.io/github/license/rkhooda/FlowPane)](LICENSE)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-24c8db?logo=tauri&logoColor=white)](https://v2.tauri.app)
 [![Privacy](https://img.shields.io/badge/privacy-no%20data%20collected-green)](PRIVACY_POLICY.md)
+
+**[flowpane.vercel.app](https://flowpane.vercel.app/)**
 
 [Download](#installation) · [Features](#features) · [Screenshots](#screenshots) · [Build from Source](#build-from-source)
 
@@ -68,7 +71,7 @@ Everything stays on your machine. No accounts, no sync, no analytics. Tasks and 
 
 ### macOS
 
-1. Download `FlowPane_x.x.x_aarch64.dmg` from the [Releases](https://github.com/rkhooda/FlowPane/releases) page.
+1. Download `FlowPane_x.x.x_aarch64.dmg` from [flowpane.vercel.app](https://flowpane.vercel.app/) or the [Releases](https://github.com/rkhooda/FlowPane/releases) page.
 2. Open the `.dmg` and drag **FlowPane** to your Applications folder.
 3. On first launch, right-click the app and choose **Open** to bypass the Gatekeeper prompt (unsigned build).
 

@@ -34,7 +34,7 @@
     "targets": ["app", "dmg"],
     "publisher": "FlowPane Team",
     "copyright": "Copyright © 2026 FlowPane Team",
-    "homepage": "https://github.com/rkhooda/FlowPane",
+    "homepage": "https://flowpane.vercel.app",
     "category": "Productivity",
     "shortDescription": "A translucent, always-on-top desktop utility.",
     "macOS": {

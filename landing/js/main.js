@@ -1418,3 +1418,60 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
 /* Download links are plain links: the browser takes the .dmg straight from
    GitHub Releases. Nothing here intercepts them — no scrolling, no
    redirect — so a click does one thing only. */
+
+/* ═════════ COPY-TO-CLIPBOARD ═════════
+
+   Discord exposes no public profile URL for a username, so the Discord control
+   copies the handle rather than linking somewhere that would 404. Falls back to
+   a hidden textarea + execCommand where the async clipboard API is unavailable
+   (older Safari, and any non-secure context). */
+
+const copyStatus = document.getElementById('copy-status');
+
+async function copyText(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      /* Permission denied or not a secure context — fall through. */
+    }
+  }
+
+  const scratch = document.createElement('textarea');
+  scratch.value = text;
+  scratch.setAttribute('readonly', '');
+  scratch.style.cssText = 'position:fixed;top:0;left:-9999px;opacity:0';
+  document.body.appendChild(scratch);
+  scratch.select();
+
+  let ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch {
+    ok = false;
+  }
+  scratch.remove();
+  return ok;
+}
+
+document.querySelectorAll('.social__copy').forEach((button) => {
+  let clear;
+
+  button.addEventListener('click', async () => {
+    const text = button.dataset.copy;
+    if (!text) return;
+
+    const ok = await copyText(text);
+
+    // Say the handle either way, so a failed copy is still useful.
+    if (copyStatus) {
+      copyStatus.textContent = ok ? `Copied ${text} to clipboard` : `Discord username: ${text}`;
+    }
+    if (!ok) return;
+
+    button.classList.add('is-copied');
+    clearTimeout(clear);
+    clear = setTimeout(() => button.classList.remove('is-copied'), 1600);
+  });
+});
