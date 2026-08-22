@@ -33,3 +33,4 @@ releases/
 
 # Playwright MCP scratch output
 .playwright-mcp/
+video-src/
